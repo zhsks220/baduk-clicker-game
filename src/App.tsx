@@ -869,11 +869,19 @@ function AgeRatingBadge({ onComplete }: { onComplete: () => void }) {
 
   return (
     <div className="age-rating-overlay" onClick={() => { setVisible(false); onComplete(); }}>
-      <div className="age-rating-badge">
-        <span className="age-rating-text">전체이용가</span>
-        <span className="age-rating-sub">All Ages</span>
+      <div className="age-rating-content">
+        <div className="age-rating-badge">
+          <span className="age-rating-text">전체이용가</span>
+          <span className="age-rating-sub">All Ages</span>
+        </div>
+        <div className="age-rating-info">
+          <p className="info-item"><span>게임명:</span> 바둑돌 부수기</p>
+          <p className="info-item"><span>제작사:</span> 체스왕국 스튜디오</p>
+          <p className="info-item"><span>등급분류:</span> 전체이용가</p>
+          <p className="info-item"><span>내용정보:</span> 폭력성 없음, 선정성 없음</p>
+        </div>
       </div>
-      <p style={{ color: 'rgba(255,255,255,0.5)', marginTop: '30px', fontSize: '0.9rem' }}>
+      <p style={{ color: 'rgba(255,255,255,0.5)', marginTop: '20px', fontSize: '0.9rem' }}>
         터치하여 건너뛰기
       </p>
     </div>
@@ -888,7 +896,31 @@ function ExitConfirmModal({ onCancel, onConfirm }: { onCancel: () => void; onCon
         <p className="exit-modal-text">바둑돌 부수기를 종료할까요?</p>
         <div className="exit-modal-buttons">
           <button className="exit-btn cancel" onClick={onCancel}>취소</button>
-          <button className="exit-btn confirm" onClick={onConfirm}>종료</button>
+          <button className="exit-btn confirm" onClick={onConfirm}>종료하기</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// 더보기 메뉴 모달
+function MoreMenuModal({ onClose, onReset }: { onClose: () => void; onReset: () => void }) {
+  return (
+    <div className="modal-overlay" onPointerUp={onClose}>
+      <div className="more-menu-modal" onPointerUp={e => e.stopPropagation()}>
+        <div className="more-menu-header">
+          <h3>설정</h3>
+          <button className="close-btn" onPointerUp={onClose}>✕</button>
+        </div>
+        <div className="more-menu-content">
+          <button className="more-menu-item" onPointerUp={() => { onReset(); onClose(); }}>
+            <span>🔄</span>
+            <span>게임 초기화</span>
+          </button>
+          <div className="more-menu-info">
+            <p>바둑돌 부수기 v1.0</p>
+            <p>제작: 체스왕국 스튜디오</p>
+          </div>
         </div>
       </div>
     </div>
@@ -900,6 +932,7 @@ function App() {
   const [showStory, setShowStory] = useState(false);
   const [showAgeRating, setShowAgeRating] = useState(true); // TODO 2: 연령 등급
   const [showExitModal, setShowExitModal] = useState(false); // TODO 1: 종료 확인
+  const [showMoreMenu, setShowMoreMenu] = useState(false); // 더보기 메뉴
   const [modalType, setModalType] = useState<'upgrade' | 'shop' | 'mission' | 'auto' | null>(null);
   const [fx, setFx] = useState<{ id: number, x: number, y: number, text: string, type: any }[]>([]);
 
@@ -932,7 +965,22 @@ function App() {
 
     const i = setInterval(autoTick, 1000);
     const s = setInterval(saveGame, 10000);
-    return () => { clearInterval(i); clearInterval(s); };
+
+    // 뒤로가기 방지 (앱인토스 가이드라인)
+    const handlePopState = (e: PopStateEvent) => {
+      e.preventDefault();
+      window.history.pushState(null, '', window.location.href);
+      setShowExitModal(true);
+    };
+
+    window.history.pushState(null, '', window.location.href);
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      clearInterval(i);
+      clearInterval(s);
+      window.removeEventListener('popstate', handlePopState);
+    };
   }, []);
 
   // 동료 자동 공격 시각화 이펙트
@@ -1067,6 +1115,9 @@ function App() {
       {/* TODO 1: 종료 확인 모달 */}
       {showExitModal && <ExitConfirmModal onCancel={() => setShowExitModal(false)} onConfirm={handleExit} />}
 
+      {/* 더보기 메뉴 모달 */}
+      {showMoreMenu && <MoreMenuModal onClose={() => setShowMoreMenu(false)} onReset={() => useGameStore.getState().resetGame()} />}
+
       {/* Top Header */}
       <div className="game-header">
         <div className="resource-bar">
@@ -1078,10 +1129,14 @@ function App() {
             {autoClicksPerSec > 0 && <span className="stat-badge">🤖 {autoClicksPerSec}/s</span>}
           </div>
         </div>
-        <button className="exit-game-btn" onPointerUp={() => setShowExitModal(true)}>
-          <span className="exit-icon">✕</span>
-          <span className="exit-text">나가기</span>
-        </button>
+        <div className="nav-buttons">
+          <button className="nav-btn more" onPointerUp={() => setShowMoreMenu(true)}>
+            <span>⋯</span>
+          </button>
+          <button className="nav-btn close" onPointerUp={() => setShowExitModal(true)}>
+            <span>✕</span>
+          </button>
+        </div>
       </div>
 
       {/* Main Battle Area */}

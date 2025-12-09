@@ -1182,10 +1182,18 @@ body {
   height: 100%;
   background: rgba(0, 0, 0, 0.95);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   z-index: 9999;
   animation: fadeIn 0.3s ease-out;
+}
+
+.age-rating-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
 }
 
 .age-rating-badge {
@@ -1193,8 +1201,8 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 160px;
-  height: 160px;
+  width: 140px;
+  height: 140px;
   border-radius: 50%;
   background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
   box-shadow: 0 0 60px rgba(46, 204, 113, 0.5);
@@ -1202,16 +1210,36 @@ body {
 }
 
 .age-rating-text {
-  font-size: 1.8rem;
+  font-size: 1.6rem;
   font-weight: 900;
   color: white;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .age-rating-sub {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.9);
   margin-top: 4px;
+}
+
+.age-rating-info {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 15px 25px;
+  border-radius: 15px;
+  min-width: 250px;
+}
+
+.age-rating-info .info-item {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+  margin: 8px 0;
+  display: flex;
+  gap: 8px;
+}
+
+.age-rating-info .info-item span:first-child {
+  color: rgba(255, 255, 255, 0.6);
+  min-width: 70px;
 }
 
 @keyframes ageRatingPulse {
@@ -1450,4 +1478,90 @@ body {
 
 .stats-bar .stat-badge:has([data-auto="active"]) {
   animation: autoPulse 1s ease-in-out infinite;
+}
+
+/* ============ 더보기 메뉴 모달 ============ */
+.more-menu-modal {
+  background: white;
+  padding: 20px;
+  border-radius: 20px;
+  min-width: 280px;
+  max-width: 320px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: popModal 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.more-menu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #f1f2f6;
+}
+
+.more-menu-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #2f3542;
+}
+
+.more-menu-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.more-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #f8f9fa;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-family: var(--font-family);
+  color: #2f3542;
+  cursor: pointer;
+  transition: background 0.2s;
+  min-height: 50px;
+}
+
+.more-menu-item:active {
+  background: #e9ecef;
+}
+
+.more-menu-item span:first-child {
+  font-size: 1.4rem;
+}
+
+.more-menu-info {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #f1f2f6;
+  text-align: center;
+}
+
+.more-menu-info p {
+  margin: 5px 0;
+  font-size: 0.85rem;
+  color: #7f8c8d;
+}
+
+/* ============ 스와이프 방지 ============ */
+.app {
+  touch-action: pan-y;
+  overscroll-behavior: none;
+}
+
+/* 좌측 스와이프 방지 영역 */
+.swipe-guard {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 20px;
+  height: 100%;
+  z-index: 9998;
+  touch-action: none;
 }
