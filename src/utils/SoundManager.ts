@@ -1,3 +1,4 @@
+import { Howl, Howler } from 'howler';
 
 // Sound Assets
 import bgmCasual from '../assets/sounds/bgm_casual.mp3';
@@ -12,16 +13,6 @@ type SoundType = 'bgm' | 'hit' | 'destroy' | 'coin' | 'success' | 'fail' | 'clic
 
 const STORAGE_KEY = 'pony-game-sound-settings';
 
-// 오디오 풀 설정: 각 사운드별 인스턴스 수
-const POOL_SIZE: Record<Exclude<SoundType, 'bgm'>, number> = {
-    hit: 5,      // 빠른 연타용
-    destroy: 3,
-    coin: 4,
-    success: 2,
-    fail: 2,
-    click: 3,
-};
-
 interface SoundSettings {
     bgmMuted: boolean;
     sfxMuted: boolean;
@@ -30,51 +21,63 @@ interface SoundSettings {
 }
 
 class SoundManager {
-    private bgm: HTMLAudioElement;
-    private soundPools: Record<Exclude<SoundType, 'bgm'>, HTMLAudioElement[]>;
-    private poolIndex: Record<Exclude<SoundType, 'bgm'>, number>;
+    private bgm: Howl;
+    private sounds: Record<Exclude<SoundType, 'bgm'>, Howl>;
     private bgmMuted: boolean = false;
     private sfxMuted: boolean = false;
     private bgmVolume: number = 0.3;
     private sfxVolume: number = 0.5;
     private bgmPlaying: boolean = false;
 
-    // 사운드 소스 매핑
-    private soundSources: Record<Exclude<SoundType, 'bgm'>, string> = {
-        hit: seHit,
-        destroy: seDestroy,
-        coin: seCoin,
-        success: seSuccess,
-        fail: seFail,
-        click: seClick,
-    };
-
     constructor() {
-        // BGM 설정
-        this.bgm = new Audio(bgmCasual);
-        this.bgm.loop = true;
-        this.bgm.volume = this.bgmVolume;
-        this.bgm.load();
-
-        // 오디오 풀 초기화
-        this.soundPools = {} as Record<Exclude<SoundType, 'bgm'>, HTMLAudioElement[]>;
-        this.poolIndex = {} as Record<Exclude<SoundType, 'bgm'>, number>;
-
-        const sfxTypes: Exclude<SoundType, 'bgm'>[] = ['hit', 'destroy', 'coin', 'success', 'fail', 'click'];
-
-        sfxTypes.forEach(type => {
-            const poolSize = POOL_SIZE[type];
-            this.soundPools[type] = [];
-            this.poolIndex[type] = 0;
-
-            // 풀에 오디오 인스턴스 생성
-            for (let i = 0; i < poolSize; i++) {
-                const audio = new Audio(this.soundSources[type]);
-                audio.volume = this.sfxVolume;
-                audio.load();
-                this.soundPools[type].push(audio);
-            }
+        // BGM 설정 (HTML5 Audio로 스트리밍 - 긴 파일에 적합)
+        this.bgm = new Howl({
+            src: [bgmCasual],
+            loop: true,
+            volume: this.bgmVolume,
+            html5: true, // 스트리밍으로 메모리 절약
+            preload: true,
         });
+
+        // SFX 설정 (Web Audio API - 빠른 재생, 낮은 지연)
+        this.sounds = {
+            hit: new Howl({
+                src: [seHit],
+                volume: this.sfxVolume,
+                preload: true,
+                pool: 5, // 동시 재생 가능 수
+            }),
+            destroy: new Howl({
+                src: [seDestroy],
+                volume: this.sfxVolume,
+                preload: true,
+                pool: 3,
+            }),
+            coin: new Howl({
+                src: [seCoin],
+                volume: this.sfxVolume,
+                preload: true,
+                pool: 4,
+            }),
+            success: new Howl({
+                src: [seSuccess],
+                volume: this.sfxVolume,
+                preload: true,
+                pool: 2,
+            }),
+            fail: new Howl({
+                src: [seFail],
+                volume: this.sfxVolume,
+                preload: true,
+                pool: 2,
+            }),
+            click: new Howl({
+                src: [seClick],
+                volume: this.sfxVolume,
+                preload: true,
+                pool: 3,
+            }),
+        };
 
         // 저장된 설정 로드
         this.loadSettings();
@@ -89,8 +92,10 @@ class SoundManager {
                 this.sfxMuted = settings.sfxMuted ?? false;
                 this.bgmVolume = settings.bgmVolume ?? 0.3;
                 this.sfxVolume = settings.sfxVolume ?? 0.5;
-                this.bgm.volume = this.bgmVolume;
-                this.updatePoolVolumes();
+
+                // 볼륨 적용
+                this.bgm.volume(this.bgmVolume);
+                this.updateSfxVolumes();
             }
         } catch (e) {
             console.error('Failed to load sound settings:', e);
@@ -107,13 +112,9 @@ class SoundManager {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
     }
 
-    // 풀의 모든 오디오 볼륨 업데이트
-    private updatePoolVolumes() {
-        const sfxTypes: Exclude<SoundType, 'bgm'>[] = ['hit', 'destroy', 'coin', 'success', 'fail', 'click'];
-        sfxTypes.forEach(type => {
-            this.soundPools[type].forEach(audio => {
-                audio.volume = this.sfxVolume;
-            });
+    private updateSfxVolumes() {
+        Object.values(this.sounds).forEach(sound => {
+            sound.volume(this.sfxVolume);
         });
     }
 
@@ -121,7 +122,7 @@ class SoundManager {
         if (type === 'bgm') {
             if (this.bgmMuted) return;
             if (!this.bgmPlaying) {
-                this.bgm.play().catch(e => console.log("Audio play failed (user interaction needed):", e));
+                this.bgm.play();
                 this.bgmPlaying = true;
             }
             return;
@@ -129,23 +130,11 @@ class SoundManager {
 
         // SFX
         if (this.sfxMuted) return;
-
-        // 오디오 풀에서 다음 인스턴스 가져오기 (라운드 로빈)
-        const pool = this.soundPools[type];
-        const index = this.poolIndex[type];
-        const audio = pool[index];
-
-        // 다음 인덱스로 이동 (순환)
-        this.poolIndex[type] = (index + 1) % pool.length;
-
-        // 재생 중이면 처음부터 다시 재생
-        audio.currentTime = 0;
-        audio.play().catch(e => console.log("SFX play failed:", e));
+        this.sounds[type].play();
     }
 
     stopBgm() {
-        this.bgm.pause();
-        this.bgm.currentTime = 0;
+        this.bgm.stop();
         this.bgmPlaying = false;
     }
 
@@ -185,14 +174,14 @@ class SoundManager {
     // BGM 볼륨 설정 (0 ~ 1)
     setBgmVolume(volume: number) {
         this.bgmVolume = Math.max(0, Math.min(1, volume));
-        this.bgm.volume = this.bgmVolume;
+        this.bgm.volume(this.bgmVolume);
         this.saveSettings();
     }
 
     // SFX 볼륨 설정 (0 ~ 1)
     setSfxVolume(volume: number) {
         this.sfxVolume = Math.max(0, Math.min(1, volume));
-        this.updatePoolVolumes();
+        this.updateSfxVolumes();
         this.saveSettings();
     }
 
@@ -211,6 +200,15 @@ class SoundManager {
 
     getSfxVolume(): number {
         return this.sfxVolume;
+    }
+
+    // 전체 오디오 컨텍스트 음소거 (앱 백그라운드 시 유용)
+    muteAll() {
+        Howler.mute(true);
+    }
+
+    unmuteAll() {
+        Howler.mute(false);
     }
 }
 
