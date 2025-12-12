@@ -174,13 +174,13 @@ const INITIAL_UPGRADES: UpgradeStat[] = [
 // 동료 시스템 (F2P 30일 기준 - baseCost 3배 증가, 복리효과 감안)
 // 초반 빠른 진행 → 중반 성장 → 후반 안정적 DPS
 const INITIAL_AUTO_CLICKERS: AutoClicker[] = [
-  { id: 'finger', name: '보조 손가락', emoji: '👆', clicksPerSec: 1, baseCost: 1500, count: 0 },       // 초반용
-  { id: 'fan', name: '부채', emoji: '🪭', clicksPerSec: 3, baseCost: 9000, count: 0 },                // 병사급
-  { id: 'sword', name: '검', emoji: '⚔️', clicksPerSec: 8, baseCost: 45000, count: 0 },               // 부사관급
-  { id: 'magic', name: '마법봉', emoji: '🪄', clicksPerSec: 20, baseCost: 240000, count: 0 },         // 위관급
-  { id: 'knight', name: '기사', emoji: '🛡️', clicksPerSec: 50, baseCost: 1200000, count: 0 },        // 영관급
-  { id: 'wizard', name: '마법사', emoji: '🧙', clicksPerSec: 120, baseCost: 6000000, count: 0 },      // 장성급
-  { id: 'dragon', name: '드래곤', emoji: '🐉', clicksPerSec: 300, baseCost: 45000000, count: 0 },     // 엔드게임
+  { id: 'finger', name: '보조 손가락', emoji: '👆', clicksPerSec: 0.5, baseCost: 1500, count: 0 },       // 초반용
+  { id: 'fan', name: '부채', emoji: '🪭', clicksPerSec: 1, baseCost: 9000, count: 0 },                // 병사급
+  { id: 'sword', name: '검', emoji: '⚔️', clicksPerSec: 3, baseCost: 45000, count: 0 },               // 부사관급
+  { id: 'magic', name: '마법봉', emoji: '🪄', clicksPerSec: 8, baseCost: 240000, count: 0 },         // 위관급
+  { id: 'knight', name: '기사', emoji: '🛡️', clicksPerSec: 20, baseCost: 1200000, count: 0 },        // 영관급
+  { id: 'wizard', name: '마법사', emoji: '🧙', clicksPerSec: 50, baseCost: 6000000, count: 0 },      // 장성급
+  { id: 'dragon', name: '드래곤', emoji: '🐉', clicksPerSec: 120, baseCost: 45000000, count: 0 },     // 엔드게임
 ];
 
 // 상점 아이템 (밸런스 조정: 무과금 30일 ~900루비 기준)
@@ -291,13 +291,13 @@ const STONE_CONFIG: Record<StoneSize, { hpMultiplier: number; pixelSize: number 
 // 보스 HP = 권장 공격력 x 500~1000타, 보상 = 강화 비용 일부 지원 (100개당 1보스)
 const BOSS_CONFIG: Record<BossType, { name: string; fixedHp: number; goldReward: number; element: string }> = {
   none: { name: '', fixedHp: 1, goldReward: 0, element: '' },
-  boss1: { name: '화염의 돌', fixedHp: 500, goldReward: 5000, element: '🔴' },             // 폰 초반 (공격력 ~1)
-  boss2: { name: '빙결의 돌', fixedHp: 5000, goldReward: 50000, element: '🔵' },           // 나이트 중반 (공격력 ~4)
-  boss3: { name: '맹독의 돌', fixedHp: 50000, goldReward: 500000, element: '🟢' },         // 비숍 대위 (공격력 ~24)
-  boss4: { name: '암흑의 돌', fixedHp: 300000, goldReward: 2000000, element: '🟣' },       // 룩 소령 (공격력 ~50)
-  boss5: { name: '번개의 돌', fixedHp: 2000000, goldReward: 10000000, element: '🟡' },     // 퀸 대령 (공격력 ~176)
-  boss6: { name: '사이버 돌', fixedHp: 15000000, goldReward: 50000000, element: '💠' },    // 킹 소장 (공격력 ~540)
-  boss7: { name: '궁극의 돌', fixedHp: 80000000, goldReward: 200000000, element: '🌈' },   // 임페리얼 대장 (공격력 ~1600)
+  boss1: { name: '화염의 돌', fixedHp: 2000, goldReward: 8000, element: '🔴' },             // 폰 초반 (공격력 ~1)
+  boss2: { name: '빙결의 돌', fixedHp: 25000, goldReward: 80000, element: '🔵' },           // 나이트 중반 (공격력 ~4)
+  boss3: { name: '맹독의 돌', fixedHp: 500000, goldReward: 800000, element: '🟢' },         // 비숍 대위 (공격력 ~24)
+  boss4: { name: '암흑의 돌', fixedHp: 5000000, goldReward: 5000000, element: '🟣' },       // 룩 소령 (공격력 ~50)
+  boss5: { name: '번개의 돌', fixedHp: 50000000, goldReward: 30000000, element: '🟡' },     // 퀸 대령 (공격력 ~176)
+  boss6: { name: '사이버 돌', fixedHp: 500000000, goldReward: 150000000, element: '💠' },    // 킹 소장 (공격력 ~540)
+  boss7: { name: '궁극의 돌', fixedHp: 5000000000, goldReward: 500000000, element: '🌈' },   // 임페리얼 대장 (공격력 ~1600)
 };
 
 const BOSS_ORDER: BossType[] = ['boss1', 'boss2', 'boss3', 'boss4', 'boss5', 'boss6', 'boss7'];
