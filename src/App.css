@@ -19,25 +19,39 @@ body {
   margin: 0;
   padding: 0;
   font-family: var(--font-family);
-  background-color: var(--bg-color);
   overflow: hidden;
   color: var(--text-color);
   -webkit-font-smoothing: antialiased;
 }
 
-.app {
+/* 게임 래퍼 - 스케일링 컨테이너 */
+.game-wrapper {
   width: 100vw;
   height: 100vh;
   height: 100dvh;
-  /* 동적 뷰포트 높이 - 모바일 브라우저 대응 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+/* 고정 크기 게임 컨테이너 - 스케일링 방식 */
+/* 기준 해상도: 390x844 (iPhone 14 기준) */
+.app {
+  /* 고정 크기 (기준 해상도) */
+  width: 390px;
+  height: 844px;
   position: relative;
-  background: url('./assets/bg_main.png') no-repeat center center;
+  background: url('./assets/bg_main_wide.png') no-repeat center center;
   background-size: cover;
+  transition: background-image 0.5s ease-in-out;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
   align-items: center;
   overflow: hidden;
+  /* 스케일링은 JavaScript에서 처리 */
+  transform-origin: center center;
 }
 
 /* ============ Story Overlay ============ */
@@ -229,16 +243,31 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start; /* 상단부터 배치 */
   position: relative;
-  gap: 15px;
+  gap: 8px;
   overflow: hidden;
+  padding-top: 5px;
+}
+
+/* 파괴한 바둑돌 배지 */
+.stones-destroyed-badge {
+  background: rgba(255, 255, 255, 0.9);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 0.85rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
+  flex-shrink: 0;
+  max-width: 90%;
+  text-align: center;
 }
 
 /* Battle Scene - 대칭 전투 레이아웃 */
 .battle-container {
   display: flex;
-  align-items: center;
+  align-items: flex-start; /* 상단 정렬로 HP바/계급장 라인 맞춤 */
   justify-content: center;
   gap: 0;
   width: 100%;
@@ -248,13 +277,15 @@ body {
   position: relative;
   padding: 10px;
   box-sizing: border-box;
+  overflow: visible;
+  margin-top: 100px; /* 체스말과 바둑돌을 아래로 (고정 크기 기준) */
 }
 
 /* VS 표시 */
 .battle-container::before {
   content: 'VS';
   position: absolute;
-  top: 50%;
+  top: 35%; /* 체스말/바둑돌 사이 중앙 */
   left: 50%;
   transform: translate(-50%, -50%);
   font-size: 2rem;
@@ -273,8 +304,7 @@ body {
   z-index: 2;
   flex: 1;
   max-width: 45%;
-  margin-top: 30px;
-  /* Badge 공간 확보 */
+  padding-top: 10px; /* 계급장 공간만 확보 */
 }
 
 /* 캐릭터 기본 상태 - breathe 애니메이션 */
@@ -302,8 +332,8 @@ body {
 }
 
 .character-img {
-  width: min(35vw, 140px);
-  height: min(35vw, 140px);
+  width: 120px;
+  height: 120px;
   object-fit: contain;
   filter: drop-shadow(0 5px 5px rgba(0, 0, 0, 0.2));
   transition: transform 0.2s;
@@ -344,7 +374,7 @@ body {
 
 .target-wrapper {
   display: flex;
-  flex-direction: column;
+  flex-direction: column-reverse; /* HP 바를 바둑돌 위에 배치 */
   align-items: center;
   position: relative;
   z-index: 1;
@@ -353,7 +383,9 @@ body {
   max-width: 45%;
   cursor: pointer;
   padding: 10px;
+  padding-top: 10px; /* 계급장과 맞춤 */
   margin: -10px;
+  margin-top: 0;
   transition: transform 0.1s;
 }
 
@@ -554,8 +586,8 @@ body {
 }
 
 .target-img {
-  width: min(40vw, 150px);
-  height: min(40vw, 150px);
+  width: 130px;
+  height: 130px;
   object-fit: contain;
   filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.3));
   transition: transform 0.1s, filter 0.1s;
@@ -651,9 +683,12 @@ body {
   height: 12px;
   background: rgba(0, 0, 0, 0.3);
   border-radius: 10px;
-  margin-top: 10px;
+  margin-bottom: 10px; /* HP 바가 바둑돌 위에 있으므로 margin-bottom 사용 */
   overflow: hidden;
   border: 2px solid rgba(255, 255, 255, 0.5);
+  flex-shrink: 0;
+  z-index: 10;
+  order: 1; /* flex-direction: column-reverse에서 맨 위에 배치 */
 }
 
 .hp-bar-fill {
@@ -712,8 +747,8 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: min(40vw, 150px);
-  height: min(40vw, 150px);
+  width: 130px;
+  height: 130px;
   background-size: 100% 100%;
   background-repeat: no-repeat;
   background-position: center;
@@ -1702,9 +1737,9 @@ body {
 .boss-gauge-container {
   width: 100%;
   max-width: 380px;
-  padding: 8px 15px;
+  padding: 4px 15px;
   margin: 0 auto;
-  z-index: 10;
+  flex-shrink: 0;
 }
 
 .boss-progress {
@@ -2203,79 +2238,10 @@ body {
   opacity: 0.6;
 }
 
-/* ============ 반응형 - 작은 화면 대응 ============ */
-@media screen and (max-height: 600px) {
-  .bottom-tab-container {
-    max-height: 40vh;
-  }
+/* ============ 스케일링 방식 사용으로 미디어쿼리 제거 ============ */
+/* 기준 해상도 390x844에 맞춰 디자인하고, JavaScript에서 transform: scale()로 조정 */
 
-  .tab-btn {
-    min-height: 48px;
-    padding: 6px 4px;
-  }
-
-  .tab-icon {
-    font-size: 1.2rem;
-  }
-
-  .tab-label {
-    font-size: 0.6rem;
-  }
-
-  .tab-content {
-    padding: 8px;
-  }
-
-  .tab-panel .enhance-btn {
-    min-height: 60px;
-    padding: 8px 12px;
-  }
-
-  .tab-panel .enhance-main-text {
-    font-size: 1.2rem;
-  }
-
-  .list-item {
-    padding: 8px 10px;
-  }
-
-  .list-item-emoji {
-    font-size: 1.3rem;
-  }
-
-  .list-item-name {
-    font-size: 0.8rem;
-  }
-
-  .list-item-btn {
-    padding: 8px 12px;
-    font-size: 0.8rem;
-    min-width: 70px;
-  }
-}
-
-/* 매우 작은 화면 (iPhone SE 등) */
-@media screen and (max-height: 568px) {
-  .bottom-tab-container {
-    max-height: 38vh;
-  }
-
-  .game-area {
-    gap: 8px;
-  }
-
-  .battle-container {
-    max-height: 200px;
-    min-height: 120px;
-  }
-
-  .boss-gauge-container {
-    padding: 4px 10px;
-    margin: 4px 10px;
-  }
-}
-
-/* 아이폰 X+ 노치 대응 */
+/* 아이폰 X+ 노치 대응 - safe-area만 유지 */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   .tab-content {
     padding-bottom: calc(10px + env(safe-area-inset-bottom));

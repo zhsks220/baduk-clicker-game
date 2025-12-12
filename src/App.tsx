@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { create } from 'zustand';
 import './App.css';
 
@@ -9,6 +9,16 @@ import { PawnIcon, KnightIcon, BishopIcon, RookIcon, QueenIcon, KingIcon, Imperi
 import { StoneBlackIcon, StoneWhiteIcon, StoneBossRed, StoneBossBlue, StoneBossGreen, StoneBossPurple, StoneBossGold, StoneBossCyan, StoneBossRainbow } from './components/StoneIcons';
 import { MILITARY_RANK_ICONS } from './components/MilitaryRankIcons';
 import { soundManager } from './utils/SoundManager';
+
+// Background Images
+import bgMainWide from './assets/bg_main_wide.png';
+import bgBossFire from './assets/bg_boss_fire.png';
+import bgBossIce from './assets/bg_boss_ice.png';
+import bgBossPoison from './assets/bg_boss_poison.png';
+import bgBossDark from './assets/bg_boss_dark.png';
+import bgBossLightning from './assets/bg_boss_lightning.png';
+import bgBossCyber from './assets/bg_boss_cyber.png';
+import bgBossUltimate from './assets/bg_boss_ultimate.png';
 
 // ============ 타입 정의 ============
 type ChessPieceRank = 'pawn' | 'knight' | 'bishop' | 'rook' | 'queen' | 'king' | 'imperial';
@@ -430,6 +440,22 @@ const calculateStats = (upgrades: UpgradeStat[], piece: ChessPiece, prestigeBonu
 };
 
 const getTodayString = () => new Date().toISOString().split('T')[0];
+
+const getBackgroundImage = (currentStone: GoStone) => {
+  if (currentStone.isBoss) {
+    switch (currentStone.bossType) {
+      case 'boss1': return bgBossFire;
+      case 'boss2': return bgBossIce;
+      case 'boss3': return bgBossPoison;
+      case 'boss4': return bgBossDark;
+      case 'boss5': return bgBossLightning;
+      case 'boss6': return bgBossCyber;
+      case 'boss7': return bgBossUltimate;
+      default: return bgMainWide;
+    }
+  }
+  return bgMainWide;
+};
 
 const useGameStore = create<GameState>((set, get) => ({
   gold: 0,
@@ -1336,6 +1362,40 @@ function App() {
   // 동료 공격 이펙트 상태
   const [autoAttackFx, setAutoAttackFx] = useState<{ id: number; emoji: string; x: number; y: number; delay: number }[]>([]);
 
+  // 스케일링 상태
+  const [scale, setScale] = useState(1);
+  const appRef = useRef<HTMLDivElement>(null);
+
+  // 화면 크기에 맞춰 게임 스케일 계산 (화면 꽉 채움)
+  const calculateScale = useCallback(() => {
+    const DESIGN_WIDTH = 390;
+    const DESIGN_HEIGHT = 844;
+
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+
+    // 화면에 맞는 스케일 계산
+    const scaleX = windowWidth / DESIGN_WIDTH;
+    const scaleY = windowHeight / DESIGN_HEIGHT;
+
+    // 더 큰 비율 선택 (화면을 꽉 채우고 넘치는 부분은 잘림)
+    const newScale = Math.max(scaleX, scaleY);
+
+    setScale(newScale);
+  }, []);
+
+  // 스케일링 이벤트 리스너
+  useEffect(() => {
+    calculateScale();
+    window.addEventListener('resize', calculateScale);
+    window.addEventListener('orientationchange', calculateScale);
+
+    return () => {
+      window.removeEventListener('resize', calculateScale);
+      window.removeEventListener('orientationchange', calculateScale);
+    };
+  }, [calculateScale]);
+
   useEffect(() => {
     loadGame();
     if (!localStorage.getItem('pony_story_seen')) setShowStory(true);
@@ -1528,8 +1588,18 @@ function App() {
   const currentBossConfig = currentStone.isBoss ? BOSS_CONFIG[currentStone.bossType || 'none'] : null;
   const bossProgress = currentStone.isBoss ? 0 : ((STONES_PER_BOSS - stonesUntilBoss) / STONES_PER_BOSS) * 100;
 
+  const backgroundImage = getBackgroundImage(currentStone);
+
   return (
-    <div className="app">
+    <div className="game-wrapper">
+    <div
+      ref={appRef}
+      className="app"
+      style={{
+        backgroundImage: `url(${backgroundImage})`,
+        transform: `scale(${scale})`,
+      }}
+    >
       {showStory && <StoryIntroModal onClose={onStoryClose} />}
 
       {/* TODO 2: 연령 등급 배지 (3초 표시) */}
@@ -1562,27 +1632,27 @@ function App() {
         </div>
       </div>
 
-      {/* 보스 게이지 */}
-      <div className="boss-gauge-container">
-        {currentStone.isBoss ? (
-          <div className="boss-active">
-            <span className="boss-icon">{currentBossConfig?.element}</span>
-            <span className="boss-name">⚔️ {currentBossConfig?.name} 전투중!</span>
-            <span className="boss-count">처치: {bossesDefeated}</span>
-          </div>
-        ) : (
-          <div className="boss-progress">
-            <span className="boss-label">다음 보스까지</span>
-            <div className="boss-progress-bar">
-              <div className="boss-progress-fill" style={{ width: `${bossProgress}%` }} />
-            </div>
-            <span className="boss-count">{STONES_PER_BOSS - stonesUntilBoss}/{STONES_PER_BOSS}</span>
-          </div>
-        )}
-      </div>
-
       {/* Main Battle Area */}
       <div className="game-area">
+
+        {/* 보스 게이지 - game-area 안에 배치 */}
+        <div className="boss-gauge-container">
+          {currentStone.isBoss ? (
+            <div className="boss-active">
+              <span className="boss-icon">{currentBossConfig?.element}</span>
+              <span className="boss-name">⚔️ {currentBossConfig?.name} 전투중!</span>
+              <span className="boss-count">처치: {bossesDefeated}</span>
+            </div>
+          ) : (
+            <div className="boss-progress">
+              <span className="boss-label">다음 보스까지</span>
+              <div className="boss-progress-bar">
+                <div className="boss-progress-fill" style={{ width: `${bossProgress}%` }} />
+              </div>
+              <span className="boss-count">{STONES_PER_BOSS - stonesUntilBoss}/{STONES_PER_BOSS}</span>
+            </div>
+          )}
+        </div>
 
         <div className="battle-container">
           {/* Character */}
@@ -1599,8 +1669,7 @@ function App() {
           </div>
 
           {/* Target - CSS Rendered Stone / Boss */}
-          <div className={`target-wrapper ${shake ? 'shake' : ''} ${currentStone.isBoss ? 'boss-mode' : ''}`} onPointerDown={handleAttack}
-            style={{ width: 180, height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className={`target-wrapper ${shake ? 'shake' : ''} ${currentStone.isBoss ? 'boss-mode' : ''}`} onPointerDown={handleAttack}>
 
             {/* 2D SVG Stone Character / Boss */}
             <div className={`stone-character-wrapper ${currentStone.isBoss ? 'boss' : currentStone.color}`}
@@ -1629,7 +1698,7 @@ function App() {
             </div>
 
             {/* HP Bar */}
-            <div className={`hp-bar-container ${currentStone.isBoss ? 'boss-hp' : ''}`} style={{ position: 'absolute', bottom: -20 }}>
+            <div className={`hp-bar-container ${currentStone.isBoss ? 'boss-hp' : ''}`}>
               <div
                 className={`hp-bar-fill ${currentStone.isBoss ? 'boss-hp-fill' : ''}`}
                 style={{ width: `${hpPercent * 100}%` }}
@@ -1664,7 +1733,7 @@ function App() {
         </div>
 
         {/* Stats Mini */}
-        <div style={{ background: 'rgba(255,255,255,0.8)', padding: '10px 20px', borderRadius: '20px', fontWeight: 'bold', marginTop: '10px' }}>
+        <div className="stones-destroyed-badge">
           파괴한 바둑돌: {stonesDestroyed}
         </div>
 
@@ -1894,6 +1963,7 @@ function App() {
         <div className="reward-toast">{rewardFx.text}</div>
       )}
 
+    </div>
     </div>
   );
 }
