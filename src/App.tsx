@@ -1378,8 +1378,8 @@ function App() {
     const scaleX = windowWidth / DESIGN_WIDTH;
     const scaleY = windowHeight / DESIGN_HEIGHT;
 
-    // 더 큰 비율 선택 (화면을 꽉 채우고 넘치는 부분은 잘림)
-    const newScale = Math.max(scaleX, scaleY);
+    // 더 작은 비율 선택 (UI가 잘리지 않도록)
+    const newScale = Math.min(scaleX, scaleY);
 
     setScale(newScale);
   }, []);
