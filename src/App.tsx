@@ -1366,20 +1366,21 @@ function App() {
   const [scale, setScale] = useState(1);
   const appRef = useRef<HTMLDivElement>(null);
 
-  // 화면 크기에 맞춰 게임 스케일 계산 (화면 꽉 채움)
+  // 화면 크기에 맞춰 게임 스케일 계산
   const calculateScale = useCallback(() => {
     const DESIGN_WIDTH = 390;
     const DESIGN_HEIGHT = 844;
 
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
+    // visualViewport API 사용 (모바일 브라우저 주소창/하단바 고려)
+    const windowWidth = window.visualViewport?.width || window.innerWidth;
+    const windowHeight = window.visualViewport?.height || window.innerHeight;
 
     // 화면에 맞는 스케일 계산
     const scaleX = windowWidth / DESIGN_WIDTH;
     const scaleY = windowHeight / DESIGN_HEIGHT;
 
-    // 더 작은 비율 선택 (UI가 잘리지 않도록)
-    const newScale = Math.min(scaleX, scaleY);
+    // 더 큰 비율 선택 (화면을 꽉 채움)
+    const newScale = Math.max(scaleX, scaleY);
 
     setScale(newScale);
   }, []);
@@ -1389,10 +1390,13 @@ function App() {
     calculateScale();
     window.addEventListener('resize', calculateScale);
     window.addEventListener('orientationchange', calculateScale);
+    // visualViewport 리사이즈 이벤트 (모바일 브라우저 주소창 변화 감지)
+    window.visualViewport?.addEventListener('resize', calculateScale);
 
     return () => {
       window.removeEventListener('resize', calculateScale);
       window.removeEventListener('orientationchange', calculateScale);
+      window.visualViewport?.removeEventListener('resize', calculateScale);
     };
   }, [calculateScale]);
 

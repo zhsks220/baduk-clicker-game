@@ -22,7 +22,6 @@ body {
   overflow: hidden;
   color: var(--text-color);
   -webkit-font-smoothing: antialiased;
-  background: linear-gradient(180deg, #87CEEB 0%, #B0E0E6 50%, #98D8C8 100%); /* 게임 배경과 어울리는 하늘색 그라데이션 */
 }
 
 /* 게임 래퍼 - 스케일링 컨테이너 */
@@ -34,7 +33,6 @@ body {
   justify-content: center;
   align-items: center;
   overflow: hidden;
-  background: linear-gradient(180deg, #87CEEB 0%, #B0E0E6 50%, #98D8C8 100%); /* 게임 배경과 어울리는 하늘색 그라데이션 */
 }
 
 /* 고정 크기 게임 컨테이너 - 스케일링 방식 */
