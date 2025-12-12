@@ -22,6 +22,8 @@ body {
   overflow: hidden;
   color: var(--text-color);
   -webkit-font-smoothing: antialiased;
+  /* 양옆 빈 공간 배경색 - 게임 하늘 배경과 유사한 색상 */
+  background: #87CEEB;
 }
 
 /* 게임 래퍼 - 스케일링 컨테이너 */

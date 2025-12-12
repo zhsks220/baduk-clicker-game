@@ -1368,19 +1368,13 @@ function App() {
 
   // 화면 크기에 맞춰 게임 스케일 계산
   const calculateScale = useCallback(() => {
-    const DESIGN_WIDTH = 390;
     const DESIGN_HEIGHT = 844;
 
     // visualViewport API 사용 (모바일 브라우저 주소창/하단바 고려)
-    const windowWidth = window.visualViewport?.width || window.innerWidth;
     const windowHeight = window.visualViewport?.height || window.innerHeight;
 
-    // 화면에 맞는 스케일 계산
-    const scaleX = windowWidth / DESIGN_WIDTH;
-    const scaleY = windowHeight / DESIGN_HEIGHT;
-
-    // 더 큰 비율 선택 (화면을 꽉 채움)
-    const newScale = Math.max(scaleX, scaleY);
+    // 세로(height) 기준으로 스케일링 (위아래 잘림 없음, 양옆만 빈 공간)
+    const newScale = windowHeight / DESIGN_HEIGHT;
 
     setScale(newScale);
   }, []);
