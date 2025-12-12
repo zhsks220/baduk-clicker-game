@@ -173,36 +173,99 @@ const INITIAL_AUTO_CLICKERS: AutoClicker[] = [
   { id: 'dragon', name: '드래곤', emoji: '🐉', clicksPerSec: 300, baseCost: 45000000, count: 0 },     // 엔드게임
 ];
 
-// 상점 아이템 (캐시템 추가 - 7만원 = 7000 루비 기준)
+// 상점 아이템 (밸런스 조정: 무과금 30일 ~900루비 기준)
+// 일일 미션 15~20루비 + 업적 300루비 + 보스 100루비 = 약 900루비/30일
 const INITIAL_SHOP_ITEMS: ShopItem[] = [
-  // 강화 보조 아이템 (루비)
-  { id: 'protectScroll', name: '파괴방지권', emoji: '🛡️', description: '강화 실패시 파괴 방지', goldCost: 0, rubyCost: 100, count: 0 },
-  { id: 'blessScroll', name: '축복주문서', emoji: '✨', description: '성공 확률 +10%', goldCost: 0, rubyCost: 150, count: 0 },
-  { id: 'luckyScroll', name: '행운주문서', emoji: '🍀', description: '성공 확률 +20%', goldCost: 0, rubyCost: 250, count: 0 },
-  { id: 'superScroll', name: '신성주문서', emoji: '🌟', description: '성공 확률 +30%', goldCost: 0, rubyCost: 400, count: 0 },
-  // 부스터 (골드/루비)
+  // 강화 보조 아이템 (루비) - 가격 3~5배 인하
+  { id: 'protectScroll', name: '파괴방지권', emoji: '🛡️', description: '파괴 발생 시 방어 (1회)', goldCost: 0, rubyCost: 25, count: 0 },
+  { id: 'blessScroll', name: '축복주문서', emoji: '✨', description: '성공 확률 +10%', goldCost: 0, rubyCost: 40, count: 0 },
+  { id: 'luckyScroll', name: '행운주문서', emoji: '🍀', description: '성공 확률 +20%', goldCost: 0, rubyCost: 70, count: 0 },
+  // 부스터 (골드/루비) - 메가부스터 가격 인하
   { id: 'goldBoost', name: '골드 부스터', emoji: '💰', description: '30분간 골드 2배', goldCost: 50000, rubyCost: 0, count: 0 },
   { id: 'autoBoost', name: '자동 부스터', emoji: '⚡', description: '30분간 자동클릭 2배', goldCost: 100000, rubyCost: 0, count: 0 },
-  { id: 'megaBoost', name: '메가 부스터', emoji: '🚀', description: '1시간 모든 효과 2배', goldCost: 0, rubyCost: 300, count: 0 },
-  // VIP 패키지 (프리미엄 캐시)
-  { id: 'vipPass', name: 'VIP 패스 (30일)', emoji: '👑', description: '골드+50%, 오프라인+100%', goldCost: 0, rubyCost: 3000, count: 0 },
-  { id: 'starterPack', name: '스타터 패키지', emoji: '🎁', description: '파괴방지x10, 축복x10, 500만골드', goldCost: 0, rubyCost: 1500, count: 0 },
-  { id: 'growthPack', name: '성장 패키지', emoji: '📈', description: '영구 공격력 +20%', goldCost: 0, rubyCost: 2000, count: 0 },
+  { id: 'megaBoost', name: '메가 부스터', emoji: '🚀', description: '1시간 모든 효과 2배', goldCost: 0, rubyCost: 80, count: 0 },
+  // VIP 패키지 (프리미엄 캐시) - 가격 인하
+  { id: 'vipPass', name: 'VIP 패스 (30일)', emoji: '👑', description: '골드+50%, 오프라인+100%', goldCost: 0, rubyCost: 800, count: 0 },
+  { id: 'starterPack', name: '스타터 패키지', emoji: '🎁', description: '파괴방지x10, 축복x10, 500만골드', goldCost: 0, rubyCost: 400, count: 0 },
+  { id: 'growthPack', name: '성장 패키지', emoji: '📈', description: '영구 공격력 +20%', goldCost: 0, rubyCost: 500, count: 0 },
 ];
 
+// 미션 시스템 (일일 반복 + 누적 미션)
+// 일일 미션: 매일 리셋, 하루 15~20루비 획득 가능
+// 누적 미션: 달성 후 다음 단계로 자동 갱신
 const INITIAL_MISSIONS: Mission[] = [
-  { id: 'click100', name: '열심히 클릭!', description: '100번 클릭', target: 100, current: 0, reward: { gold: 500, ruby: 5 }, completed: false, claimed: false },
-  { id: 'click500', name: '클릭 마스터', description: '500번 클릭', target: 500, current: 0, reward: { gold: 2000, ruby: 10 }, completed: false, claimed: false },
-  { id: 'enhance5', name: '강화 도전', description: '강화 5번 시도', target: 5, current: 0, reward: { gold: 1000, ruby: 5 }, completed: false, claimed: false },
-  { id: 'gold10k', name: '부자 되기', description: '1만 골드 모으기', target: 10000, current: 0, reward: { gold: 0, ruby: 15 }, completed: false, claimed: false },
+  // === 일일 미션 (매일 리셋) ===
+  { id: 'daily_click', name: '📅 일일 클릭', description: '오늘 300번 클릭', target: 300, current: 0, reward: { gold: 1000, ruby: 5 }, completed: false, claimed: false },
+  { id: 'daily_stone', name: '📅 일일 파괴', description: '오늘 바둑돌 30개 파괴', target: 30, current: 0, reward: { gold: 2000, ruby: 5 }, completed: false, claimed: false },
+  { id: 'daily_enhance', name: '📅 일일 강화', description: '오늘 강화 5번 시도', target: 5, current: 0, reward: { gold: 1500, ruby: 5 }, completed: false, claimed: false },
+  { id: 'daily_gold', name: '📅 일일 수입', description: '오늘 5만 골드 획득', target: 50000, current: 0, reward: { gold: 0, ruby: 5 }, completed: false, claimed: false },
+  // === 누적 미션 (단계별 갱신) ===
+  { id: 'total_click', name: '🎯 클릭 마스터', description: '총 1,000번 클릭', target: 1000, current: 0, reward: { gold: 2000, ruby: 10 }, completed: false, claimed: false },
+  { id: 'total_stone', name: '🎯 파괴왕', description: '총 바둑돌 100개 파괴', target: 100, current: 0, reward: { gold: 5000, ruby: 10 }, completed: false, claimed: false },
+  { id: 'total_enhance', name: '🎯 강화 장인', description: '총 강화 50번 시도', target: 50, current: 0, reward: { gold: 10000, ruby: 15 }, completed: false, claimed: false },
+  { id: 'total_gold', name: '🎯 부자 되기', description: '총 100만 골드 획득', target: 1000000, current: 0, reward: { gold: 0, ruby: 20 }, completed: false, claimed: false },
 ];
 
+// 누적 미션 단계 정의 (claimed 후 다음 단계로 갱신)
+const CUMULATIVE_MISSION_TIERS: Record<string, { targets: number[]; rewards: { gold: number; ruby: number }[] }> = {
+  total_click: {
+    targets: [1000, 5000, 20000, 50000, 100000],
+    rewards: [
+      { gold: 2000, ruby: 10 },
+      { gold: 5000, ruby: 15 },
+      { gold: 10000, ruby: 20 },
+      { gold: 20000, ruby: 25 },
+      { gold: 50000, ruby: 30 },
+    ],
+  },
+  total_stone: {
+    targets: [100, 500, 2000, 5000, 10000],
+    rewards: [
+      { gold: 5000, ruby: 10 },
+      { gold: 15000, ruby: 15 },
+      { gold: 50000, ruby: 20 },
+      { gold: 100000, ruby: 25 },
+      { gold: 200000, ruby: 30 },
+    ],
+  },
+  total_enhance: {
+    targets: [50, 200, 500, 1000, 2000],
+    rewards: [
+      { gold: 10000, ruby: 15 },
+      { gold: 30000, ruby: 20 },
+      { gold: 100000, ruby: 25 },
+      { gold: 300000, ruby: 30 },
+      { gold: 1000000, ruby: 40 },
+    ],
+  },
+  total_gold: {
+    targets: [1000000, 10000000, 100000000, 1000000000, 10000000000],
+    rewards: [
+      { gold: 0, ruby: 20 },
+      { gold: 0, ruby: 30 },
+      { gold: 0, ruby: 40 },
+      { gold: 0, ruby: 50 },
+      { gold: 0, ruby: 60 },
+    ],
+  },
+};
+
+// 업적 시스템 (확장: 킹, 임페리얼, 보스 처치)
 const ACHIEVEMENTS: Achievement[] = [
+  // 강화 업적
   { id: 'firstEnhance', name: '첫 강화', description: '강화 성공', target: 1, reward: { gold: 1000, ruby: 10 }, unlocked: false },
-  { id: 'knight', name: '나이트 승급', description: '나이트 달성', target: 1, reward: { gold: 5000, ruby: 20 }, unlocked: false },
-  { id: 'bishop', name: '비숍 승급', description: '비숍 달성', target: 1, reward: { gold: 10000, ruby: 30 }, unlocked: false },
-  { id: 'rook', name: '룩 승급', description: '룩 달성', target: 1, reward: { gold: 25000, ruby: 50 }, unlocked: false },
-  { id: 'queen', name: '퀸 승급', description: '퀸 달성', target: 1, reward: { gold: 50000, ruby: 100 }, unlocked: false },
+  // 체스 승급 업적
+  { id: 'knight', name: '나이트 승급', description: '나이트 달성', target: 1, reward: { gold: 5000, ruby: 15 }, unlocked: false },
+  { id: 'bishop', name: '비숍 승급', description: '비숍 달성', target: 1, reward: { gold: 10000, ruby: 20 }, unlocked: false },
+  { id: 'rook', name: '룩 승급', description: '룩 달성', target: 1, reward: { gold: 25000, ruby: 30 }, unlocked: false },
+  { id: 'queen', name: '퀸 승급', description: '퀸 달성', target: 1, reward: { gold: 50000, ruby: 40 }, unlocked: false },
+  { id: 'king', name: '킹 승급', description: '킹 달성', target: 1, reward: { gold: 100000, ruby: 50 }, unlocked: false },
+  { id: 'imperial', name: '임페리얼 승급', description: '킹갓제네럴 임페리얼 체스킹 달성', target: 1, reward: { gold: 500000, ruby: 100 }, unlocked: false },
+  // 보스 처치 업적
+  { id: 'boss1', name: '화염 정복자', description: '화염의 돌 처치', target: 1, reward: { gold: 2000, ruby: 10 }, unlocked: false },
+  { id: 'boss3', name: '맹독 정복자', description: '맹독의 돌 처치', target: 1, reward: { gold: 20000, ruby: 15 }, unlocked: false },
+  { id: 'boss5', name: '번개 정복자', description: '번개의 돌 처치', target: 1, reward: { gold: 200000, ruby: 25 }, unlocked: false },
+  { id: 'boss7', name: '궁극 정복자', description: '궁극의 돌 처치 (엔딩)', target: 1, reward: { gold: 1000000, ruby: 50 }, unlocked: false },
 ];
 
 const STORAGE_KEY = 'pony-game-v3';
@@ -523,14 +586,14 @@ const useGameStore = create<GameState>((set, get) => ({
     if (useBlessing === 1 && (!blessItem || blessItem.count < 1)) return { success: false, destroyed: false, message: '축복주문서 부족' };
     if (useBlessing === 2 && (!luckyItem || luckyItem.count < 1)) return { success: false, destroyed: false, message: '행운주문서 부족' };
 
-    const newShopItems = state.shopItems.map(item => {
-      if (useProtect && item.id === 'protectScroll') return { ...item, count: item.count - 1 };
+    // 축복/행운 주문서만 강화 시도 시 소모 (파괴방지권은 나중에 처리)
+    const consumeBlessingItems = state.shopItems.map(item => {
       if (useBlessing === 1 && item.id === 'blessScroll') return { ...item, count: item.count - 1 };
       if (useBlessing === 2 && item.id === 'luckyScroll') return { ...item, count: item.count - 1 };
       return item;
     });
 
-    set(s => ({ gold: s.gold - enhanceInfo.cost, enhanceAttempts: s.enhanceAttempts + 1, shopItems: newShopItems }));
+    set(s => ({ gold: s.gold - enhanceInfo.cost, enhanceAttempts: s.enhanceAttempts + 1, shopItems: consumeBlessingItems }));
 
     let successRate = enhanceInfo.successRate;
     if (useBlessing === 1) successRate += 10;
@@ -564,15 +627,26 @@ const useGameStore = create<GameState>((set, get) => ({
       return { success: true, destroyed: false, message: `강화 성공! ${rankNames[newLevel]}` };
     }
 
+    // 강화 실패 시 파괴 판정
     const destroyRoll = Math.random() * 100;
-    if (destroyRoll < enhanceInfo.destroyRate && !useProtect) {
+    if (destroyRoll < enhanceInfo.destroyRate) {
+      if (useProtect) {
+        // 파괴방지권은 파괴가 발생했을 때만 소모
+        const consumeProtect = get().shopItems.map(item => {
+          if (item.id === 'protectScroll') return { ...item, count: item.count - 1 };
+          return item;
+        });
+        set({ shopItems: consumeProtect });
+        return { success: false, destroyed: false, message: '🛡️ 파괴 방어 성공! (강화 실패)' };
+      }
+      // 파괴방지권 없이 파괴됨
       const resetPiece = { ...state.currentPiece, level: 0 };
       const newStats = calculateStats(state.upgrades, resetPiece, state.prestigeBonus);
       set({ currentPiece: resetPiece, ...newStats });
-      return { success: false, destroyed: true, message: '장비 파괴됨 (+0 초기화)' };
+      return { success: false, destroyed: true, message: '💥 장비 파괴됨 (+0 초기화)' };
     }
 
-    return { success: false, destroyed: false, message: useProtect && destroyRoll < enhanceInfo.destroyRate ? '방어 성공 (강화 실패)' : '강화 실패' };
+    return { success: false, destroyed: false, message: '강화 실패' };
   },
 
   buyShopItem: (itemId: string) => {
@@ -604,9 +678,43 @@ const useGameStore = create<GameState>((set, get) => ({
     const state = get();
     const idx = state.missions.findIndex(m => m.id === missionId);
     if (idx === -1 || !state.missions[idx].completed || state.missions[idx].claimed) return false;
+
+    const mission = state.missions[idx];
     const newMissions = [...state.missions];
-    newMissions[idx] = { ...newMissions[idx], claimed: true };
-    set({ gold: state.gold + newMissions[idx].reward.gold, ruby: state.ruby + newMissions[idx].reward.ruby, missions: newMissions });
+
+    // 누적 미션인 경우 다음 단계로 갱신
+    if (missionId.startsWith('total_') && CUMULATIVE_MISSION_TIERS[missionId]) {
+      const tiers = CUMULATIVE_MISSION_TIERS[missionId];
+      const currentTargetIdx = tiers.targets.indexOf(mission.target);
+
+      if (currentTargetIdx < tiers.targets.length - 1) {
+        // 다음 단계가 있으면 갱신
+        const nextIdx = currentTargetIdx + 1;
+        const nextTarget = tiers.targets[nextIdx];
+        const nextReward = tiers.rewards[nextIdx];
+        newMissions[idx] = {
+          ...mission,
+          target: nextTarget,
+          reward: nextReward,
+          description: `총 ${formatNumber(nextTarget)} 달성`,
+          completed: false,
+          claimed: false,
+          // current는 그대로 유지 (누적값)
+        };
+      } else {
+        // 마지막 단계면 claimed만 true
+        newMissions[idx] = { ...mission, claimed: true };
+      }
+    } else {
+      // 일일 미션 또는 일반 미션은 claimed만 true
+      newMissions[idx] = { ...mission, claimed: true };
+    }
+
+    set({
+      gold: state.gold + mission.reward.gold,
+      ruby: state.ruby + mission.reward.ruby,
+      missions: newMissions
+    });
     return true;
   },
 
@@ -717,9 +825,16 @@ const useGameStore = create<GameState>((set, get) => ({
     const newMissions = s.missions.map(m => {
       if (m.claimed) return m;
       let c = 0;
-      if (m.id === 'click100' || m.id === 'click500') c = s.totalClicks;
-      else if (m.id === 'enhance5') c = s.enhanceAttempts;
-      else if (m.id === 'gold10k') c = s.gold;
+      // 일일 미션 (daily_ 접두어)
+      if (m.id === 'daily_click') c = s.totalClicks; // 일일이지만 총 클릭으로 체크 (리셋 시 current가 0으로 초기화됨)
+      else if (m.id === 'daily_stone') c = s.stonesDestroyed;
+      else if (m.id === 'daily_enhance') c = s.enhanceAttempts;
+      else if (m.id === 'daily_gold') c = s.totalGold;
+      // 누적 미션 (total_ 접두어)
+      else if (m.id === 'total_click') c = s.totalClicks;
+      else if (m.id === 'total_stone') c = s.stonesDestroyed;
+      else if (m.id === 'total_enhance') c = s.enhanceAttempts;
+      else if (m.id === 'total_gold') c = s.totalGold;
       return { ...m, current: c, completed: c >= m.target };
     });
     set({ missions: newMissions });
@@ -731,11 +846,20 @@ const useGameStore = create<GameState>((set, get) => ({
     const newAchs = s.achievements.map(a => {
       if (a.unlocked) return a;
       let u = false;
+      // 강화 업적
       if (a.id === 'firstEnhance' && s.enhanceSuccesses > 0) u = true;
+      // 체스 승급 업적
       else if (a.id === 'knight' && rank >= 1) u = true;
       else if (a.id === 'bishop' && rank >= 2) u = true;
       else if (a.id === 'rook' && rank >= 3) u = true;
       else if (a.id === 'queen' && rank >= 4) u = true;
+      else if (a.id === 'king' && rank >= 5) u = true;
+      else if (a.id === 'imperial' && rank >= 6) u = true;
+      // 보스 처치 업적
+      else if (a.id === 'boss1' && s.bossesDefeated >= 1) u = true;
+      else if (a.id === 'boss3' && s.bossesDefeated >= 3) u = true;
+      else if (a.id === 'boss5' && s.bossesDefeated >= 5) u = true;
+      else if (a.id === 'boss7' && s.bossesDefeated >= 7) u = true;
       return { ...a, unlocked: u };
     });
     set({ achievements: newAchs });
@@ -744,7 +868,19 @@ const useGameStore = create<GameState>((set, get) => ({
   resetDailyMissions: () => {
     const today = getTodayString();
     const s = get();
-    if (s.dailyMissionDate !== today) set({ missions: INITIAL_MISSIONS.map(m => ({ ...m })), dailyMissionDate: today });
+    if (s.dailyMissionDate !== today) {
+      // 일일 미션만 리셋, 누적 미션은 유지
+      const newMissions = s.missions.map(m => {
+        if (m.id.startsWith('daily_')) {
+          // 일일 미션은 current와 completed, claimed 초기화
+          const initial = INITIAL_MISSIONS.find(im => im.id === m.id);
+          return initial ? { ...initial } : m;
+        }
+        // 누적 미션은 그대로 유지
+        return m;
+      });
+      set({ missions: newMissions, dailyMissionDate: today });
+    }
   },
 
   saveGame: () => {
@@ -1007,19 +1143,7 @@ function StoryIntroModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-function Modal({ title, onClose, children }: { title: string, onClose: () => void, children: React.ReactNode }) {
-  return (
-    <div className="modal-overlay" onPointerUp={onClose}>
-      <div className="modal" onPointerUp={e => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>{title}</h2>
-          <button className="close-btn" onPointerUp={(e) => { e.stopPropagation(); onClose(); }}>✕</button>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-}
+// Modal 컴포넌트 제거됨 - 탭 기반 UI로 대체
 
 // TODO 2: 연령 등급 배지 컴포넌트
 function AgeRatingBadge({ onComplete }: { onComplete: () => void }) {
@@ -1181,13 +1305,16 @@ function MoreMenuModal({ onClose, onReset }: { onClose: () => void; onReset: () 
   );
 }
 
+// 탭 타입 정의
+type TabType = 'enhance' | 'upgrade' | 'auto' | 'shop' | 'mission';
+
 // 메인 앱
 function App() {
   const [showStory, setShowStory] = useState(false);
   const [showAgeRating, setShowAgeRating] = useState(true); // TODO 2: 연령 등급
   const [showExitModal, setShowExitModal] = useState(false); // TODO 1: 종료 확인
   const [showMoreMenu, setShowMoreMenu] = useState(false); // 더보기 메뉴
-  const [modalType, setModalType] = useState<'upgrade' | 'shop' | 'mission' | 'auto' | null>(null);
+  const [activeTab, setActiveTab] = useState<TabType>('enhance'); // 탭 기반 UI
   const [fx, setFx] = useState<{ id: number, x: number, y: number, text: string, type: any }[]>([]);
 
   const {
@@ -1543,213 +1670,224 @@ function App() {
 
       </div>
 
-      {/* Bottom Controls */}
-      <div className="bottom-controls">
-
-        {/* Enhance Button Group with Item Options */}
-        <div className="enhance-group">
-          <h3 style={{ color: '#2f3542', marginBottom: '8px', textShadow: 'none' }}>체스말 강화</h3>
-
-          {/* 보유 아이템 표시 & 적용 토글 */}
-          <div className="enhance-items">
-            <button
-              className={`enhance-item-toggle ${useProtect ? 'active' : ''} ${!useProtect && getItemCount('protectScroll') === 0 ? 'disabled' : ''}`}
-              onPointerUp={() => {
-                // 이미 선택된 상태면 해제 가능, 선택 안 된 상태면 아이템 있어야 선택 가능
-                if (useProtect || getItemCount('protectScroll') > 0) {
-                  setUseProtect(!useProtect);
-                }
-              }}
-            >
-              <span className="item-emoji">🛡️</span>
-              <span className="item-name">파괴방지</span>
-              <span className="item-count">x{getItemCount('protectScroll')}</span>
-            </button>
-
-            <button
-              className={`enhance-item-toggle ${useBlessing === 1 ? 'active' : ''} ${useBlessing !== 1 && getItemCount('blessScroll') === 0 ? 'disabled' : ''}`}
-              onPointerUp={() => {
-                // 이미 선택된 상태면 해제 가능, 선택 안 된 상태면 아이템 있어야 선택 가능
-                if (useBlessing === 1 || getItemCount('blessScroll') > 0) {
-                  setUseBlessing(useBlessing === 1 ? 0 : 1);
-                }
-              }}
-            >
-              <span className="item-emoji">✨</span>
-              <span className="item-name">축복 +10%</span>
-              <span className="item-count">x{getItemCount('blessScroll')}</span>
-            </button>
-
-            <button
-              className={`enhance-item-toggle ${useBlessing === 2 ? 'active' : ''} ${useBlessing !== 2 && getItemCount('luckyScroll') === 0 ? 'disabled' : ''}`}
-              onPointerUp={() => {
-                // 이미 선택된 상태면 해제 가능, 선택 안 된 상태면 아이템 있어야 선택 가능
-                if (useBlessing === 2 || getItemCount('luckyScroll') > 0) {
-                  setUseBlessing(useBlessing === 2 ? 0 : 2);
-                }
-              }}
-            >
-              <span className="item-emoji">🍀</span>
-              <span className="item-name">행운 +20%</span>
-              <span className="item-count">x{getItemCount('luckyScroll')}</span>
-            </button>
-          </div>
-
-          <button className="enhance-btn" onPointerUp={handleEnhanceClick}>
-            <div className="enhance-content">
-              <span className="enhance-main-text">강화하기</span>
-              <span className="enhance-cost">💰 {formatNumber(ENHANCE_RATES[currentPiece.level]?.cost || 0)}</span>
-            </div>
-            <div className="enhance-info">
-              <span className="prob success">
-                {Math.min(100, (ENHANCE_RATES[currentPiece.level]?.successRate || 0) + (useBlessing === 1 ? 10 : useBlessing === 2 ? 20 : 0))}% 성공
-              </span>
-              <span className="prob destroy">
-                {useProtect ? '0%' : `${ENHANCE_RATES[currentPiece.level]?.destroyRate || 0}%`} 파괴
-              </span>
-            </div>
-            {lastEnhanceMsg && <div className="enhance-msg-overlay">{lastEnhanceMsg}</div>}
+      {/* Bottom Tab UI - Tap Titans 스타일 */}
+      <div className="bottom-tab-container">
+        {/* 탭 네비게이션 */}
+        <div className="tab-navigation">
+          <button
+            className={`tab-btn ${activeTab === 'enhance' ? 'active' : ''}`}
+            onPointerUp={() => { soundManager.play('click'); setActiveTab('enhance'); }}
+          >
+            <span className="tab-icon">⚔️</span>
+            <span className="tab-label">강화</span>
+          </button>
+          <button
+            className={`tab-btn ${activeTab === 'upgrade' ? 'active' : ''}`}
+            onPointerUp={() => { soundManager.play('click'); setActiveTab('upgrade'); }}
+          >
+            <span className="tab-icon">📈</span>
+            <span className="tab-label">성장</span>
+          </button>
+          <button
+            className={`tab-btn ${activeTab === 'auto' ? 'active' : ''}`}
+            onPointerUp={() => { soundManager.play('click'); setActiveTab('auto'); }}
+          >
+            <span className="tab-icon">🐾</span>
+            <span className="tab-label">동료</span>
+          </button>
+          <button
+            className={`tab-btn ${activeTab === 'shop' ? 'active' : ''}`}
+            onPointerUp={() => { soundManager.play('click'); setActiveTab('shop'); }}
+          >
+            <span className="tab-icon">🛒</span>
+            <span className="tab-label">상점</span>
+          </button>
+          <button
+            className={`tab-btn ${activeTab === 'mission' ? 'active' : ''}`}
+            onPointerUp={() => { soundManager.play('click'); setActiveTab('mission'); }}
+          >
+            <span className="tab-icon">📜</span>
+            <span className="tab-label">미션</span>
           </button>
         </div>
 
-        {/* Menu Grid */}
-        <div className="menu-grid">
-          <button className="menu-item-btn" onPointerUp={() => { soundManager.play('click'); setModalType('upgrade'); }}>
-            <span>📈</span><span>성장</span>
-          </button>
-          <button className="menu-item-btn" onPointerUp={() => { soundManager.play('click'); setModalType('auto'); }}>
-            <span>🐾</span><span>동료</span>
-          </button>
-          <button className="menu-item-btn" onPointerUp={() => { soundManager.play('click'); setModalType('shop'); }}>
-            <span>🛒</span><span>상점</span>
-          </button>
-          <button className="menu-item-btn" onPointerUp={() => { soundManager.play('click'); setModalType('mission'); }}>
-            <span>📜</span><span>미션</span>
-          </button>
-        </div>
-
-      </div>
-
-      {/* Modals */}
-      {modalType === 'upgrade' && (
-        <Modal title="스탯 성장" onClose={() => setModalType(null)}>
-          {useGameStore.getState().upgrades.map(u => (
-            <div key={u.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', padding: '10px', background: '#f1f2f6', borderRadius: '10px' }}>
-              <div>
-                <div style={{ fontWeight: 'bold' }}>{u.name} Lv.{u.level}</div>
-                <div style={{ fontSize: '0.8rem', color: '#7f8c8d' }}>현재 효과: {Math.floor(u.baseValue + u.increment * u.level)}</div>
-              </div>
-              <button
-                style={{ background: gold >= getUpgradeCost(u) ? '#2ecc71' : '#bdc3c7', border: 'none', padding: '12px 18px', borderRadius: '8px', color: 'white', fontWeight: 'bold', minHeight: '44px' }}
-                onPointerUp={(e) => { e.stopPropagation(); vibrate(5); soundManager.play('success'); useGameStore.getState().upgradestat(u.id); }}
-              >
-                💰 {formatNumber(getUpgradeCost(u))}
-              </button>
-            </div>
-          ))}
-        </Modal>
-      )}
-
-      {modalType === 'auto' && (
-        <Modal title="동료 모집" onClose={() => setModalType(null)}>
-          {useGameStore.getState().autoClickers.map(ac => (
-            <div key={ac.id} style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', background: '#f1f2f6', padding: '10px', borderRadius: '10px' }}>
-              <div style={{ fontSize: '2rem', marginRight: '10px' }}>{ac.emoji}</div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 'bold' }}>{ac.name} <span style={{ fontSize: '0.8rem', color: '#e67e22' }}>x{ac.count}</span></div>
-                <div style={{ fontSize: '0.8rem', color: '#7f8c8d' }}>DPS: +{ac.clicksPerSec}</div>
-              </div>
-              <button
-                style={{ background: gold >= getAutoClickerCost(ac) ? '#9b59b6' : '#bdc3c7', border: 'none', padding: '12px 18px', borderRadius: '8px', color: 'white', fontWeight: 'bold', minHeight: '44px' }}
-                onPointerUp={(e) => { e.stopPropagation(); vibrate(5); soundManager.play('coin'); useGameStore.getState().buyAutoClicker(ac.id); }}
-              >
-                💰 {formatNumber(getAutoClickerCost(ac))}
-              </button>
-            </div>
-          ))}
-        </Modal>
-      )}
-
-      {modalType === 'shop' && (
-        <Modal title="상점" onClose={() => setModalType(null)}>
-          {useGameStore.getState().shopItems.map(item => {
-            const canBuy = (item.goldCost > 0 && gold >= item.goldCost) || (item.rubyCost > 0 && ruby >= item.rubyCost);
-            return (
-              <div key={item.id} style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', background: '#f1f2f6', padding: '10px', borderRadius: '10px' }}>
-                <div style={{ fontSize: '2rem', marginRight: '10px' }}>{item.emoji}</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 'bold' }}>{item.name} <span style={{ color: '#e67e22', fontSize: '0.85rem' }}>x{item.count}</span></div>
-                  <div style={{ fontSize: '0.8rem', color: '#7f8c8d' }}>{item.description}</div>
-                </div>
+        {/* 탭 콘텐츠 영역 */}
+        <div className="tab-content">
+          {/* 강화 탭 */}
+          {activeTab === 'enhance' && (
+            <div className="tab-panel enhance-panel">
+              <div className="enhance-items-row">
                 <button
-                  style={{ background: canBuy ? '#3498db' : '#bdc3c7', border: 'none', padding: '12px 15px', borderRadius: '8px', color: 'white', fontWeight: 'bold', minHeight: '44px' }}
-                  onPointerUp={(e) => {
-                    e.stopPropagation();
-                    const success = useGameStore.getState().buyShopItem(item.id);
-                    if (success) {
-                      vibrate([30, 30]);
-                      soundManager.play('success');
-                      setRewardFx({ id: Date.now(), text: `✅ ${item.name} 구매 완료!` });
-                      setTimeout(() => setRewardFx(null), 1500);
-                    } else {
-                      vibrate(10);
-                    }
+                  className={`enhance-item-toggle ${useProtect ? 'active' : ''} ${!useProtect && getItemCount('protectScroll') === 0 ? 'disabled' : ''}`}
+                  onPointerUp={() => {
+                    if (useProtect || getItemCount('protectScroll') > 0) setUseProtect(!useProtect);
                   }}
                 >
-                  {item.rubyCost > 0 ? `💎 ${item.rubyCost}` : `💰 ${formatNumber(item.goldCost)}`}
+                  <span className="item-emoji">🛡️</span>
+                  <span className="item-name">파괴방지</span>
+                  <span className="item-count">x{getItemCount('protectScroll')}</span>
+                </button>
+                <button
+                  className={`enhance-item-toggle ${useBlessing === 1 ? 'active' : ''} ${useBlessing !== 1 && getItemCount('blessScroll') === 0 ? 'disabled' : ''}`}
+                  onPointerUp={() => {
+                    if (useBlessing === 1 || getItemCount('blessScroll') > 0) setUseBlessing(useBlessing === 1 ? 0 : 1);
+                  }}
+                >
+                  <span className="item-emoji">✨</span>
+                  <span className="item-name">축복 +10%</span>
+                  <span className="item-count">x{getItemCount('blessScroll')}</span>
+                </button>
+                <button
+                  className={`enhance-item-toggle ${useBlessing === 2 ? 'active' : ''} ${useBlessing !== 2 && getItemCount('luckyScroll') === 0 ? 'disabled' : ''}`}
+                  onPointerUp={() => {
+                    if (useBlessing === 2 || getItemCount('luckyScroll') > 0) setUseBlessing(useBlessing === 2 ? 0 : 2);
+                  }}
+                >
+                  <span className="item-emoji">🍀</span>
+                  <span className="item-name">행운 +20%</span>
+                  <span className="item-count">x{getItemCount('luckyScroll')}</span>
                 </button>
               </div>
-            );
-          })}
-        </Modal>
-      )}
+              <button className="enhance-btn" onPointerUp={handleEnhanceClick}>
+                <div className="enhance-content">
+                  <span className="enhance-main-text">강화하기</span>
+                  <span className="enhance-cost">💰 {formatNumber(ENHANCE_RATES[currentPiece.level]?.cost || 0)}</span>
+                </div>
+                <div className="enhance-info">
+                  <span className="prob success">
+                    {Math.min(100, (ENHANCE_RATES[currentPiece.level]?.successRate || 0) + (useBlessing === 1 ? 10 : useBlessing === 2 ? 20 : 0))}% 성공
+                  </span>
+                  <span className="prob destroy">
+                    {useProtect ? '0%' : `${ENHANCE_RATES[currentPiece.level]?.destroyRate || 0}%`} 파괴
+                  </span>
+                </div>
+                {lastEnhanceMsg && <div className="enhance-msg-overlay">{lastEnhanceMsg}</div>}
+              </button>
+            </div>
+          )}
 
-      {modalType === 'mission' && (
-        <Modal title="미션 & 업적" onClose={() => setModalType(null)}>
-          <h3 style={{ marginBottom: '15px', color: '#2f3542' }}>📋 일일 미션</h3>
-          {missions.map(m => {
-            const progress = Math.min(100, (m.current / m.target) * 100);
-            return (
-              <div key={m.id} className={`mission-item ${m.completed ? 'completed' : ''} ${m.claimed ? 'claimed' : ''}`}>
-                <div className="mission-header">
-                  <span className="mission-name">{m.name}</span>
-                  <span className="mission-progress">{m.current}/{m.target}</span>
-                </div>
-                <div className="mission-progress-bar">
-                  <div className="mission-progress-fill" style={{ width: `${progress}%` }} />
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div className="mission-reward">
-                    {m.reward.gold > 0 && <span>🪙 {formatNumber(m.reward.gold)}</span>}
-                    {m.reward.ruby > 0 && <span>💎 {m.reward.ruby}</span>}
+          {/* 성장 탭 */}
+          {activeTab === 'upgrade' && (
+            <div className="tab-panel scroll-panel">
+              {useGameStore.getState().upgrades.map(u => (
+                <div key={u.id} className="list-item">
+                  <div className="list-item-info">
+                    <div className="list-item-name">{u.name} Lv.{u.level}</div>
+                    <div className="list-item-desc">현재 효과: {Math.floor(u.baseValue + u.increment * u.level)}</div>
                   </div>
-                  {m.completed && !m.claimed && (
+                  <button
+                    className={`list-item-btn ${gold >= getUpgradeCost(u) ? 'can-buy' : ''}`}
+                    onPointerUp={() => { vibrate(5); soundManager.play('success'); useGameStore.getState().upgradestat(u.id); }}
+                  >
+                    💰 {formatNumber(getUpgradeCost(u))}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* 동료 탭 */}
+          {activeTab === 'auto' && (
+            <div className="tab-panel scroll-panel">
+              {useGameStore.getState().autoClickers.map(ac => (
+                <div key={ac.id} className="list-item">
+                  <div className="list-item-emoji">{ac.emoji}</div>
+                  <div className="list-item-info">
+                    <div className="list-item-name">{ac.name} <span className="count-badge">x{ac.count}</span></div>
+                    <div className="list-item-desc">DPS: +{ac.clicksPerSec}</div>
+                  </div>
+                  <button
+                    className={`list-item-btn purple ${gold >= getAutoClickerCost(ac) ? 'can-buy' : ''}`}
+                    onPointerUp={() => { vibrate(5); soundManager.play('coin'); useGameStore.getState().buyAutoClicker(ac.id); }}
+                  >
+                    💰 {formatNumber(getAutoClickerCost(ac))}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* 상점 탭 */}
+          {activeTab === 'shop' && (
+            <div className="tab-panel scroll-panel">
+              {useGameStore.getState().shopItems.map(item => {
+                const canBuy = (item.goldCost > 0 && gold >= item.goldCost) || (item.rubyCost > 0 && ruby >= item.rubyCost);
+                return (
+                  <div key={item.id} className="list-item">
+                    <div className="list-item-emoji">{item.emoji}</div>
+                    <div className="list-item-info">
+                      <div className="list-item-name">{item.name} <span className="count-badge">x{item.count}</span></div>
+                      <div className="list-item-desc">{item.description}</div>
+                    </div>
                     <button
-                      className="claim-btn"
-                      onPointerUp={(e) => {
-                        e.stopPropagation();
-                        const success = claimMissionReward(m.id);
+                      className={`list-item-btn blue ${canBuy ? 'can-buy' : ''}`}
+                      onPointerUp={() => {
+                        const success = useGameStore.getState().buyShopItem(item.id);
                         if (success) {
-                          vibrate([50, 50, 50]);
+                          vibrate([30, 30]);
                           soundManager.play('success');
-                          setRewardFx({
-                            id: Date.now(),
-                            text: `🎁 ${m.reward.gold > 0 ? `+${formatNumber(m.reward.gold)} 골드` : ''} ${m.reward.ruby > 0 ? `+${m.reward.ruby} 루비` : ''}`
-                          });
-                          setTimeout(() => setRewardFx(null), 2000);
+                          setRewardFx({ id: Date.now(), text: `✅ ${item.name} 구매 완료!` });
+                          setTimeout(() => setRewardFx(null), 1500);
+                        } else {
+                          vibrate(10);
                         }
                       }}
                     >
-                      보상받기
+                      {item.rubyCost > 0 ? `💎 ${item.rubyCost}` : `💰 ${formatNumber(item.goldCost)}`}
                     </button>
-                  )}
-                  {m.claimed && <span style={{ color: '#95a5a6', fontWeight: 'bold' }}>✓ 완료</span>}
-                </div>
-              </div>
-            );
-          })}
-        </Modal>
-      )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* 미션 탭 */}
+          {activeTab === 'mission' && (
+            <div className="tab-panel scroll-panel">
+              {missions.map(m => {
+                const progress = Math.min(100, (m.current / m.target) * 100);
+                return (
+                  <div key={m.id} className={`mission-item ${m.completed ? 'completed' : ''} ${m.claimed ? 'claimed' : ''}`}>
+                    <div className="mission-header">
+                      <span className="mission-name">{m.name}</span>
+                      <span className="mission-progress">{m.current}/{m.target}</span>
+                    </div>
+                    <div className="mission-progress-bar">
+                      <div className="mission-progress-fill" style={{ width: `${progress}%` }} />
+                    </div>
+                    <div className="mission-footer">
+                      <div className="mission-reward">
+                        {m.reward.gold > 0 && <span>🪙 {formatNumber(m.reward.gold)}</span>}
+                        {m.reward.ruby > 0 && <span>💎 {m.reward.ruby}</span>}
+                      </div>
+                      {m.completed && !m.claimed && (
+                        <button
+                          className="claim-btn"
+                          onPointerUp={() => {
+                            const success = claimMissionReward(m.id);
+                            if (success) {
+                              vibrate([50, 50, 50]);
+                              soundManager.play('success');
+                              setRewardFx({
+                                id: Date.now(),
+                                text: `🎁 ${m.reward.gold > 0 ? `+${formatNumber(m.reward.gold)} 골드` : ''} ${m.reward.ruby > 0 ? `+${m.reward.ruby} 루비` : ''}`
+                              });
+                              setTimeout(() => setRewardFx(null), 2000);
+                            }
+                          }}
+                        >
+                          보상받기
+                        </button>
+                      )}
+                      {m.claimed && <span className="mission-done">✓ 완료</span>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Reward Toast */}
       {rewardFx && (

@@ -1843,3 +1843,441 @@ body {
 .hp-bar-fill.boss-hp-fill {
   background: linear-gradient(90deg, #e74c3c, #c0392b);
 }
+
+/* ============ 탭 기반 UI (Tap Titans 스타일) ============ */
+.bottom-tab-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(0deg, rgba(241, 242, 246, 1) 0%, rgba(241, 242, 246, 0.98) 100%);
+  flex-shrink: 0;
+  max-height: 45vh;
+  /* 화면의 45% 이하로 제한 */
+}
+
+/* 탭 네비게이션 바 */
+.tab-navigation {
+  display: flex;
+  width: 100%;
+  background: #fff;
+  border-bottom: 2px solid #e9ecef;
+  padding: 0;
+  gap: 0;
+}
+
+.tab-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 4px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-height: 54px;
+  position: relative;
+}
+
+.tab-btn::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 3px;
+  background: #ff6b6b;
+  border-radius: 3px 3px 0 0;
+  transition: width 0.2s;
+}
+
+.tab-btn.active::after {
+  width: 80%;
+}
+
+.tab-btn.active {
+  background: rgba(255, 107, 107, 0.08);
+}
+
+.tab-btn:active {
+  transform: scale(0.95);
+}
+
+.tab-icon {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.tab-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #7f8c8d;
+  font-family: var(--font-family);
+  margin-top: 2px;
+}
+
+.tab-btn.active .tab-label {
+  color: #ff6b6b;
+}
+
+/* 탭 콘텐츠 영역 */
+.tab-content {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding: 10px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
+}
+
+.tab-panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.tab-panel.scroll-panel {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  gap: 8px;
+  padding-right: 5px;
+}
+
+/* 강화 탭 패널 */
+.tab-panel.enhance-panel {
+  gap: 10px;
+}
+
+.enhance-items-row {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+}
+
+.enhance-items-row .enhance-item-toggle {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 4px;
+  background: #f8f9fa;
+  border: 2px solid #dfe4ea;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-height: 50px;
+}
+
+.enhance-items-row .enhance-item-toggle:active {
+  transform: scale(0.95);
+}
+
+.enhance-items-row .enhance-item-toggle.active {
+  background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+  border-color: #0984e3;
+  box-shadow: 0 3px 10px rgba(9, 132, 227, 0.3);
+}
+
+.enhance-items-row .enhance-item-toggle.active .item-name,
+.enhance-items-row .enhance-item-toggle.active .item-count {
+  color: white;
+}
+
+.enhance-items-row .enhance-item-toggle.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.enhance-items-row .item-emoji {
+  font-size: 1.1rem;
+}
+
+.enhance-items-row .item-name {
+  font-size: 0.6rem;
+  font-weight: bold;
+  color: #2f3542;
+}
+
+.enhance-items-row .item-count {
+  font-size: 0.65rem;
+  font-weight: bold;
+  color: #e67e22;
+}
+
+/* 강화 버튼 - 탭 내부용 */
+.tab-panel .enhance-btn {
+  width: 100%;
+  padding: 10px 15px;
+  background: linear-gradient(180deg, #ff6b6b 0%, #ee5253 100%);
+  border: none;
+  border-radius: 16px;
+  color: white;
+  font-family: var(--font-family);
+  box-shadow: 0 5px 0 #c44040, 0 8px 15px rgba(238, 82, 83, 0.4);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.1s;
+  min-height: 70px;
+}
+
+.tab-panel .enhance-btn:active {
+  transform: translateY(5px);
+  box-shadow: 0 0 0 #c44040, inset 0 3px 5px rgba(0, 0, 0, 0.2);
+}
+
+.tab-panel .enhance-main-text {
+  font-size: 1.4rem;
+}
+
+.tab-panel .enhance-cost {
+  font-size: 1.1rem;
+}
+
+/* 리스트 아이템 (성장, 동료, 상점 공통) */
+.list-item {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  padding: 10px 12px;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  gap: 10px;
+}
+
+.list-item-emoji {
+  font-size: 1.6rem;
+  flex-shrink: 0;
+}
+
+.list-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.list-item-name {
+  font-weight: bold;
+  font-size: 0.9rem;
+  color: #2f3542;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.list-item-desc {
+  font-size: 0.75rem;
+  color: #7f8c8d;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.count-badge {
+  font-size: 0.75rem;
+  color: #e67e22;
+  font-weight: bold;
+}
+
+.list-item-btn {
+  flex-shrink: 0;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: bold;
+  font-family: var(--font-family);
+  color: white;
+  background: #bdc3c7;
+  cursor: pointer;
+  transition: all 0.15s;
+  min-height: 40px;
+  min-width: 80px;
+}
+
+.list-item-btn.can-buy {
+  background: linear-gradient(180deg, #2ecc71 0%, #27ae60 100%);
+  box-shadow: 0 3px 0 #1e8449;
+}
+
+.list-item-btn.can-buy:active {
+  transform: translateY(3px);
+  box-shadow: none;
+}
+
+.list-item-btn.purple.can-buy {
+  background: linear-gradient(180deg, #9b59b6 0%, #8e44ad 100%);
+  box-shadow: 0 3px 0 #6c3483;
+}
+
+.list-item-btn.blue.can-buy {
+  background: linear-gradient(180deg, #3498db 0%, #2980b9 100%);
+  box-shadow: 0 3px 0 #1a5276;
+}
+
+/* 미션 아이템 - 탭 내부용 */
+.tab-panel .mission-item {
+  background: #fff;
+  padding: 12px;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.tab-panel .mission-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.tab-panel .mission-name {
+  font-weight: bold;
+  font-size: 0.9rem;
+  color: #2f3542;
+}
+
+.tab-panel .mission-progress {
+  font-size: 0.8rem;
+  color: #7f8c8d;
+  font-weight: 600;
+}
+
+.tab-panel .mission-progress-bar {
+  height: 6px;
+  background: #e9ecef;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.tab-panel .mission-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff6b6b, #ee5253);
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+
+.tab-panel .mission-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tab-panel .mission-reward {
+  display: flex;
+  gap: 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.tab-panel .claim-btn {
+  padding: 8px 16px;
+  background: linear-gradient(180deg, #f1c40f 0%, #f39c12 100%);
+  border: none;
+  border-radius: 8px;
+  color: #5c3c00;
+  font-weight: bold;
+  font-size: 0.8rem;
+  font-family: var(--font-family);
+  box-shadow: 0 3px 0 #b38200;
+  cursor: pointer;
+  min-height: 36px;
+}
+
+.tab-panel .claim-btn:active {
+  transform: translateY(3px);
+  box-shadow: none;
+}
+
+.tab-panel .mission-done {
+  color: #95a5a6;
+  font-weight: bold;
+  font-size: 0.85rem;
+}
+
+.tab-panel .mission-item.completed {
+  border: 2px solid #2ecc71;
+}
+
+.tab-panel .mission-item.claimed {
+  opacity: 0.6;
+}
+
+/* ============ 반응형 - 작은 화면 대응 ============ */
+@media screen and (max-height: 600px) {
+  .bottom-tab-container {
+    max-height: 40vh;
+  }
+
+  .tab-btn {
+    min-height: 48px;
+    padding: 6px 4px;
+  }
+
+  .tab-icon {
+    font-size: 1.2rem;
+  }
+
+  .tab-label {
+    font-size: 0.6rem;
+  }
+
+  .tab-content {
+    padding: 8px;
+  }
+
+  .tab-panel .enhance-btn {
+    min-height: 60px;
+    padding: 8px 12px;
+  }
+
+  .tab-panel .enhance-main-text {
+    font-size: 1.2rem;
+  }
+
+  .list-item {
+    padding: 8px 10px;
+  }
+
+  .list-item-emoji {
+    font-size: 1.3rem;
+  }
+
+  .list-item-name {
+    font-size: 0.8rem;
+  }
+
+  .list-item-btn {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    min-width: 70px;
+  }
+}
+
+/* 매우 작은 화면 (iPhone SE 등) */
+@media screen and (max-height: 568px) {
+  .bottom-tab-container {
+    max-height: 38vh;
+  }
+
+  .game-area {
+    gap: 8px;
+  }
+
+  .battle-container {
+    max-height: 200px;
+    min-height: 120px;
+  }
+
+  .boss-gauge-container {
+    padding: 4px 10px;
+    margin: 4px 10px;
+  }
+}
+
+/* 아이폰 X+ 노치 대응 */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .tab-content {
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  }
+}
