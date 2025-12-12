@@ -167,7 +167,7 @@ const ENHANCE_RATES = [
 const INITIAL_UPGRADES: UpgradeStat[] = [
   { id: 'goldPerClick', name: '클릭당 골드', level: 1, baseValue: 1, increment: 1, baseCost: 50, costMultiplier: 1.18 },
   { id: 'attackPower', name: '공격력', level: 1, baseValue: 1, increment: 1, baseCost: 100, costMultiplier: 1.20 },
-  { id: 'critChance', name: '치명타 확률', level: 0, baseValue: 0, increment: 5, baseCost: 200, costMultiplier: 1.25 },
+  { id: 'critChance', name: '치명타 확률', level: 0, baseValue: 0, increment: 0.2, baseCost: 200, costMultiplier: 1.12 },
   { id: 'critDamage', name: '치명타 데미지', level: 0, baseValue: 150, increment: 10, baseCost: 300, costMultiplier: 1.22 },
 ];
 
@@ -358,7 +358,8 @@ const getUpgradeCost = (upgrade: UpgradeStat): number => {
 };
 
 const getAutoClickerCost = (clicker: AutoClicker): number => {
-  return Math.floor(clicker.baseCost * Math.pow(1.20, clicker.count));
+  // 동료 중복 구매 시 가격 급등 (50%씩 증가)
+  return Math.floor(clicker.baseCost * Math.pow(1.50, clicker.count));
 };
 
 // ============ Zustand 스토어 ============
