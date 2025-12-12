@@ -1844,7 +1844,13 @@ function App() {
                   </div>
                   <button
                     className={`list-item-btn ${gold >= getUpgradeCost(u) ? 'can-buy' : ''}`}
-                    onPointerUp={() => { vibrate(5); soundManager.play('success'); useGameStore.getState().upgradestat(u.id); }}
+                    onPointerUp={() => {
+                      const success = useGameStore.getState().upgradestat(u.id);
+                      if (success) {
+                        vibrate(5);
+                        soundManager.play('success');
+                      }
+                    }}
                   >
                     💰 {formatNumber(getUpgradeCost(u))}
                   </button>
@@ -1865,7 +1871,13 @@ function App() {
                   </div>
                   <button
                     className={`list-item-btn purple ${gold >= getAutoClickerCost(ac) ? 'can-buy' : ''}`}
-                    onPointerUp={() => { vibrate(5); soundManager.play('coin'); useGameStore.getState().buyAutoClicker(ac.id); }}
+                    onPointerUp={() => {
+                      const success = useGameStore.getState().buyAutoClicker(ac.id);
+                      if (success) {
+                        vibrate(5);
+                        soundManager.play('coin');
+                      }
+                    }}
                   >
                     💰 {formatNumber(getAutoClickerCost(ac))}
                   </button>
