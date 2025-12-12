@@ -96,3 +96,58 @@ export const KingIcon: React.FC<IconProps> = ({ className, style }) => (
         <path d="M25 80H75L80 90H20L25 80Z" fill="#2d3436" />
     </svg>
 );
+
+export const ImperialKingIcon: React.FC<IconProps> = ({ className, style }) => (
+    <svg viewBox="0 0 100 100" className={className} style={style} fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+            <linearGradient id="imperialRainbow" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#ff0000" />
+                <stop offset="20%" stopColor="#ffa500" />
+                <stop offset="40%" stopColor="#ffff00" />
+                <stop offset="60%" stopColor="#008000" />
+                <stop offset="80%" stopColor="#0000ff" />
+                <stop offset="100%" stopColor="#4b0082" />
+            </linearGradient>
+            <filter id="glow">
+                <feGaussianBlur stdDeviation="2.5" result="coloredBlur" />
+                <feMerge>
+                    <feMergeNode in="coloredBlur" />
+                    <feMergeNode in="SourceGraphic" />
+                </feMerge>
+            </filter>
+        </defs>
+
+        {/* Aura */}
+        <circle cx="50" cy="50" r="45" fill="url(#imperialRainbow)" opacity="0.2" filter="url(#glow)" />
+
+        {/* Cape */}
+        <path d="M30 40L20 85H80L70 40" fill="#e74c3c" stroke="#2d3436" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+
+        {/* Crown/Body */}
+        <path d="M30 40V80H70V40L60 25H40L30 40Z" fill="#f1c40f" stroke="url(#imperialRainbow)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+
+        {/* Ornate Details on Body */}
+        <path d="M40 80V40M60 80V40" stroke="#d35400" strokeWidth="2" opacity="0.5" />
+
+        {/* Giant Cross */}
+        <path d="M50 5V25M38 15H62" stroke="url(#imperialRainbow)" strokeWidth="6" strokeLinecap="round" />
+        <path d="M50 5V25M38 15H62" stroke="white" strokeWidth="2" strokeLinecap="round" />
+
+        {/* Face */}
+        <circle cx="45" cy="50" r="3" fill="#2d3436" />
+        <circle cx="55" cy="50" r="3" fill="#2d3436" />
+        <path d="M48 55H52" stroke="#2d3436" strokeWidth="2" />
+
+        {/* Gems */}
+        <circle cx="50" cy="35" r="4" fill="#e74c3c" stroke="white" strokeWidth="1" />
+        <circle cx="35" cy="45" r="3" fill="#3498db" stroke="white" strokeWidth="1" />
+        <circle cx="65" cy="45" r="3" fill="#2ecc71" stroke="white" strokeWidth="1" />
+
+        {/* Star Sparkles */}
+        <path d="M20 20L22 15L24 20L29 22L24 24L22 29L20 24L15 22L20 20Z" fill="#ffff00" />
+        <path d="M80 20L82 15L84 20L89 22L84 24L82 29L80 24L75 22L80 20Z" fill="#ffff00" />
+
+        {/* Base */}
+        <path d="M25 80H75L80 90H20L25 80Z" fill="#2d3436" stroke="url(#imperialRainbow)" strokeWidth="2" />
+    </svg>
+);

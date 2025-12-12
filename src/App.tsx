@@ -5,19 +5,24 @@ import './App.css';
 // Assets (2D Characters)
 // King is missing due to quota, reusing Queen for now (logic handles this)
 // SVG Components
-import { PawnIcon, KnightIcon, BishopIcon, RookIcon, QueenIcon, KingIcon } from './components/ChessIcons';
-import { StoneBlackIcon, StoneWhiteIcon } from './components/StoneIcons';
+import { PawnIcon, KnightIcon, BishopIcon, RookIcon, QueenIcon, KingIcon, ImperialKingIcon } from './components/ChessIcons';
+import { StoneBlackIcon, StoneWhiteIcon, StoneBossRed, StoneBossBlue, StoneBossGreen, StoneBossPurple, StoneBossGold, StoneBossCyan, StoneBossRainbow } from './components/StoneIcons';
+import { MILITARY_RANK_ICONS } from './components/MilitaryRankIcons';
+import { soundManager } from './utils/SoundManager';
 
 // ============ 타입 정의 ============
 type ChessPieceRank = 'pawn' | 'knight' | 'bishop' | 'rook' | 'queen' | 'king' | 'imperial';
 type StoneColor = 'black' | 'white';
 type StoneSize = 'small' | 'medium' | 'large';
+type BossType = 'none' | 'boss1' | 'boss2' | 'boss3' | 'boss4' | 'boss5' | 'boss6' | 'boss7';
 
 interface GoStone {
   color: StoneColor;
   size: StoneSize;
   maxHp: number;
   currentHp: number;
+  isBoss: boolean;
+  bossType?: BossType;
 }
 
 interface ChessPiece {
@@ -85,46 +90,104 @@ const CHESS_PIECES: Record<ChessPieceRank, Omit<ChessPiece, 'level'>> = {
   rook: { rank: 'rook', displayName: '룩', emoji: '♜' },
   queen: { rank: 'queen', displayName: '퀸', emoji: '♛' },
   king: { rank: 'king', displayName: '킹', emoji: '♚' }, // Placeholder: Queen
-  imperial: { rank: 'imperial', displayName: '황제신왕', emoji: '👑' }, // Placeholder: Queen
+  imperial: { rank: 'imperial', displayName: '킹갓제네럴임페리얼 체스킹', emoji: '👑' },
 };
 
 const RANK_ORDER: ChessPieceRank[] = ['pawn', 'knight', 'bishop', 'rook', 'queen', 'king', 'imperial'];
 
+// 체스 랭크별 공격력 배율 (임페리얼 20x로 엔딩)
+const RANK_MULTIPLIERS: Record<ChessPieceRank, number> = {
+  pawn: 1,
+  knight: 2,
+  bishop: 3,
+  rook: 5,
+  queen: 8,
+  king: 12,
+  imperial: 20,
+};
+
+// 군대 계급 17단계 강화 시스템
+const MILITARY_RANKS = [
+  '이병', '일병', '상병', '병장',     // 병사 (0-3)
+  '하사', '중사', '상사',             // 부사관 (4-6)
+  '소위', '중위', '대위',             // 위관 (7-9)
+  '소령', '중령', '대령',             // 영관 (10-12)
+  '준장', '소장', '중장', '대장'      // 장성 (13-16)
+];
+
+// 계급별 공격력 배율 (대장 = 80x)
+const MILITARY_POWER_MULTIPLIERS = [
+  1.0, 1.2, 1.5, 2.0,      // 이병~병장
+  2.5, 3.2, 4.0,           // 하사~상사
+  5.0, 6.5, 8.0,           // 소위~대위
+  10, 15, 22,              // 소령~대령
+  32, 45, 60, 80           // 준장~대장
+];
+
+// ============ 밸런스 설계 (F2P 30일 엔딩, 7만원=15일 엔딩) ============
+// 복리 성장 감안: 업그레이드×계급×체스 곱연산 효과 포함
+// F2P 30일 획득 예상: 약 6,500억 / 총 필요: 약 6,300억
+// 1사이클(이병→대장): 약 452억, 7사이클: 약 3,164억 (성공시)
 const ENHANCE_RATES = [
-  { level: 0, successRate: 100, cost: 50, destroyRate: 0 },
-  { level: 1, successRate: 90, cost: 100, destroyRate: 0 },
-  { level: 2, successRate: 80, cost: 200, destroyRate: 0 },
-  { level: 3, successRate: 70, cost: 500, destroyRate: 5 },
-  { level: 4, successRate: 60, cost: 1000, destroyRate: 10 },
-  { level: 5, successRate: 50, cost: 2000, destroyRate: 15 },
-  { level: 6, successRate: 40, cost: 5000, destroyRate: 20 },
-  { level: 7, successRate: 30, cost: 10000, destroyRate: 25 },
-  { level: 8, successRate: 20, cost: 25000, destroyRate: 30 },
-  { level: 9, successRate: 10, cost: 50000, destroyRate: 40 },
-  { level: 10, successRate: 5, cost: 100000, destroyRate: 0 },
+  // 병사 (초반 빠른 진행, 파괴 없음)
+  { level: 0, name: '이병', successRate: 100, cost: 1000, destroyRate: 0 },
+  { level: 1, name: '일병', successRate: 100, cost: 5000, destroyRate: 0 },
+  { level: 2, name: '상병', successRate: 95, cost: 20000, destroyRate: 0 },
+  { level: 3, name: '병장', successRate: 90, cost: 80000, destroyRate: 0 },
+  // 부사관 (중반 도전, 파괴 시작)
+  { level: 4, name: '하사', successRate: 85, cost: 250000, destroyRate: 5 },
+  { level: 5, name: '중사', successRate: 80, cost: 800000, destroyRate: 8 },
+  { level: 6, name: '상사', successRate: 75, cost: 2000000, destroyRate: 10 },
+  // 위관 (중후반, 본격적인 파괴 리스크)
+  { level: 7, name: '소위', successRate: 70, cost: 5000000, destroyRate: 12 },
+  { level: 8, name: '중위', successRate: 65, cost: 15000000, destroyRate: 15 },
+  { level: 9, name: '대위', successRate: 60, cost: 40000000, destroyRate: 18 },
+  // 영관 (후반, 높은 비용과 리스크)
+  { level: 10, name: '소령', successRate: 55, cost: 100000000, destroyRate: 20 },
+  { level: 11, name: '중령', successRate: 50, cost: 300000000, destroyRate: 22 },
+  { level: 12, name: '대령', successRate: 45, cost: 800000000, destroyRate: 25 },
+  // 장성 (엔드게임, 최고 난이도)
+  { level: 13, name: '준장', successRate: 40, cost: 2000000000, destroyRate: 28 },
+  { level: 14, name: '소장', successRate: 35, cost: 5000000000, destroyRate: 30 },
+  { level: 15, name: '중장', successRate: 30, cost: 12000000000, destroyRate: 32 },
+  { level: 16, name: '대장', successRate: 25, cost: 25000000000, destroyRate: 0 }, // 대장은 파괴 없음 (진화 직전)
 ];
 
+// 업그레이드 비용 (F2P 30일 기준 - 복리효과 감안)
 const INITIAL_UPGRADES: UpgradeStat[] = [
-  { id: 'goldPerClick', name: '클릭당 골드', level: 1, baseValue: 1, increment: 1, baseCost: 10, costMultiplier: 1.15 },
-  { id: 'attackPower', name: '공격력', level: 1, baseValue: 1, increment: 1, baseCost: 15, costMultiplier: 1.18 },
-  { id: 'critChance', name: '치명타 확률', level: 0, baseValue: 0, increment: 5, baseCost: 50, costMultiplier: 1.25 },
-  { id: 'critDamage', name: '치명타 데미지', level: 0, baseValue: 150, increment: 10, baseCost: 80, costMultiplier: 1.2 },
+  { id: 'goldPerClick', name: '클릭당 골드', level: 1, baseValue: 1, increment: 1, baseCost: 50, costMultiplier: 1.18 },
+  { id: 'attackPower', name: '공격력', level: 1, baseValue: 1, increment: 1, baseCost: 100, costMultiplier: 1.20 },
+  { id: 'critChance', name: '치명타 확률', level: 0, baseValue: 0, increment: 5, baseCost: 200, costMultiplier: 1.25 },
+  { id: 'critDamage', name: '치명타 데미지', level: 0, baseValue: 150, increment: 10, baseCost: 300, costMultiplier: 1.22 },
 ];
 
+// 동료 시스템 (F2P 30일 기준 - baseCost 3배 증가, 복리효과 감안)
+// 초반 빠른 진행 → 중반 성장 → 후반 안정적 DPS
 const INITIAL_AUTO_CLICKERS: AutoClicker[] = [
-  { id: 'finger', name: '보조 손가락', emoji: '👆', clicksPerSec: 1, baseCost: 100, count: 0 },
-  { id: 'fan', name: '부채', emoji: '🪭', clicksPerSec: 3, baseCost: 500, count: 0 },
-  { id: 'sword', name: '검', emoji: '⚔️', clicksPerSec: 10, baseCost: 2000, count: 0 },
-  { id: 'magic', name: '마법봉', emoji: '🪄', clicksPerSec: 25, baseCost: 8000, count: 0 },
-  { id: 'dragon', name: '드래곤', emoji: '🐉', clicksPerSec: 100, baseCost: 50000, count: 0 },
+  { id: 'finger', name: '보조 손가락', emoji: '👆', clicksPerSec: 1, baseCost: 1500, count: 0 },       // 초반용
+  { id: 'fan', name: '부채', emoji: '🪭', clicksPerSec: 3, baseCost: 9000, count: 0 },                // 병사급
+  { id: 'sword', name: '검', emoji: '⚔️', clicksPerSec: 8, baseCost: 45000, count: 0 },               // 부사관급
+  { id: 'magic', name: '마법봉', emoji: '🪄', clicksPerSec: 20, baseCost: 240000, count: 0 },         // 위관급
+  { id: 'knight', name: '기사', emoji: '🛡️', clicksPerSec: 50, baseCost: 1200000, count: 0 },        // 영관급
+  { id: 'wizard', name: '마법사', emoji: '🧙', clicksPerSec: 120, baseCost: 6000000, count: 0 },      // 장성급
+  { id: 'dragon', name: '드래곤', emoji: '🐉', clicksPerSec: 300, baseCost: 45000000, count: 0 },     // 엔드게임
 ];
 
+// 상점 아이템 (캐시템 추가 - 7만원 = 7000 루비 기준)
 const INITIAL_SHOP_ITEMS: ShopItem[] = [
-  { id: 'protectScroll', name: '파괴방지권', emoji: '🛡️', description: '강화 실패 방지', goldCost: 0, rubyCost: 10, count: 0 },
-  { id: 'blessScroll', name: '축복주문서', emoji: '✨', description: '확률 +10%', goldCost: 0, rubyCost: 15, count: 0 },
-  { id: 'luckyScroll', name: '행운주문서', emoji: '🍀', description: '확률 +20%', goldCost: 0, rubyCost: 25, count: 0 },
-  { id: 'goldBoost', name: '골드 부스터', emoji: '💎', description: '5분간 골드 2배', goldCost: 5000, rubyCost: 0, count: 0 },
-  { id: 'autoBoost', name: '자동 부스터', emoji: '⚡', description: '5분간 자동 2배', goldCost: 10000, rubyCost: 0, count: 0 },
+  // 강화 보조 아이템 (루비)
+  { id: 'protectScroll', name: '파괴방지권', emoji: '🛡️', description: '강화 실패시 파괴 방지', goldCost: 0, rubyCost: 100, count: 0 },
+  { id: 'blessScroll', name: '축복주문서', emoji: '✨', description: '성공 확률 +10%', goldCost: 0, rubyCost: 150, count: 0 },
+  { id: 'luckyScroll', name: '행운주문서', emoji: '🍀', description: '성공 확률 +20%', goldCost: 0, rubyCost: 250, count: 0 },
+  { id: 'superScroll', name: '신성주문서', emoji: '🌟', description: '성공 확률 +30%', goldCost: 0, rubyCost: 400, count: 0 },
+  // 부스터 (골드/루비)
+  { id: 'goldBoost', name: '골드 부스터', emoji: '💰', description: '30분간 골드 2배', goldCost: 50000, rubyCost: 0, count: 0 },
+  { id: 'autoBoost', name: '자동 부스터', emoji: '⚡', description: '30분간 자동클릭 2배', goldCost: 100000, rubyCost: 0, count: 0 },
+  { id: 'megaBoost', name: '메가 부스터', emoji: '🚀', description: '1시간 모든 효과 2배', goldCost: 0, rubyCost: 300, count: 0 },
+  // VIP 패키지 (프리미엄 캐시)
+  { id: 'vipPass', name: 'VIP 패스 (30일)', emoji: '👑', description: '골드+50%, 오프라인+100%', goldCost: 0, rubyCost: 3000, count: 0 },
+  { id: 'starterPack', name: '스타터 패키지', emoji: '🎁', description: '파괴방지x10, 축복x10, 500만골드', goldCost: 0, rubyCost: 1500, count: 0 },
+  { id: 'growthPack', name: '성장 패키지', emoji: '📈', description: '영구 공격력 +20%', goldCost: 0, rubyCost: 2000, count: 0 },
 ];
 
 const INITIAL_MISSIONS: Mission[] = [
@@ -144,12 +207,28 @@ const ACHIEVEMENTS: Achievement[] = [
 
 const STORAGE_KEY = 'pony-game-v3';
 
-// 바둑돌 설정 (Stone Styles for CSS)
+// 바둑돌 설정 (Stone Styles for CSS) - HP 20배 증가
 const STONE_CONFIG: Record<StoneSize, { hpMultiplier: number; pixelSize: number }> = {
-  small: { hpMultiplier: 1, pixelSize: 80 },
-  medium: { hpMultiplier: 2, pixelSize: 110 },
-  large: { hpMultiplier: 4, pixelSize: 150 },
+  small: { hpMultiplier: 20, pixelSize: 80 },
+  medium: { hpMultiplier: 40, pixelSize: 110 },
+  large: { hpMultiplier: 80, pixelSize: 150 },
 };
+
+// 보스 설정 - 7개 보스 (F2P 30일 기준)
+// 보스 HP = 권장 공격력 x 500~1000타, 보상 = 강화 비용 일부 지원 (100개당 1보스)
+const BOSS_CONFIG: Record<BossType, { name: string; fixedHp: number; goldReward: number; element: string }> = {
+  none: { name: '', fixedHp: 1, goldReward: 0, element: '' },
+  boss1: { name: '화염의 돌', fixedHp: 500, goldReward: 5000, element: '🔴' },             // 폰 초반 (공격력 ~1)
+  boss2: { name: '빙결의 돌', fixedHp: 5000, goldReward: 50000, element: '🔵' },           // 나이트 중반 (공격력 ~4)
+  boss3: { name: '맹독의 돌', fixedHp: 50000, goldReward: 500000, element: '🟢' },         // 비숍 대위 (공격력 ~24)
+  boss4: { name: '암흑의 돌', fixedHp: 300000, goldReward: 2000000, element: '🟣' },       // 룩 소령 (공격력 ~50)
+  boss5: { name: '번개의 돌', fixedHp: 2000000, goldReward: 10000000, element: '🟡' },     // 퀸 대령 (공격력 ~176)
+  boss6: { name: '사이버 돌', fixedHp: 15000000, goldReward: 50000000, element: '💠' },    // 킹 소장 (공격력 ~540)
+  boss7: { name: '궁극의 돌', fixedHp: 80000000, goldReward: 200000000, element: '🌈' },   // 임페리얼 대장 (공격력 ~1600)
+};
+
+const BOSS_ORDER: BossType[] = ['boss1', 'boss2', 'boss3', 'boss4', 'boss5', 'boss6', 'boss7'];
+const STONES_PER_BOSS = 100; // 100개 파괴마다 보스 등장 (F2P 30일 기준)
 
 const createRandomStone = (playerDps: number): GoStone => {
   const colors: StoneColor[] = ['black', 'white'];
@@ -171,6 +250,26 @@ const createRandomStone = (playerDps: number): GoStone => {
     size,
     maxHp: hp,
     currentHp: hp,
+    isBoss: false,
+    bossType: 'none',
+  };
+};
+
+// 보스 생성 함수 (고정 HP 사용)
+const createBossStone = (_playerDps: number, bossIndex: number): GoStone => {
+  const bossType = BOSS_ORDER[bossIndex % BOSS_ORDER.length];
+  const bossConfig = BOSS_CONFIG[bossType];
+
+  // 보스 HP는 고정값 사용
+  const hp = bossConfig.fixedHp;
+
+  return {
+    color: 'black', // 보스는 색상 무관
+    size: 'large',  // 보스는 항상 큰 사이즈
+    maxHp: hp,
+    currentHp: hp,
+    isBoss: true,
+    bossType: bossType,
   };
 };
 
@@ -186,7 +285,7 @@ const getUpgradeCost = (upgrade: UpgradeStat): number => {
 };
 
 const getAutoClickerCost = (clicker: AutoClicker): number => {
-  return Math.floor(clicker.baseCost * Math.pow(1.15, clicker.count));
+  return Math.floor(clicker.baseCost * Math.pow(1.20, clicker.count));
 };
 
 // ============ Zustand 스토어 ============
@@ -197,6 +296,8 @@ interface GameState {
   totalClicks: number;
   currentStone: GoStone;
   stonesDestroyed: number;
+  bossesDefeated: number;           // 처치한 보스 수
+  stonesUntilBoss: number;          // 보스까지 남은 바둑돌 수
   currentPiece: ChessPiece;
   upgrades: UpgradeStat[];
   autoClickers: AutoClicker[];
@@ -237,9 +338,15 @@ interface GameState {
   resetDailyMissions: () => void;
 }
 
+// 공격력 계산: 체스랭크 배율 x 군대계급 배율 x 업그레이드
 const calculateStats = (upgrades: UpgradeStat[], piece: ChessPiece, prestigeBonus: number) => {
-  const rankBonus = RANK_ORDER.indexOf(piece.rank) + 1;
-  const levelBonus = 1 + piece.level * 0.1;
+  // 체스 랭크 배율 (폰 1x ~ 임페리얼 20x)
+  const rankMultiplier = RANK_MULTIPLIERS[piece.rank];
+
+  // 군대 계급 배율 (이병 1x ~ 대장 80x)
+  const militaryMultiplier = MILITARY_POWER_MULTIPLIERS[piece.level] || 1;
+
+  // 프레스티지 보너스
   const prestige = 1 + prestigeBonus;
 
   const goldUpgrade = upgrades.find(u => u.id === 'goldPerClick')!;
@@ -247,9 +354,13 @@ const calculateStats = (upgrades: UpgradeStat[], piece: ChessPiece, prestigeBonu
   const critChanceUpgrade = upgrades.find(u => u.id === 'critChance')!;
   const critDamageUpgrade = upgrades.find(u => u.id === 'critDamage')!;
 
+  // 기본 공격력 = 업그레이드 값 x 랭크 배율 x 계급 배율
+  const baseAttack = attackUpgrade.baseValue + attackUpgrade.increment * (attackUpgrade.level - 1);
+  const baseGold = goldUpgrade.baseValue + goldUpgrade.increment * (goldUpgrade.level - 1);
+
   return {
-    goldPerClick: Math.floor((goldUpgrade.baseValue + goldUpgrade.increment * (goldUpgrade.level - 1)) * rankBonus * levelBonus * prestige),
-    attackPower: Math.floor((attackUpgrade.baseValue + attackUpgrade.increment * (attackUpgrade.level - 1)) * rankBonus * levelBonus),
+    goldPerClick: Math.max(1, Math.floor(baseGold * rankMultiplier * militaryMultiplier * prestige)), // 골드도 동일한 배율
+    attackPower: Math.floor(baseAttack * rankMultiplier * militaryMultiplier * prestige),
     critChance: Math.min(100, critChanceUpgrade.baseValue + critChanceUpgrade.increment * critChanceUpgrade.level),
     critDamage: critDamageUpgrade.baseValue + critDamageUpgrade.increment * critDamageUpgrade.level,
   };
@@ -264,6 +375,8 @@ const useGameStore = create<GameState>((set, get) => ({
   totalClicks: 0,
   currentStone: createRandomStone(1),
   stonesDestroyed: 0,
+  bossesDefeated: 0,
+  stonesUntilBoss: STONES_PER_BOSS,
   currentPiece: { ...CHESS_PIECES.pawn, level: 0 },
   upgrades: INITIAL_UPGRADES.map(u => ({ ...u })),
   autoClickers: INITIAL_AUTO_CLICKERS.map(c => ({ ...c })),
@@ -295,25 +408,55 @@ const useGameStore = create<GameState>((set, get) => ({
     }
 
     const earnedGold = isCrit ? Math.floor(baseGold * state.critDamage / 100) : baseGold;
-    const damage = state.attackPower; // Damage to stone HP
+    const damage = state.attackPower;
     const newHp = Math.max(0, state.currentStone.currentHp - damage);
     const destroyed = newHp <= 0;
 
     let bonusGold = 0;
     if (destroyed) {
-      const totalStoneGold = state.currentStone.maxHp * baseGold * 0.1; // Gold reward scaling
-      const bonusPercent = [33, 66, 99][Math.floor(Math.random() * 3)];
-      bonusGold = Math.floor(totalStoneGold * bonusPercent / 100);
+      // 보스 처치 시 고정 보상, 일반 돌은 HP 기반 보상
+      if (state.currentStone.isBoss) {
+        bonusGold = BOSS_CONFIG[state.currentStone.bossType || 'none'].goldReward;
+      } else {
+        const totalStoneGold = state.currentStone.maxHp * baseGold * 0.1;
+        const bonusPercent = [33, 66, 99][Math.floor(Math.random() * 3)];
+        bonusGold = Math.floor(totalStoneGold * bonusPercent / 100);
+      }
     }
     const totalGoldEarned = earnedGold + bonusGold;
 
     if (destroyed) {
+      const wasKillingBoss = state.currentStone.isBoss;
+      let newStonesUntilBoss = state.stonesUntilBoss;
+      let newBossesDefeated = state.bossesDefeated;
+      let nextStone: GoStone;
+
+      if (wasKillingBoss) {
+        // 보스 처치 완료
+        newBossesDefeated = state.bossesDefeated + 1;
+        newStonesUntilBoss = STONES_PER_BOSS;
+        nextStone = createRandomStone(state.attackPower);
+      } else {
+        // 일반 돌 파괴
+        newStonesUntilBoss = state.stonesUntilBoss - 1;
+
+        if (newStonesUntilBoss <= 0) {
+          // 보스 등장!
+          nextStone = createBossStone(state.attackPower, state.bossesDefeated);
+          newStonesUntilBoss = 0; // 보스전 중에는 0 유지
+        } else {
+          nextStone = createRandomStone(state.attackPower);
+        }
+      }
+
       set(s => ({
         gold: s.gold + totalGoldEarned,
         totalGold: s.totalGold + totalGoldEarned,
         totalClicks: s.totalClicks + 1,
-        currentStone: createRandomStone(s.attackPower),
-        stonesDestroyed: s.stonesDestroyed + 1,
+        currentStone: nextStone,
+        stonesDestroyed: s.stonesDestroyed + (wasKillingBoss ? 0 : 1),
+        stonesUntilBoss: newStonesUntilBoss,
+        bossesDefeated: newBossesDefeated,
       }));
     } else {
       set(s => ({
@@ -396,22 +539,29 @@ const useGameStore = create<GameState>((set, get) => ({
     const roll = Math.random() * 100;
     if (roll < successRate) {
       const newLevel = currentLevel + 1;
-      if (newLevel > 10) {
-        // Rank Up Logic
+      // 17단계 시스템: 16(대장)에서 다음 체스말로 승급
+      if (newLevel > 16) {
+        // Rank Up Logic - 체스말 승급
         const currentRankIndex = RANK_ORDER.indexOf(state.currentPiece.rank);
-        const nextRank = RANK_ORDER[currentRankIndex + 1] || 'imperial';
+        if (currentRankIndex >= RANK_ORDER.length - 1) {
+          // 이미 최고 체스말(imperial)이면 레벨 유지
+          return { success: false, destroyed: false, message: '이미 최고 등급입니다!' };
+        }
+        const nextRank = RANK_ORDER[currentRankIndex + 1];
         const newPiece = { ...CHESS_PIECES[nextRank], level: 0 };
         const newStats = calculateStats(state.upgrades, newPiece, state.prestigeBonus);
         set(s => ({ currentPiece: newPiece, enhanceSuccesses: s.enhanceSuccesses + 1, ...newStats }));
         get().checkAchievements();
-        return { success: true, destroyed: false, message: `승급 성공! ${newPiece.displayName}` };
+        return { success: true, destroyed: false, message: `🎉 승급 성공! ${newPiece.displayName} (이병)` };
       }
       const newPiece = { ...state.currentPiece, level: newLevel };
       const newStats = calculateStats(state.upgrades, newPiece, state.prestigeBonus);
       set(s => ({ currentPiece: newPiece, enhanceSuccesses: s.enhanceSuccesses + 1, ...newStats }));
       get().checkMissions();
       get().checkAchievements();
-      return { success: true, destroyed: false, message: `강화 성공! +${newLevel}` };
+      // 계급명 표시
+      const rankNames = ['이병', '일병', '상병', '병장', '하사', '중사', '상사', '소위', '중위', '대위', '소령', '중령', '대령', '준장', '소장', '중장', '대장'];
+      return { success: true, destroyed: false, message: `강화 성공! ${rankNames[newLevel]}` };
     }
 
     const destroyRoll = Math.random() * 100;
@@ -508,37 +658,55 @@ const useGameStore = create<GameState>((set, get) => ({
     if (Date.now() < state.goldBoostEndTime) goldMultiplier *= 2;
     if (Date.now() < state.autoBoostEndTime) autoMultiplier *= 2;
 
-    // 자동 클릭 횟수 (초당 클릭 수 * 부스터)
     const autoClicks = state.autoClicksPerSec * autoMultiplier;
-
-    // 총 데미지 계산
     const totalDamage = state.attackPower * autoClicks;
     const totalGoldEarned = Math.floor(state.goldPerClick * autoClicks * goldMultiplier);
 
-    // 바둑돌 HP 감소
     let newHp = state.currentStone.currentHp - totalDamage;
-    let newStone = state.currentStone;
+    let currentStone = state.currentStone;
     let destroyed = 0;
     let bonusGold = 0;
+    let newStonesUntilBoss = state.stonesUntilBoss;
+    let newBossesDefeated = state.bossesDefeated;
 
-    // 바둑돌이 파괴되면 새 돌 생성 (연속 파괴 가능)
+    // 바둑돌/보스 파괴 처리
     while (newHp <= 0) {
-      destroyed++;
-      // 파괴 보너스 골드
-      const stoneBonus = Math.floor(state.currentStone.maxHp * state.goldPerClick * 0.1);
-      bonusGold += stoneBonus;
+      const wasKillingBoss = currentStone.isBoss;
 
-      // 새 바둑돌 생성
-      newStone = createRandomStone(state.attackPower);
-      newHp = newStone.currentHp + newHp; // 남은 데미지 적용
+      // 파괴 보너스 골드 (보스는 고정 보상, 일반 돌은 HP 기반)
+      if (wasKillingBoss) {
+        bonusGold += BOSS_CONFIG[currentStone.bossType || 'none'].goldReward;
+      } else {
+        const stoneBonus = Math.floor(currentStone.maxHp * state.goldPerClick * 0.1);
+        bonusGold += stoneBonus;
+      }
+
+      if (wasKillingBoss) {
+        newBossesDefeated++;
+        newStonesUntilBoss = STONES_PER_BOSS;
+        currentStone = createRandomStone(state.attackPower);
+      } else {
+        destroyed++;
+        newStonesUntilBoss--;
+
+        if (newStonesUntilBoss <= 0) {
+          currentStone = createBossStone(state.attackPower, newBossesDefeated);
+          newStonesUntilBoss = 0;
+        } else {
+          currentStone = createRandomStone(state.attackPower);
+        }
+      }
+
+      newHp = currentStone.currentHp + newHp;
     }
 
-    // 상태 업데이트
     set(s => ({
       gold: s.gold + totalGoldEarned + bonusGold,
       totalGold: s.totalGold + totalGoldEarned + bonusGold,
-      currentStone: { ...newStone, currentHp: Math.max(0, newHp) },
+      currentStone: { ...currentStone, currentHp: Math.max(0, newHp) },
       stonesDestroyed: s.stonesDestroyed + destroyed,
+      stonesUntilBoss: newStonesUntilBoss,
+      bossesDefeated: newBossesDefeated,
     }));
 
     get().checkMissions();
@@ -600,6 +768,7 @@ const useGameStore = create<GameState>((set, get) => ({
   },
   resetGame: () => {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem('pony_story_seen'); // 스토리 인트로도 초기화
     window.location.reload();
   }
 }));
@@ -905,6 +1074,34 @@ function ExitConfirmModal({ onCancel, onConfirm }: { onCancel: () => void; onCon
 
 // 더보기 메뉴 모달
 function MoreMenuModal({ onClose, onReset }: { onClose: () => void; onReset: () => void }) {
+  const [bgmMuted, setBgmMuted] = useState(soundManager.isBgmMuted());
+  const [sfxMuted, setSfxMuted] = useState(soundManager.isSfxMuted());
+  const [bgmVolume, setBgmVolume] = useState(soundManager.getBgmVolume());
+  const [sfxVolume, setSfxVolume] = useState(soundManager.getSfxVolume());
+
+  const handleBgmToggle = () => {
+    const muted = soundManager.toggleBgmMute();
+    setBgmMuted(muted);
+  };
+
+  const handleSfxToggle = () => {
+    const muted = soundManager.toggleSfxMute();
+    setSfxMuted(muted);
+    if (!muted) soundManager.play('click');
+  };
+
+  const handleBgmVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const vol = parseFloat(e.target.value);
+    setBgmVolume(vol);
+    soundManager.setBgmVolume(vol);
+  };
+
+  const handleSfxVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const vol = parseFloat(e.target.value);
+    setSfxVolume(vol);
+    soundManager.setSfxVolume(vol);
+  };
+
   return (
     <div className="modal-overlay" onPointerUp={onClose}>
       <div className="more-menu-modal" onPointerUp={e => e.stopPropagation()}>
@@ -913,10 +1110,67 @@ function MoreMenuModal({ onClose, onReset }: { onClose: () => void; onReset: () 
           <button className="close-btn" onPointerUp={onClose}>✕</button>
         </div>
         <div className="more-menu-content">
-          <button className="more-menu-item" onPointerUp={() => { onReset(); onClose(); }}>
-            <span>🔄</span>
-            <span>게임 초기화</span>
-          </button>
+          {/* 사운드 설정 섹션 */}
+          <div className="sound-settings-section">
+            <h4>🔊 사운드 설정</h4>
+
+            {/* 배경음악 설정 */}
+            <div className="sound-setting-item">
+              <div className="sound-setting-row">
+                <span className="sound-label">🎵 배경음악</span>
+                <button
+                  className={`sound-toggle-btn ${bgmMuted ? 'muted' : 'active'}`}
+                  onPointerUp={handleBgmToggle}
+                >
+                  {bgmMuted ? 'OFF' : 'ON'}
+                </button>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.1"
+                value={bgmVolume}
+                onChange={handleBgmVolumeChange}
+                className="volume-slider"
+                disabled={bgmMuted}
+              />
+              <span className="volume-value">{Math.round(bgmVolume * 100)}%</span>
+            </div>
+
+            {/* 효과음 설정 */}
+            <div className="sound-setting-item">
+              <div className="sound-setting-row">
+                <span className="sound-label">🔔 효과음</span>
+                <button
+                  className={`sound-toggle-btn ${sfxMuted ? 'muted' : 'active'}`}
+                  onPointerUp={handleSfxToggle}
+                >
+                  {sfxMuted ? 'OFF' : 'ON'}
+                </button>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.1"
+                value={sfxVolume}
+                onChange={handleSfxVolumeChange}
+                className="volume-slider"
+                disabled={sfxMuted}
+              />
+              <span className="volume-value">{Math.round(sfxVolume * 100)}%</span>
+            </div>
+          </div>
+
+          {/* 기타 설정 */}
+          <div className="other-settings-section">
+            <button className="more-menu-item danger" onPointerUp={() => { soundManager.play('click'); onReset(); onClose(); }}>
+              <span>🔄</span>
+              <span>게임 초기화</span>
+            </button>
+          </div>
+
           <div className="more-menu-info">
             <p>바둑돌 부수기 v1.0</p>
             <p>제작: 체스왕국 스튜디오</p>
@@ -939,6 +1193,7 @@ function App() {
   const {
     gold, ruby, currentPiece, currentStone, stonesDestroyed,
     attackPower, critChance, autoClicksPerSec,
+    stonesUntilBoss, bossesDefeated,
     handleClick, tryEnhance, claimMissionReward, missions,
     loadGame, saveGame, autoTick, collectOfflineReward
   } = useGameStore();
@@ -957,6 +1212,15 @@ function App() {
   useEffect(() => {
     loadGame();
     if (!localStorage.getItem('pony_story_seen')) setShowStory(true);
+
+    // Initial Interaction for BGM
+    const startAudio = () => {
+      soundManager.play('bgm');
+      window.removeEventListener('pointerdown', startAudio);
+      window.removeEventListener('keydown', startAudio);
+    };
+    window.addEventListener('pointerdown', startAudio);
+    window.addEventListener('keydown', startAudio);
 
     setTimeout(() => {
       const r = collectOfflineReward();
@@ -980,6 +1244,9 @@ function App() {
       clearInterval(i);
       clearInterval(s);
       window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('pointerdown', startAudio);
+      window.removeEventListener('keydown', startAudio);
+      soundManager.stopBgm();
     };
   }, []);
 
@@ -1039,6 +1306,8 @@ function App() {
   const handleAttack = (e: React.PointerEvent) => {
     vibrate(5);
     const result = handleClick();
+    soundManager.play('hit');
+    if (result.isCrit) soundManager.play('coin');
 
     setShake(true);
     setTimeout(() => setShake(false), 50);
@@ -1058,6 +1327,8 @@ function App() {
 
     if (result.destroyed && result.bonusGold > 0) {
       vibrate([30, 50, 30]);
+      soundManager.play('destroy');
+      soundManager.play('coin');
       const bonusFx = {
         id: Date.now() + 1,
         x: x + 20,
@@ -1076,8 +1347,15 @@ function App() {
     vibrate(10);
     const res = tryEnhance(useProtect, useBlessing);
     setLastEnhanceMsg(res.message);
-    if (res.success) vibrate([50, 100]);
-    else if (res.destroyed) vibrate([100, 50, 100]);
+    if (res.success) {
+      vibrate([50, 100]);
+      soundManager.play('success');
+    } else if (res.destroyed) {
+      vibrate([100, 50, 100]);
+      soundManager.play('fail');
+    } else {
+      soundManager.play('fail');
+    }
     setTimeout(() => setLastEnhanceMsg(''), 2000);
   };
 
@@ -1100,10 +1378,28 @@ function App() {
       case 'rook': return <RookIcon {...props} />;
       case 'queen': return <QueenIcon {...props} />;
       case 'king': return <KingIcon {...props} />;
-      case 'imperial': return <KingIcon {...props} />; // Reuse King for now or add new
+      case 'imperial': return <ImperialKingIcon {...props} />;
       default: return <PawnIcon {...props} />;
     }
   };
+
+  // 보스 아이콘 렌더링
+  const renderBossIcon = (bossType: BossType, style: React.CSSProperties) => {
+    switch (bossType) {
+      case 'boss1': return <StoneBossRed style={style} />;
+      case 'boss2': return <StoneBossBlue style={style} />;
+      case 'boss3': return <StoneBossGreen style={style} />;
+      case 'boss4': return <StoneBossPurple style={style} />;
+      case 'boss5': return <StoneBossGold style={style} />;
+      case 'boss6': return <StoneBossCyan style={style} />;
+      case 'boss7': return <StoneBossRainbow style={style} />;
+      default: return <StoneBlackIcon style={style} />;
+    }
+  };
+
+  // 보스 정보
+  const currentBossConfig = currentStone.isBoss ? BOSS_CONFIG[currentStone.bossType || 'none'] : null;
+  const bossProgress = currentStone.isBoss ? 0 : ((STONES_PER_BOSS - stonesUntilBoss) / STONES_PER_BOSS) * 100;
 
   return (
     <div className="app">
@@ -1130,13 +1426,32 @@ function App() {
           </div>
         </div>
         <div className="nav-buttons">
-          <button className="nav-btn more" onPointerUp={() => setShowMoreMenu(true)}>
+          <button className="nav-btn more" onPointerUp={() => { soundManager.play('click'); setShowMoreMenu(true); }}>
             <span>⋯</span>
           </button>
-          <button className="nav-btn close" onPointerUp={() => setShowExitModal(true)}>
+          <button className="nav-btn close" onPointerUp={() => { soundManager.play('click'); setShowExitModal(true); }}>
             <span>✕</span>
           </button>
         </div>
+      </div>
+
+      {/* 보스 게이지 */}
+      <div className="boss-gauge-container">
+        {currentStone.isBoss ? (
+          <div className="boss-active">
+            <span className="boss-icon">{currentBossConfig?.element}</span>
+            <span className="boss-name">⚔️ {currentBossConfig?.name} 전투중!</span>
+            <span className="boss-count">처치: {bossesDefeated}</span>
+          </div>
+        ) : (
+          <div className="boss-progress">
+            <span className="boss-label">다음 보스까지</span>
+            <div className="boss-progress-bar">
+              <div className="boss-progress-fill" style={{ width: `${bossProgress}%` }} />
+            </div>
+            <span className="boss-count">{STONES_PER_BOSS - stonesUntilBoss}/{STONES_PER_BOSS}</span>
+          </div>
+        )}
       </div>
 
       {/* Main Battle Area */}
@@ -1145,43 +1460,61 @@ function App() {
         <div className="battle-container">
           {/* Character */}
           <div className={`character-wrapper ${shake ? 'shake' : ''}`}>
-            <div className="weapon-badge">{currentPiece.emoji} {currentPiece.displayName} +{currentPiece.level}</div>
+            <div className="weapon-badge">
+              {/* 계급장 아이콘만 표시 */}
+              {(() => {
+                const RankIcon = MILITARY_RANK_ICONS[currentPiece.level];
+                return RankIcon ? <RankIcon className="rank-icon" /> : null;
+              })()}
+              <span className="piece-name">{currentPiece.emoji} {currentPiece.displayName}</span>
+            </div>
             {renderPieceIcon(currentPiece.rank, "character-img")}
           </div>
 
-          {/* Target - CSS Rendered Stone */}
-          <div className={`target-wrapper ${shake ? 'shake' : ''}`} onPointerDown={handleAttack}
+          {/* Target - CSS Rendered Stone / Boss */}
+          <div className={`target-wrapper ${shake ? 'shake' : ''} ${currentStone.isBoss ? 'boss-mode' : ''}`} onPointerDown={handleAttack}
             style={{ width: 180, height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
 
-            {/* 2D SVG Stone Character */}
-            <div className={`stone-character-wrapper ${currentStone.color}`}
+            {/* 2D SVG Stone Character / Boss */}
+            <div className={`stone-character-wrapper ${currentStone.isBoss ? 'boss' : currentStone.color}`}
               style={{
-                width: stonePixelSize,
-                height: stonePixelSize,
+                width: currentStone.isBoss ? 160 : stonePixelSize,
+                height: currentStone.isBoss ? 160 : stonePixelSize,
                 position: 'relative',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
-              {currentStone.color === 'black' ? (
+              {currentStone.isBoss ? (
+                renderBossIcon(currentStone.bossType || 'none', { width: '100%', height: '100%' })
+              ) : currentStone.color === 'black' ? (
                 <StoneBlackIcon style={{ width: '100%', height: '100%' }} />
               ) : (
                 <StoneWhiteIcon style={{ width: '100%', height: '100%' }} />
               )}
 
               {/* Crack Overlay (SVG) - Rendered ON TOP of the stone SVG */}
-              <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
-                <CrackSVG damagePercent={1 - hpPercent} />
-              </div>
+              {!currentStone.isBoss && (
+                <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
+                  <CrackSVG damagePercent={1 - hpPercent} />
+                </div>
+              )}
             </div>
 
             {/* HP Bar */}
-            <div className="hp-bar-container" style={{ position: 'absolute', bottom: -20 }}>
+            <div className={`hp-bar-container ${currentStone.isBoss ? 'boss-hp' : ''}`} style={{ position: 'absolute', bottom: -20 }}>
               <div
-                className="hp-bar-fill"
+                className={`hp-bar-fill ${currentStone.isBoss ? 'boss-hp-fill' : ''}`}
                 style={{ width: `${hpPercent * 100}%` }}
               />
             </div>
+
+            {/* 보스 이름 표시 */}
+            {currentStone.isBoss && currentBossConfig && (
+              <div className="boss-name-tag">
+                {currentBossConfig.element} {currentBossConfig.name}
+              </div>
+            )}
           </div>
 
           {/* FX Layer */}
@@ -1281,16 +1614,16 @@ function App() {
 
         {/* Menu Grid */}
         <div className="menu-grid">
-          <button className="menu-item-btn" onPointerUp={() => setModalType('upgrade')}>
+          <button className="menu-item-btn" onPointerUp={() => { soundManager.play('click'); setModalType('upgrade'); }}>
             <span>📈</span><span>성장</span>
           </button>
-          <button className="menu-item-btn" onPointerUp={() => setModalType('auto')}>
+          <button className="menu-item-btn" onPointerUp={() => { soundManager.play('click'); setModalType('auto'); }}>
             <span>🐾</span><span>동료</span>
           </button>
-          <button className="menu-item-btn" onPointerUp={() => setModalType('shop')}>
+          <button className="menu-item-btn" onPointerUp={() => { soundManager.play('click'); setModalType('shop'); }}>
             <span>🛒</span><span>상점</span>
           </button>
-          <button className="menu-item-btn" onPointerUp={() => setModalType('mission')}>
+          <button className="menu-item-btn" onPointerUp={() => { soundManager.play('click'); setModalType('mission'); }}>
             <span>📜</span><span>미션</span>
           </button>
         </div>
@@ -1308,7 +1641,7 @@ function App() {
               </div>
               <button
                 style={{ background: gold >= getUpgradeCost(u) ? '#2ecc71' : '#bdc3c7', border: 'none', padding: '12px 18px', borderRadius: '8px', color: 'white', fontWeight: 'bold', minHeight: '44px' }}
-                onPointerUp={(e) => { e.stopPropagation(); vibrate(5); useGameStore.getState().upgradestat(u.id); }}
+                onPointerUp={(e) => { e.stopPropagation(); vibrate(5); soundManager.play('success'); useGameStore.getState().upgradestat(u.id); }}
               >
                 💰 {formatNumber(getUpgradeCost(u))}
               </button>
@@ -1328,7 +1661,7 @@ function App() {
               </div>
               <button
                 style={{ background: gold >= getAutoClickerCost(ac) ? '#9b59b6' : '#bdc3c7', border: 'none', padding: '12px 18px', borderRadius: '8px', color: 'white', fontWeight: 'bold', minHeight: '44px' }}
-                onPointerUp={(e) => { e.stopPropagation(); vibrate(5); useGameStore.getState().buyAutoClicker(ac.id); }}
+                onPointerUp={(e) => { e.stopPropagation(); vibrate(5); soundManager.play('coin'); useGameStore.getState().buyAutoClicker(ac.id); }}
               >
                 💰 {formatNumber(getAutoClickerCost(ac))}
               </button>
@@ -1355,6 +1688,7 @@ function App() {
                     const success = useGameStore.getState().buyShopItem(item.id);
                     if (success) {
                       vibrate([30, 30]);
+                      soundManager.play('success');
                       setRewardFx({ id: Date.now(), text: `✅ ${item.name} 구매 완료!` });
                       setTimeout(() => setRewardFx(null), 1500);
                     } else {
@@ -1397,6 +1731,7 @@ function App() {
                         const success = claimMissionReward(m.id);
                         if (success) {
                           vibrate([50, 50, 50]);
+                          soundManager.play('success');
                           setRewardFx({
                             id: Date.now(),
                             text: `🎁 ${m.reward.gold > 0 ? `+${formatNumber(m.reward.gold)} 골드` : ''} ${m.reward.ruby > 0 ? `+${m.reward.ruby} 루비` : ''}`
