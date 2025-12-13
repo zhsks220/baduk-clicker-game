@@ -398,23 +398,21 @@ const ACHIEVEMENTS: Achievement[] = [
 const STORAGE_KEY = 'pony-game-v3';
 
 // ============ 바둑돌 HP 밸런스 시스템 ============
-// baseHP: 50 (고정값, DPS 무관)
-// 파괴당 HP 증가: +1% (stonesDestroyed 기반)
-// 강화 레벨당 HP 감소: -2% (총 업그레이드 레벨 기반)
-// 공식: HP = baseHP × sizeMultiplier × (1 + stonesDestroyed × 0.01) × max(0.1, 1 - totalLevel × 0.02)
-const STONE_BASE_HP = 50;
-const STONE_HP_GROWTH_RATE = 0.01;      // 1% per destroy
-const STONE_HP_REDUCTION_RATE = 0.02;   // 2% per upgrade level
+// 소중대 구분 없이 동일 HP, 파괴할수록 체력 증가
+// 공식: HP = baseHP × (1 + stonesDestroyed × 2%) × max(0.1, 1 - totalLevel × 2%)
+const STONE_BASE_HP = 100;
+const STONE_HP_GROWTH_RATE = 0.02;      // 2% per destroy (파괴할수록 증가)
+const STONE_HP_REDUCTION_RATE = 0.02;   // 2% per upgrade level (강화할수록 감소)
 
-// 바둑돌 사이즈별 배율 (큰 돌 기준 시작)
+// 바둑돌 사이즈별 설정 (HP는 동일, 사이즈만 다름)
 const STONE_CONFIG: Record<StoneSize, { hpMultiplier: number; pixelSize: number }> = {
-  small: { hpMultiplier: 10, pixelSize: 80 },   // 500 HP 시작
-  medium: { hpMultiplier: 30, pixelSize: 110 }, // 1,500 HP 시작
-  large: { hpMultiplier: 60, pixelSize: 150 },  // 3,000 HP 시작
+  small: { hpMultiplier: 1, pixelSize: 80 },
+  medium: { hpMultiplier: 1, pixelSize: 110 },
+  large: { hpMultiplier: 1, pixelSize: 150 },
 };
 
-// 보스 설정 - 7개 보스 (F2P 30일 기준)
-// 보스 HP = 권장 공격력 x 500~1000타, 보상 = 강화 비용 일부 지원 (100개당 1보스)
+// 보스 설정 - 7개 보스
+// 보스 HP 대폭 상향, 보상도 상향
 // recommendedRank/Level: 권장 체스 랭크 및 군대 레벨 (미달 시 데미지 페널티)
 const BOSS_CONFIG: Record<BossType, {
   name: string;
@@ -425,13 +423,13 @@ const BOSS_CONFIG: Record<BossType, {
   recommendedLevel: number;
 }> = {
   none: { name: '', fixedHp: 1, goldReward: 0, element: '', recommendedRank: 'pawn', recommendedLevel: 0 },
-  boss1: { name: '화염의 돌', fixedHp: 2000, goldReward: 8000, element: '🔴', recommendedRank: 'pawn', recommendedLevel: 7 },           // 폰 소위
-  boss2: { name: '빙결의 돌', fixedHp: 25000, goldReward: 80000, element: '🔵', recommendedRank: 'knight', recommendedLevel: 3 },       // 나이트 병장
-  boss3: { name: '맹독의 돌', fixedHp: 500000, goldReward: 800000, element: '🟢', recommendedRank: 'bishop', recommendedLevel: 6 },     // 비숍 상사
-  boss4: { name: '암흑의 돌', fixedHp: 5000000, goldReward: 5000000, element: '🟣', recommendedRank: 'rook', recommendedLevel: 9 },     // 룩 대위
-  boss5: { name: '번개의 돌', fixedHp: 50000000, goldReward: 30000000, element: '🟡', recommendedRank: 'queen', recommendedLevel: 12 }, // 퀸 대령
-  boss6: { name: '사이버 돌', fixedHp: 500000000, goldReward: 150000000, element: '💠', recommendedRank: 'king', recommendedLevel: 14 }, // 킹 소장
-  boss7: { name: '궁극의 돌', fixedHp: 5000000000, goldReward: 500000000, element: '🌈', recommendedRank: 'imperial', recommendedLevel: 16 }, // 임페리얼 대장
+  boss1: { name: '화염의 돌', fixedHp: 50000, goldReward: 50000, element: '🔴', recommendedRank: 'pawn', recommendedLevel: 10 },              // 폰 소령
+  boss2: { name: '빙결의 돌', fixedHp: 2000000, goldReward: 500000, element: '🔵', recommendedRank: 'knight', recommendedLevel: 8 },          // 나이트 중위
+  boss3: { name: '맹독의 돌', fixedHp: 50000000, goldReward: 5000000, element: '🟢', recommendedRank: 'bishop', recommendedLevel: 10 },       // 비숍 소령
+  boss4: { name: '암흑의 돌', fixedHp: 500000000, goldReward: 50000000, element: '🟣', recommendedRank: 'rook', recommendedLevel: 12 },       // 룩 대령
+  boss5: { name: '번개의 돌', fixedHp: 5000000000, goldReward: 300000000, element: '🟡', recommendedRank: 'queen', recommendedLevel: 14 },    // 퀸 소장
+  boss6: { name: '사이버 돌', fixedHp: 50000000000, goldReward: 1500000000, element: '💠', recommendedRank: 'king', recommendedLevel: 15 },   // 킹 중장
+  boss7: { name: '궁극의 돌', fixedHp: 500000000000, goldReward: 10000000000, element: '🌈', recommendedRank: 'imperial', recommendedLevel: 16 }, // 임페리얼 대장
 };
 
 // 보스 데미지 페널티 계산
@@ -511,13 +509,14 @@ const createRandomStone = (stonesDestroyed: number, totalUpgradeLevel: number): 
   };
 };
 
-// 보스 생성 함수 (고정 HP 사용)
-const createBossStone = (_playerDps: number, bossIndex: number): GoStone => {
+// 보스 생성 함수 (파괴 수에 따라 HP 증가)
+const createBossStone = (_playerDps: number, bossIndex: number, stonesDestroyed: number = 0): GoStone => {
   const bossType = BOSS_ORDER[bossIndex % BOSS_ORDER.length];
   const bossConfig = BOSS_CONFIG[bossType];
 
-  // 보스 HP는 고정값 사용
-  const hp = bossConfig.fixedHp;
+  // 보스 HP = 기본HP × (1 + 파괴수 × 1%)
+  const growthMultiplier = 1 + stonesDestroyed * 0.01;
+  const hp = Math.floor(bossConfig.fixedHp * growthMultiplier);
 
   return {
     color: 'black', // 보스는 색상 무관
@@ -789,7 +788,7 @@ const useGameStore = create<GameState>((set, get) => ({
 
         if (newStonesUntilBoss <= 0) {
           // 보스 등장!
-          nextStone = createBossStone(state.attackPower, state.bossesDefeated);
+          nextStone = createBossStone(state.attackPower, state.bossesDefeated, state.stonesDestroyed + 1);
           newStonesUntilBoss = 0; // 보스전 중에는 0 유지
         } else {
           nextStone = createRandomStone(state.stonesDestroyed + 1, chessPieceLevel);
@@ -1099,19 +1098,34 @@ const useGameStore = create<GameState>((set, get) => ({
 
     const autoClicks = state.autoClicksPerSec * autoMultiplier;
 
+    // 동료 치명타 계산 (클릭당 치명타 판정)
+    let totalDamage = 0;
+    let totalGoldEarned = 0;
+    for (let i = 0; i < autoClicks; i++) {
+      const isCrit = Math.random() * 100 < state.critChance;
+      let damage = state.attackPower;
+      let gold = state.goldPerClick;
+
+      if (isCrit) {
+        damage = Math.floor(damage * state.critDamage / 100);
+        gold = Math.floor(gold * state.critDamage / 100);
+      }
+
+      totalDamage += damage;
+      totalGoldEarned += gold;
+    }
+
     // 보스 데미지 페널티 적용 (자동 클릭)
-    let effectiveAttackPower = state.attackPower;
     if (state.currentStone.isBoss && state.currentStone.bossType) {
       const damageMultiplier = calculateBossDamageMultiplier(
         state.currentPiece.rank,
         state.currentPiece.level,
         state.currentStone.bossType
       );
-      effectiveAttackPower = Math.floor(state.attackPower * damageMultiplier);
+      totalDamage = Math.floor(totalDamage * damageMultiplier);
     }
 
-    const totalDamage = effectiveAttackPower * autoClicks;
-    const totalGoldEarned = Math.floor(state.goldPerClick * autoClicks * goldMultiplier);
+    totalGoldEarned = Math.floor(totalGoldEarned * goldMultiplier);
 
     let newHp = state.currentStone.currentHp - totalDamage;
     let currentStone = state.currentStone;
@@ -1144,7 +1158,7 @@ const useGameStore = create<GameState>((set, get) => ({
         newStonesUntilBoss--;
 
         if (newStonesUntilBoss <= 0) {
-          currentStone = createBossStone(state.attackPower, newBossesDefeated);
+          currentStone = createBossStone(state.attackPower, newBossesDefeated, state.stonesDestroyed + destroyed);
           newStonesUntilBoss = 0;
         } else {
           currentStone = createRandomStone(state.stonesDestroyed + destroyed, chessPieceLevel);
