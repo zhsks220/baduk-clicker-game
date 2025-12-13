@@ -167,14 +167,14 @@ const ENHANCE_RATES = [
   { level: 16, name: '대장', successRate: 55, cost: 100000000, destroyRate: 0 }, // 대장→승급은 파괴 없음
 ];
 
-// 계급별 강화 비용/확률 배수 (폰 기준 1x)
+// 계급별 강화 비용/확률 배수 (폰 기준 1x, 킹 총합 ~1조)
 const RANK_ENHANCE_MULTIPLIERS: Record<ChessPieceRank, { costMultiplier: number; successRateBonus: number; destroyRateBonus: number; destroyStartLevel: number }> = {
-  pawn: { costMultiplier: 1, successRateBonus: 0, destroyRateBonus: 0, destroyStartLevel: 12 },       // 대령부터 파괴
-  knight: { costMultiplier: 3, successRateBonus: -5, destroyRateBonus: 1, destroyStartLevel: 10 },   // 소령부터 파괴
-  bishop: { costMultiplier: 10, successRateBonus: -10, destroyRateBonus: 3, destroyStartLevel: 9 },  // 대위부터 파괴
-  rook: { costMultiplier: 35, successRateBonus: -18, destroyRateBonus: 5, destroyStartLevel: 6 },    // 상사부터 파괴
-  queen: { costMultiplier: 100, successRateBonus: -28, destroyRateBonus: 7, destroyStartLevel: 5 },  // 중사부터 파괴
-  king: { costMultiplier: 385, successRateBonus: -40, destroyRateBonus: 10, destroyStartLevel: 4 },  // 하사부터 파괴
+  pawn: { costMultiplier: 1, successRateBonus: 0, destroyRateBonus: 0, destroyStartLevel: 12 },       // ~1.8억, 대령부터 파괴
+  knight: { costMultiplier: 4, successRateBonus: -8, destroyRateBonus: 2, destroyStartLevel: 10 },   // ~7억, 소령부터 파괴
+  bishop: { costMultiplier: 15, successRateBonus: -15, destroyRateBonus: 4, destroyStartLevel: 8 },  // ~27억, 중위부터 파괴
+  rook: { costMultiplier: 55, successRateBonus: -25, destroyRateBonus: 6, destroyStartLevel: 6 },    // ~100억, 상사부터 파괴
+  queen: { costMultiplier: 170, successRateBonus: -35, destroyRateBonus: 8, destroyStartLevel: 4 },  // ~300억, 하사부터 파괴
+  king: { costMultiplier: 550, successRateBonus: -45, destroyRateBonus: 12, destroyStartLevel: 3 },  // ~1조, 병장부터 파괴
   imperial: { costMultiplier: 1, successRateBonus: 0, destroyRateBonus: 0, destroyStartLevel: 99 },  // 임페리얼은 단일 계급 (강화 없음)
 };
 
@@ -1936,7 +1936,7 @@ function App() {
           <div className="resource-item ruby">💎 {formatNumber(ruby)}</div>
           <div className="stats-bar">
             <span className="stat-badge">⚔️ {formatNumber(attackPower)}</span>
-            {critChance > 0 && <span className="stat-badge">💥 {critChance}%</span>}
+            {critChance > 0 && <span className="stat-badge">💥 {critChance.toFixed(1)}%</span>}
             {autoClicksPerSec > 0 && <span className="stat-badge">🤖 {autoClicksPerSec}/s</span>}
           </div>
         </div>
@@ -2160,7 +2160,7 @@ function App() {
                 <div key={u.id} className="list-item">
                   <div className="list-item-info">
                     <div className="list-item-name">{u.name} Lv.{u.level}</div>
-                    <div className="list-item-desc">현재 효과: {Math.floor(u.baseValue + u.increment * u.level)}</div>
+                    <div className="list-item-desc">현재 효과: {u.id === 'critChance' ? (u.baseValue + u.increment * u.level).toFixed(1) : Math.floor(u.baseValue + u.increment * u.level)}{u.id === 'critChance' ? '%' : ''}</div>
                   </div>
                   <button
                     className={`list-item-btn ${gold >= getUpgradeCost(u) ? 'can-buy' : ''}`}
