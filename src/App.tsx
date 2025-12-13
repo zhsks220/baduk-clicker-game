@@ -148,34 +148,34 @@ const ENHANCE_RATES = [
   { level: 1, name: '일병', successRate: 100, cost: 300, destroyRate: 0 },
   { level: 2, name: '상병', successRate: 100, cost: 800, destroyRate: 0 },
   { level: 3, name: '병장', successRate: 100, cost: 2000, destroyRate: 0 },
-  // 부사관 (중반 시작)
-  { level: 4, name: '하사', successRate: 98, cost: 5000, destroyRate: 0 },
-  { level: 5, name: '중사', successRate: 95, cost: 12000, destroyRate: 0 },
-  { level: 6, name: '상사', successRate: 92, cost: 30000, destroyRate: 0 },
-  // 위관 (중반)
-  { level: 7, name: '소위', successRate: 90, cost: 70000, destroyRate: 0 },
-  { level: 8, name: '중위', successRate: 88, cost: 150000, destroyRate: 0 },
-  { level: 9, name: '대위', successRate: 85, cost: 350000, destroyRate: 0 },
-  // 영관 (중후반)
-  { level: 10, name: '소령', successRate: 82, cost: 800000, destroyRate: 0 },
-  { level: 11, name: '중령', successRate: 80, cost: 1800000, destroyRate: 0 },
-  { level: 12, name: '대령', successRate: 75, cost: 4000000, destroyRate: 3 },
-  // 장성 (후반, 파괴 시작)
-  { level: 13, name: '준장', successRate: 70, cost: 9000000, destroyRate: 5 },
-  { level: 14, name: '소장', successRate: 65, cost: 20000000, destroyRate: 8 },
+  // 부사관 (하사부터 파괴 시작)
+  { level: 4, name: '하사', successRate: 98, cost: 5000, destroyRate: 3 },
+  { level: 5, name: '중사', successRate: 95, cost: 12000, destroyRate: 3.5 },
+  { level: 6, name: '상사', successRate: 92, cost: 30000, destroyRate: 4 },
+  // 위관
+  { level: 7, name: '소위', successRate: 90, cost: 70000, destroyRate: 4.5 },
+  { level: 8, name: '중위', successRate: 88, cost: 150000, destroyRate: 5 },
+  { level: 9, name: '대위', successRate: 85, cost: 350000, destroyRate: 6 },
+  // 영관
+  { level: 10, name: '소령', successRate: 82, cost: 800000, destroyRate: 7 },
+  { level: 11, name: '중령', successRate: 80, cost: 1800000, destroyRate: 8 },
+  { level: 12, name: '대령', successRate: 75, cost: 4000000, destroyRate: 8.5 },
+  // 장성
+  { level: 13, name: '준장', successRate: 70, cost: 9000000, destroyRate: 9 },
+  { level: 14, name: '소장', successRate: 65, cost: 20000000, destroyRate: 9.5 },
   { level: 15, name: '중장', successRate: 60, cost: 45000000, destroyRate: 10 },
   { level: 16, name: '대장', successRate: 55, cost: 100000000, destroyRate: 0 }, // 대장→승급은 파괴 없음
 ];
 
 // 계급별 강화 비용/확률 배수 (폰 기준 1x, 킹 총합 ~1조)
 const RANK_ENHANCE_MULTIPLIERS: Record<ChessPieceRank, { costMultiplier: number; successRateBonus: number; destroyRateBonus: number; destroyStartLevel: number }> = {
-  pawn: { costMultiplier: 1, successRateBonus: 0, destroyRateBonus: 0, destroyStartLevel: 12 },       // ~1.8억, 대령부터 파괴
-  knight: { costMultiplier: 4, successRateBonus: -8, destroyRateBonus: 2, destroyStartLevel: 10 },   // ~7억, 소령부터 파괴
-  bishop: { costMultiplier: 15, successRateBonus: -15, destroyRateBonus: 4, destroyStartLevel: 8 },  // ~27억, 중위부터 파괴
-  rook: { costMultiplier: 55, successRateBonus: -25, destroyRateBonus: 6, destroyStartLevel: 6 },    // ~100억, 상사부터 파괴
-  queen: { costMultiplier: 170, successRateBonus: -35, destroyRateBonus: 8, destroyStartLevel: 4 },  // ~300억, 하사부터 파괴
-  king: { costMultiplier: 550, successRateBonus: -45, destroyRateBonus: 12, destroyStartLevel: 3 },  // ~1조, 병장부터 파괴
-  imperial: { costMultiplier: 1, successRateBonus: 0, destroyRateBonus: 0, destroyStartLevel: 99 },  // 임페리얼은 단일 계급 (강화 없음)
+  pawn: { costMultiplier: 1, successRateBonus: 0, destroyRateBonus: 0, destroyStartLevel: 4 },        // ~1.8억
+  knight: { costMultiplier: 20, successRateBonus: -12, destroyRateBonus: 2, destroyStartLevel: 4 },   // ~35억
+  bishop: { costMultiplier: 110, successRateBonus: -25, destroyRateBonus: 4, destroyStartLevel: 4 },  // ~200억
+  rook: { costMultiplier: 550, successRateBonus: -32, destroyRateBonus: 7, destroyStartLevel: 4 },    // ~1000억
+  queen: { costMultiplier: 2200, successRateBonus: -38, destroyRateBonus: 12, destroyStartLevel: 4 }, // ~4000억
+  king: { costMultiplier: 5500, successRateBonus: -45, destroyRateBonus: 20, destroyStartLevel: 4 },  // ~1조
+  imperial: { costMultiplier: 1, successRateBonus: 0, destroyRateBonus: 0, destroyStartLevel: 99 },   // 임페리얼은 단일 계급 (강화 없음)
 };
 
 // 계급별 강화 비용 계산
