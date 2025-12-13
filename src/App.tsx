@@ -141,30 +141,68 @@ const MILITARY_POWER_MULTIPLIERS = [
 // 복리 성장 감안: 업그레이드×계급×체스 곱연산 효과 포함
 // F2P 30일 획득 예상: 약 6,500억 / 총 필요: 약 6,300억
 // 1사이클(이병→대장): 약 452억, 7사이클: 약 3,164억 (성공시)
+// 폰 기준 강화 테이블 (계급별 배수 적용됨)
 const ENHANCE_RATES = [
-  // 병사 (초반 빠른 진행, 파괴 없음)
-  { level: 0, name: '이병', successRate: 100, cost: 1000, destroyRate: 0 },
-  { level: 1, name: '일병', successRate: 100, cost: 5000, destroyRate: 0 },
-  { level: 2, name: '상병', successRate: 95, cost: 20000, destroyRate: 0 },
-  { level: 3, name: '병장', successRate: 90, cost: 80000, destroyRate: 0 },
-  // 부사관 (중반 도전, 파괴 시작)
-  { level: 4, name: '하사', successRate: 85, cost: 250000, destroyRate: 5 },
-  { level: 5, name: '중사', successRate: 80, cost: 800000, destroyRate: 8 },
-  { level: 6, name: '상사', successRate: 75, cost: 2000000, destroyRate: 10 },
-  // 위관 (중후반, 본격적인 파괴 리스크)
-  { level: 7, name: '소위', successRate: 70, cost: 5000000, destroyRate: 12 },
-  { level: 8, name: '중위', successRate: 65, cost: 15000000, destroyRate: 15 },
-  { level: 9, name: '대위', successRate: 60, cost: 40000000, destroyRate: 18 },
-  // 영관 (후반, 높은 비용과 리스크)
-  { level: 10, name: '소령', successRate: 55, cost: 100000000, destroyRate: 20 },
-  { level: 11, name: '중령', successRate: 50, cost: 300000000, destroyRate: 22 },
-  { level: 12, name: '대령', successRate: 45, cost: 800000000, destroyRate: 25 },
-  // 장성 (엔드게임, 최고 난이도)
-  { level: 13, name: '준장', successRate: 40, cost: 2000000000, destroyRate: 28 },
-  { level: 14, name: '소장', successRate: 35, cost: 5000000000, destroyRate: 30 },
-  { level: 15, name: '중장', successRate: 30, cost: 12000000000, destroyRate: 32 },
-  { level: 16, name: '대장', successRate: 25, cost: 25000000000, destroyRate: 0 }, // 대장은 파괴 없음 (진화 직전)
+  // 병사 (초반, 파괴 없음)
+  { level: 0, name: '이병', successRate: 100, cost: 100, destroyRate: 0 },
+  { level: 1, name: '일병', successRate: 100, cost: 300, destroyRate: 0 },
+  { level: 2, name: '상병', successRate: 100, cost: 800, destroyRate: 0 },
+  { level: 3, name: '병장', successRate: 100, cost: 2000, destroyRate: 0 },
+  // 부사관 (중반 시작)
+  { level: 4, name: '하사', successRate: 98, cost: 5000, destroyRate: 0 },
+  { level: 5, name: '중사', successRate: 95, cost: 12000, destroyRate: 0 },
+  { level: 6, name: '상사', successRate: 92, cost: 30000, destroyRate: 0 },
+  // 위관 (중반)
+  { level: 7, name: '소위', successRate: 90, cost: 70000, destroyRate: 0 },
+  { level: 8, name: '중위', successRate: 88, cost: 150000, destroyRate: 0 },
+  { level: 9, name: '대위', successRate: 85, cost: 350000, destroyRate: 0 },
+  // 영관 (중후반)
+  { level: 10, name: '소령', successRate: 82, cost: 800000, destroyRate: 0 },
+  { level: 11, name: '중령', successRate: 80, cost: 1800000, destroyRate: 0 },
+  { level: 12, name: '대령', successRate: 75, cost: 4000000, destroyRate: 3 },
+  // 장성 (후반, 파괴 시작)
+  { level: 13, name: '준장', successRate: 70, cost: 9000000, destroyRate: 5 },
+  { level: 14, name: '소장', successRate: 65, cost: 20000000, destroyRate: 8 },
+  { level: 15, name: '중장', successRate: 60, cost: 45000000, destroyRate: 10 },
+  { level: 16, name: '대장', successRate: 55, cost: 100000000, destroyRate: 0 }, // 대장→승급은 파괴 없음
 ];
+
+// 계급별 강화 비용/확률 배수 (폰 기준 1x)
+const RANK_ENHANCE_MULTIPLIERS: Record<ChessPieceRank, { costMultiplier: number; successRateBonus: number; destroyRateBonus: number; destroyStartLevel: number }> = {
+  pawn: { costMultiplier: 1, successRateBonus: 0, destroyRateBonus: 0, destroyStartLevel: 12 },       // 대령부터 파괴
+  knight: { costMultiplier: 3, successRateBonus: -5, destroyRateBonus: 1, destroyStartLevel: 10 },   // 소령부터 파괴
+  bishop: { costMultiplier: 10, successRateBonus: -10, destroyRateBonus: 3, destroyStartLevel: 9 },  // 대위부터 파괴
+  rook: { costMultiplier: 35, successRateBonus: -18, destroyRateBonus: 5, destroyStartLevel: 6 },    // 상사부터 파괴
+  queen: { costMultiplier: 100, successRateBonus: -28, destroyRateBonus: 7, destroyStartLevel: 5 },  // 중사부터 파괴
+  king: { costMultiplier: 385, successRateBonus: -40, destroyRateBonus: 10, destroyStartLevel: 4 },  // 하사부터 파괴
+  imperial: { costMultiplier: 1, successRateBonus: 0, destroyRateBonus: 0, destroyStartLevel: 99 },  // 임페리얼은 단일 계급 (강화 없음)
+};
+
+// 계급별 강화 비용 계산
+const getEnhanceCost = (rank: ChessPieceRank, level: number): number => {
+  const baseInfo = ENHANCE_RATES[level];
+  if (!baseInfo) return 0;
+  const multiplier = RANK_ENHANCE_MULTIPLIERS[rank];
+  return Math.floor(baseInfo.cost * multiplier.costMultiplier);
+};
+
+// 계급별 강화 성공률 계산
+const getEnhanceSuccessRate = (rank: ChessPieceRank, level: number): number => {
+  const baseInfo = ENHANCE_RATES[level];
+  if (!baseInfo) return 0;
+  const multiplier = RANK_ENHANCE_MULTIPLIERS[rank];
+  return Math.max(10, Math.min(100, baseInfo.successRate + multiplier.successRateBonus));
+};
+
+// 계급별 강화 파괴율 계산
+const getEnhanceDestroyRate = (rank: ChessPieceRank, level: number): number => {
+  const baseInfo = ENHANCE_RATES[level];
+  if (!baseInfo) return 0;
+  const multiplier = RANK_ENHANCE_MULTIPLIERS[rank];
+  // 해당 계급의 파괴 시작 레벨 이전이면 파괴율 0%
+  if (level < multiplier.destroyStartLevel) return 0;
+  return Math.min(50, baseInfo.destroyRate + multiplier.destroyRateBonus);
+};
 
 // 업그레이드 비용 (F2P 30일 기준 - 복리효과 감안)
 const INITIAL_UPGRADES: UpgradeStat[] = [
@@ -853,8 +891,19 @@ const useGameStore = create<GameState>((set, get) => ({
   tryEnhance: (useProtect: boolean, useBlessing: number) => {
     const state = get();
     const currentLevel = state.currentPiece.level;
-    const enhanceInfo = ENHANCE_RATES[currentLevel];
-    if (!enhanceInfo || state.gold < enhanceInfo.cost) {
+    const currentRank = state.currentPiece.rank;
+
+    // 임페리얼은 강화 불가 (단일 계급)
+    if (currentRank === 'imperial') {
+      return { success: false, destroyed: false, message: '임페리얼은 최종 계급입니다!' };
+    }
+
+    // 계급별 비용/확률 계산
+    const enhanceCost = getEnhanceCost(currentRank, currentLevel);
+    const baseSuccessRate = getEnhanceSuccessRate(currentRank, currentLevel);
+    const destroyRate = getEnhanceDestroyRate(currentRank, currentLevel);
+
+    if (!enhanceCost || state.gold < enhanceCost) {
       return { success: false, destroyed: false, message: '비용 부족 또는 최대 레벨' };
     }
 
@@ -873,11 +922,12 @@ const useGameStore = create<GameState>((set, get) => ({
       return item;
     });
 
-    set(s => ({ gold: s.gold - enhanceInfo.cost, enhanceAttempts: s.enhanceAttempts + 1, shopItems: consumeBlessingItems }));
+    set(s => ({ gold: s.gold - enhanceCost, enhanceAttempts: s.enhanceAttempts + 1, shopItems: consumeBlessingItems }));
 
-    let successRate = enhanceInfo.successRate;
+    let successRate = baseSuccessRate;
     if (useBlessing === 1) successRate += 10;
     if (useBlessing === 2) successRate += 20;
+    successRate = Math.min(100, successRate); // 최대 100%
 
     const roll = Math.random() * 100;
     if (roll < successRate) {
@@ -909,7 +959,7 @@ const useGameStore = create<GameState>((set, get) => ({
 
     // 강화 실패 시 파괴 판정
     const destroyRoll = Math.random() * 100;
-    if (destroyRoll < enhanceInfo.destroyRate) {
+    if (destroyRoll < destroyRate) {
       if (useProtect) {
         // 파괴방지권은 파괴가 발생했을 때만 소모
         const consumeProtect = get().shopItems.map(item => {
@@ -2088,14 +2138,14 @@ function App() {
               <button className="enhance-btn" onPointerUp={handleEnhanceClick}>
                 <div className="enhance-content">
                   <span className="enhance-main-text">강화하기</span>
-                  <span className="enhance-cost">💰 {formatNumber(ENHANCE_RATES[currentPiece.level]?.cost || 0)}</span>
+                  <span className="enhance-cost">💰 {formatNumber(getEnhanceCost(currentPiece.rank, currentPiece.level))}</span>
                 </div>
                 <div className="enhance-info">
                   <span className="prob success">
-                    {Math.min(100, (ENHANCE_RATES[currentPiece.level]?.successRate || 0) + (useBlessing === 1 ? 10 : useBlessing === 2 ? 20 : 0))}% 성공
+                    {Math.min(100, getEnhanceSuccessRate(currentPiece.rank, currentPiece.level) + (useBlessing === 1 ? 10 : useBlessing === 2 ? 20 : 0))}% 성공
                   </span>
                   <span className="prob destroy">
-                    {useProtect ? '0%' : `${ENHANCE_RATES[currentPiece.level]?.destroyRate || 0}%`} 파괴
+                    {useProtect ? '0%' : `${getEnhanceDestroyRate(currentPiece.rank, currentPiece.level)}%`} 파괴
                   </span>
                 </div>
                 {lastEnhanceMsg && <div className="enhance-msg-overlay">{lastEnhanceMsg}</div>}
