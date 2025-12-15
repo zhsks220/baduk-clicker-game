@@ -1,0 +1,18 @@
+<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <g stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <!-- Purple Rook -->
+        <path d="M30 75H70L75 85H25L30 75Z" fill="#5f27cd" />
+        <path d="M35 75L35 35H65L65 75H35Z" fill="#5f27cd" />
+        <path d="M32 35V20H40V25H45V20H55V25H60V20H68V35H32Z" fill="#5f27cd" />
+    </g>
+     <!-- Face: Angry (Gritting Teeth) -->
+    <path d="M40 50L46 54" stroke="black" stroke-width="2" />
+    <path d="M60 50L54 54" stroke="black" stroke-width="2" />
+    <circle cx="45" cy="56" r="1.5" fill="black" />
+    <circle cx="55" cy="56" r="1.5" fill="black" />
+    <!-- Mouth -->
+    <rect x="44" y="60" width="12" height="4" rx="1" fill="white" stroke="black" stroke-width="1" />
+    <line x1="44" y1="62" x2="56" y2="62" stroke="black" stroke-width="1" />
+    <line x1="48" y1="60" x2="48" y2="64" stroke="black" stroke-width="1" />
+    <line x1="52" y1="60" x2="52" y2="64" stroke="black" stroke-width="1" />
+</svg>

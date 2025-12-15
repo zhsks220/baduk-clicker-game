@@ -6,94 +6,143 @@ interface IconProps {
     style?: React.CSSProperties;
 }
 
-// Cute "Kawaii" Chess Piece SVGs
-// Style: Thick outlines, flat colors, cute faces
+// 2D Casual SD Style (Expression Update)
+// User Reference: King(Angry), Queen(Smug), Bishop(Crying), Knight(Crazy), Rook(Angry), Pawn(Scared).
+// Style Guide: Stroke Width 2px, Faces on Top.
+
+// Style constants (currently using inline styles)
+// const FACE_STYLE = { fill: "black", stroke: "none" };
+// const MOUTH_STYLE = { stroke: "black", strokeWidth: 1.5, fill: "white", strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+// const TEAR_STYLE = { fill: "#00a8ff", stroke: "none" };
 
 export const PawnIcon: React.FC<IconProps> = ({ className, style }) => (
     <svg viewBox="0 0 100 100" className={className} style={style} fill="none" xmlns="http://www.w3.org/2000/svg">
-        {/* Body */}
-        <path d="M50 20C40 20 32 28 32 38C32 45 36 51 42 54L38 80H62L58 54C64 51 68 45 68 38C68 28 60 20 50 20Z" fill="#ff9ff3" stroke="#2d3436" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M30 80H70L75 90H25L30 80Z" fill="#2d3436" />
-        {/* Face */}
-        <circle cx="45" cy="38" r="3" fill="#2d3436" />
-        <circle cx="55" cy="38" r="3" fill="#2d3436" />
-        <path d="M48 42Q50 44 52 42" stroke="#2d3436" strokeWidth="2" strokeLinecap="round" />
-        {/* Shine */}
-        <ellipse cx="40" cy="30" rx="3" ry="1.5" fill="white" opacity="0.6" />
+        <g stroke="#000000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            {/* White Pawn - Round Head, Collar, Trapezoid Body */}
+            <path d="M35 75H65L70 85H30L35 75Z" fill="#f5f6fa" />
+            <path d="M40 75L42 45H58L60 75H40Z" fill="#f5f6fa" />
+            <path d="M40 45H60L62 40H38L40 45Z" fill="#f5f6fa" />
+            <circle cx="50" cy="25" r="15" fill="#f5f6fa" />
+        </g>
+        {/* Face: Scared/Shocked (Wide Eyes, Open Mouth) */}
+        <circle cx="44" cy="24" r="2.5" fill="white" stroke="black" strokeWidth="1" />
+        <circle cx="44" cy="24" r="1" fill="black" />
+
+        <circle cx="56" cy="24" r="2.5" fill="white" stroke="black" strokeWidth="1" />
+        <circle cx="56" cy="24" r="1" fill="black" />
+
+        {/* Mouth: Open O */}
+        <circle cx="50" cy="32" r="3" fill="black" />
+        <circle cx="50" cy="32" r="1" fill="#e17055" />
     </svg>
 );
 
 export const KnightIcon: React.FC<IconProps> = ({ className, style }) => (
     <svg viewBox="0 0 100 100" className={className} style={style} fill="none" xmlns="http://www.w3.org/2000/svg">
-        {/* Body */}
-        <path d="M35 80L30 35C30 25 40 15 55 15C65 15 75 25 70 40L65 50L75 55C75 55 70 70 65 80H35Z" fill="#feca57" stroke="#2d3436" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-        {/* Mane */}
-        <path d="M30 35C25 40 25 50 30 55" stroke="#2d3436" strokeWidth="4" strokeLinecap="round" />
-        {/* Face */}
-        <circle cx="55" cy="30" r="3" fill="#2d3436" />
-        <path d="M65 35L50 45" stroke="#2d3436" strokeWidth="3" strokeLinecap="round" />
-        {/* Base */}
-        <path d="M25 80H75L80 90H20L25 80Z" fill="#2d3436" />
+        <g stroke="#000000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            {/* Yellow Knight */}
+            <path d="M30 75H70L75 85H25L30 75Z" fill="#feca57" />
+            <path d="M35 75L35 55H65L65 75H35Z" fill="#feca57" />
+            <path d="M35 55L35 30L55 15L75 25L70 45L60 45L60 55H35Z" fill="#feca57" />
+            <path d="M35 30L25 35L35 40L25 45L35 50" fill="none" />
+        </g>
+        {/* Face: Crazy Grin */}
+        <circle cx="55" cy="28" r="4" fill="white" stroke="black" strokeWidth="1.5" />
+        <circle cx="55" cy="28" r="1.5" fill="black" />
+
+        {/* Grin with teeth */}
+        <path d="M60 40Q65 40 70 38Q72 45 60 45" fill="white" stroke="black" strokeWidth="1.5" />
+        <path d="M62 40V44M65 39V44M68 39V43" stroke="black" strokeWidth="1" />
     </svg>
 );
 
 export const BishopIcon: React.FC<IconProps> = ({ className, style }) => (
     <svg viewBox="0 0 100 100" className={className} style={style} fill="none" xmlns="http://www.w3.org/2000/svg">
-        {/* Hat/Body */}
-        <path d="M50 10C35 10 25 25 25 45L35 80H65L75 45C75 25 65 10 50 10Z" fill="#54a0ff" stroke="#2d3436" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-        {/* Cross details */}
-        <path d="M50 10V5M47 7H53" stroke="#2d3436" strokeWidth="3" />
-        <path d="M50 20L50 40" stroke="#2d3436" strokeWidth="2" />
-        <path d="M40 30H60" stroke="#2d3436" strokeWidth="2" />
-        {/* Eyes */}
-        <circle cx="42" cy="50" r="3" fill="#2d3436" />
-        <circle cx="58" cy="50" r="3" fill="#2d3436" />
-        {/* Base */}
-        <path d="M25 80H75L80 90H20L25 80Z" fill="#2d3436" />
+        <g stroke="#000000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            {/* Blue Bishop - Pen Nib */}
+            <path d="M30 75H70L75 85H25L30 75Z" fill="#54a0ff" />
+            <path d="M35 75L38 50H62L65 75H35Z" fill="#54a0ff" />
+            <path d="M38 50L40 25C40 25 45 10 50 10C55 10 60 25 60 25L62 50H38Z" fill="#54a0ff" />
+            <line x1="50" y1="10" x2="50" y2="35" strokeWidth="2" />
+            <circle cx="50" cy="35" r="1.5" fill="white" stroke="none" />
+        </g>
+        {/* Face: Crying (Tears < > Mouth ~) */}
+        {/* Eyes: Closed/Crying */}
+        <path d="M42 30L46 32" stroke="black" strokeWidth="1.5" />
+        <path d="M58 30L54 32" stroke="black" strokeWidth="1.5" />
+
+        {/* Tears */}
+        <path d="M42 34Q42 38 43 40Q45 38 42 34Z" fill="#00a8ff" />
+        <path d="M58 34Q58 38 57 40Q55 38 58 34Z" fill="#00a8ff" />
+
+        {/* Mouth: Squiggly */}
+        <path d="M46 38Q48 36 50 38Q52 40 54 38" stroke="black" strokeWidth="1.5" fill="none" />
     </svg>
 );
 
 export const RookIcon: React.FC<IconProps> = ({ className, style }) => (
     <svg viewBox="0 0 100 100" className={className} style={style} fill="none" xmlns="http://www.w3.org/2000/svg">
-        {/* Turret */}
-        <path d="M30 20H40V25H45V20H55V25H60V20H70V40L65 80H35L30 40V20Z" fill="#5f27cd" stroke="#2d3436" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-        {/* Face */}
-        <circle cx="42" cy="45" r="3" fill="#white" />
-        <circle cx="58" cy="45" r="3" fill="#white" />
-        <path d="M48 48H52" stroke="white" strokeWidth="2" />
-        {/* Base */}
-        <path d="M25 80H75L80 90H20L25 80Z" fill="#2d3436" />
+        <g stroke="#000000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            {/* Purple Rook */}
+            <path d="M30 75H70L75 85H25L30 75Z" fill="#5f27cd" />
+            <path d="M35 75L35 35H65L65 75H35Z" fill="#5f27cd" />
+            <path d="M32 35V20H40V25H45V20H55V25H60V20H68V35H32Z" fill="#5f27cd" />
+        </g>
+        {/* Face: Angry (Gritting Teeth) */}
+        {/* Eyebrows */}
+        <path d="M40 50L46 54" stroke="black" strokeWidth="2" />
+        <path d="M60 50L54 54" stroke="black" strokeWidth="2" />
+        {/* Eyes */}
+        <circle cx="45" cy="56" r="1.5" fill="black" />
+        <circle cx="55" cy="56" r="1.5" fill="black" />
+        {/* Mouth: Rectangle Grit */}
+        <rect x="44" y="60" width="12" height="4" rx="1" fill="white" stroke="black" strokeWidth="1" />
+        <line x1="44" y1="62" x2="56" y2="62" stroke="black" strokeWidth="1" />
+        <line x1="48" y1="60" x2="48" y2="64" stroke="black" strokeWidth="1" />
+        <line x1="52" y1="60" x2="52" y2="64" stroke="black" strokeWidth="1" />
     </svg>
 );
 
 export const QueenIcon: React.FC<IconProps> = ({ className, style }) => (
     <svg viewBox="0 0 100 100" className={className} style={style} fill="none" xmlns="http://www.w3.org/2000/svg">
-        {/* Crown */}
-        <path d="M25 30L35 60L45 30L50 20L55 30L65 60L75 30L70 80H30L25 30Z" fill="#ff6b6b" stroke="#2d3436" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-        {/* Gems */}
-        <circle cx="25" cy="30" r="3" fill="#feca57" stroke="#2d3436" strokeWidth="2" />
-        <circle cx="50" cy="20" r="3" fill="#feca57" stroke="#2d3436" strokeWidth="2" />
-        <circle cx="75" cy="30" r="3" fill="#feca57" stroke="#2d3436" strokeWidth="2" />
-        {/* Face */}
-        <circle cx="42" cy="55" r="3" fill="#2d3436" />
-        <circle cx="58" cy="55" r="3" fill="#2d3436" />
-        {/* Base */}
-        <path d="M25 80H75L80 90H20L25 80Z" fill="#2d3436" />
+        <g stroke="#000000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            {/* Pink Queen */}
+            <path d="M30 75H70L75 85H25L30 75Z" fill="#ff9ff3" />
+            <path d="M38 75L42 50H58L62 75H38Z" fill="#ff9ff3" />
+            <path d="M42 50L35 30L45 35L50 20L55 35L65 30L58 50H42Z" fill="#ff9ff3" />
+            <circle cx="50" cy="15" r="3" fill="#ff9ff3" />
+        </g>
+        {/* Face: Smug (Confident Smile) */}
+        {/* Eyes: Sharp/Lashed */}
+        <path d="M42 40L46 38L48 40" stroke="black" strokeWidth="1.5" fill="none" />
+        <path d="M52 40L54 38L58 40" stroke="black" strokeWidth="1.5" fill="none" />
+
+        {/* Mouth: Smirk D */}
+        <path d="M45 44H55Q55 49 50 49Q45 49 45 44Z" fill="white" stroke="black" strokeWidth="1.5" />
     </svg>
 );
 
 export const KingIcon: React.FC<IconProps> = ({ className, style }) => (
     <svg viewBox="0 0 100 100" className={className} style={style} fill="none" xmlns="http://www.w3.org/2000/svg">
-        {/* Crown/Body */}
-        <path d="M30 40V80H70V40L60 25H40L30 40Z" fill="#feca57" stroke="#2d3436" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-        {/* Cross */}
-        <path d="M50 10V25M42 18H58" stroke="#2d3436" strokeWidth="4" strokeLinecap="round" />
-        {/* Face */}
-        <circle cx="45" cy="50" r="3" fill="#2d3436" />
-        <circle cx="55" cy="50" r="3" fill="#2d3436" />
-        <path d="M48 55H52" stroke="#2d3436" strokeWidth="2" />
-        {/* Base */}
-        <path d="M25 80H75L80 90H20L25 80Z" fill="#2d3436" />
+        {/* Green King */}
+        <g stroke="#000000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M30 75H70L75 85H25L30 75Z" fill="#2ecc71" />
+            <path d="M35 75L40 50H60L65 75H35Z" fill="#2ecc71" />
+            <path d="M40 50L35 30L45 30L50 20L55 30L65 30L60 50H40Z" fill="#2ecc71" />
+            <path d="M50 5V18M45 12H55" strokeWidth="2" />
+        </g>
+        {/* Face: Angry (Gritting) - High up */}
+        {/* Eyebrows */}
+        <path d="M40 33L46 37" stroke="black" strokeWidth="1.5" />
+        <path d="M60 33L54 37" stroke="black" strokeWidth="1.5" />
+        {/* Eyes */}
+        <circle cx="45" cy="38" r="1.5" fill="black" />
+        <circle cx="55" cy="38" r="1.5" fill="black" />
+        {/* Mouth: Gritting Teeth */}
+        <rect x="44" y="42" width="12" height="4" rx="1" fill="white" stroke="black" strokeWidth="1" />
+        <line x1="44" y1="44" x2="56" y2="44" stroke="black" strokeWidth="1" />
+        <line x1="48" y1="42" x2="48" y2="46" stroke="black" strokeWidth="1" />
+        <line x1="52" y1="42" x2="52" y2="46" stroke="black" strokeWidth="1" />
     </svg>
 );
 
@@ -109,7 +158,7 @@ export const ImperialKingIcon: React.FC<IconProps> = ({ className, style }) => (
                 <stop offset="100%" stopColor="#4b0082" />
             </linearGradient>
             <filter id="glow">
-                <feGaussianBlur stdDeviation="2.5" result="coloredBlur" />
+                <feGaussianBlur stdDeviation="3" result="coloredBlur" />
                 <feMerge>
                     <feMergeNode in="coloredBlur" />
                     <feMergeNode in="SourceGraphic" />
@@ -118,36 +167,24 @@ export const ImperialKingIcon: React.FC<IconProps> = ({ className, style }) => (
         </defs>
 
         {/* Aura */}
-        <circle cx="50" cy="50" r="45" fill="url(#imperialRainbow)" opacity="0.2" filter="url(#glow)" />
+        <circle cx="50" cy="50" r="48" fill="url(#imperialRainbow)" opacity="0.4" filter="url(#glow)" />
 
-        {/* Cape */}
-        <path d="M30 40L20 85H80L70 40" fill="#e74c3c" stroke="#2d3436" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        <g stroke="url(#imperialRainbow)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            {/* Body */}
+            <path d="M30 75H70L75 85H25L30 75Z" fill="#f1c40f" />
+            <path d="M35 75L40 50H60L65 75H35Z" fill="#f1c40f" />
+            {/* Head - Mecha Style */}
+            <path d="M35 50L30 20L42 30L50 10L58 30L70 20L65 50H35Z" fill="#f1c40f" />
+            {/* V-Fin */}
+            <path d="M50 10L30 0M50 10L70 0" strokeWidth="2" />
+        </g>
+        {/* Face - Mecha Eyes */}
+        <path d="M40 35L48 40" stroke="#e74c3c" strokeWidth="2" />
+        <path d="M60 35L52 40" stroke="#e74c3c" strokeWidth="2" />
+        {/* Red Eyes */}
+        <circle cx="46" cy="42" r="2" fill="#ff0000" stroke="none" />
+        <circle cx="54" cy="42" r="2" fill="#ff0000" stroke="none" />
 
-        {/* Crown/Body */}
-        <path d="M30 40V80H70V40L60 25H40L30 40Z" fill="#f1c40f" stroke="url(#imperialRainbow)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
-
-        {/* Ornate Details on Body */}
-        <path d="M40 80V40M60 80V40" stroke="#d35400" strokeWidth="2" opacity="0.5" />
-
-        {/* Giant Cross */}
-        <path d="M50 5V25M38 15H62" stroke="url(#imperialRainbow)" strokeWidth="6" strokeLinecap="round" />
-        <path d="M50 5V25M38 15H62" stroke="white" strokeWidth="2" strokeLinecap="round" />
-
-        {/* Face */}
-        <circle cx="45" cy="50" r="3" fill="#2d3436" />
-        <circle cx="55" cy="50" r="3" fill="#2d3436" />
-        <path d="M48 55H52" stroke="#2d3436" strokeWidth="2" />
-
-        {/* Gems */}
-        <circle cx="50" cy="35" r="4" fill="#e74c3c" stroke="white" strokeWidth="1" />
-        <circle cx="35" cy="45" r="3" fill="#3498db" stroke="white" strokeWidth="1" />
-        <circle cx="65" cy="45" r="3" fill="#2ecc71" stroke="white" strokeWidth="1" />
-
-        {/* Star Sparkles */}
-        <path d="M20 20L22 15L24 20L29 22L24 24L22 29L20 24L15 22L20 20Z" fill="#ffff00" />
-        <path d="M80 20L82 15L84 20L89 22L84 24L82 29L80 24L75 22L80 20Z" fill="#ffff00" />
-
-        {/* Base */}
-        <path d="M25 80H75L80 90H20L25 80Z" fill="#2d3436" stroke="url(#imperialRainbow)" strokeWidth="2" />
+        <circle cx="50" cy="25" r="3" fill="#2ecc71" stroke="white" strokeWidth="1" />
     </svg>
 );

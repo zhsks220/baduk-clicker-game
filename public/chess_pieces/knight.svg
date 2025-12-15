@@ -1,0 +1,16 @@
+<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <g stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <!-- Yellow Knight -->
+        <path d="M30 75H70L75 85H25L30 75Z" fill="#feca57" />
+        <path d="M35 75L35 55H65L65 75H35Z" fill="#feca57" />
+        <path d="M35 55L35 30L55 15L75 25L70 45L60 45L60 55H35Z" fill="#feca57" />
+        <path d="M35 30L25 35L35 40L25 45L35 50" fill="none" />
+    </g>
+    <!-- Face: Crazy Grin -->
+    <circle cx="55" cy="28" r="4" fill="white" stroke="black" stroke-width="1.5" />
+    <circle cx="55" cy="28" r="1.5" fill="black" />
+    
+    <!-- Grin with teeth -->
+    <path d="M60 40Q65 40 70 38Q72 45 60 45" fill="white" stroke="black" stroke-width="1.5" />
+    <path d="M62 40V44M65 39V44M68 39V43" stroke="black" stroke-width="1" />
+</svg>

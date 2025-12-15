@@ -8,6 +8,7 @@ import './App.css';
 import { PawnIcon, KnightIcon, BishopIcon, RookIcon, QueenIcon, KingIcon, ImperialKingIcon } from './components/ChessIcons';
 import { StoneBlackIcon, StoneWhiteIcon, StoneBossRed, StoneBossBlue, StoneBossGreen, StoneBossPurple, StoneBossGold, StoneBossCyan, StoneBossRainbow } from './components/StoneIcons';
 import { MILITARY_RANK_ICONS } from './components/MilitaryRankIcons';
+import { GuideModal } from './components/GuideModal';
 import { soundManager } from './utils/SoundManager';
 
 // Background Images
@@ -1265,6 +1266,7 @@ const useGameStore = create<GameState>((set, get) => ({
   resetGame: () => {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem('pony_story_seen'); // 스토리 인트로도 초기화
+    localStorage.removeItem('pony_guide_seen'); // 가이드도 초기화
     window.location.reload();
   }
 }));
@@ -1671,6 +1673,7 @@ type TabType = 'enhance' | 'upgrade' | 'auto' | 'shop' | 'mission';
 // 메인 앱
 function App() {
   const [showStory, setShowStory] = useState(false);
+  const [showGuide, setShowGuide] = useState(false); // 가이드 모달
   const [showAgeRating, setShowAgeRating] = useState(true); // TODO 2: 연령 등급
   const [showExitModal, setShowExitModal] = useState(false); // TODO 1: 종료 확인
   const [showMoreMenu, setShowMoreMenu] = useState(false); // 더보기 메뉴
@@ -1820,6 +1823,16 @@ function App() {
   const onStoryClose = () => {
     localStorage.setItem('pony_story_seen', 'true');
     setShowStory(false);
+    // 가이드도 처음인 경우에만 표시
+    const guideSeen = localStorage.getItem('pony_guide_seen');
+    if (!guideSeen) {
+      setShowGuide(true);
+    }
+  };
+
+  const onGuideClose = () => {
+    localStorage.setItem('pony_guide_seen', 'true');
+    setShowGuide(false);
   };
 
   const handleAttack = (e: React.PointerEvent) => {
@@ -1933,6 +1946,7 @@ function App() {
       }}
     >
       {showStory && <StoryIntroModal onClose={onStoryClose} />}
+      {showGuide && <GuideModal onClose={onGuideClose} />}
 
       {/* TODO 2: 연령 등급 배지 (3초 표시) */}
       {showAgeRating && <AgeRatingBadge onComplete={() => setShowAgeRating(false)} />}
