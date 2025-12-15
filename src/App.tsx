@@ -308,10 +308,8 @@ const INITIAL_SHOP_ITEMS: ShopItem[] = [
   { id: 'protectScroll', name: '파괴방지권', emoji: '🛡️', description: '파괴 발생 시 방어 (1회)', goldCost: 0, rubyCost: 25, count: 0 },
   { id: 'blessScroll', name: '축복주문서', emoji: '✨', description: '성공 확률 +10%', goldCost: 0, rubyCost: 40, count: 0 },
   { id: 'luckyScroll', name: '행운주문서', emoji: '🍀', description: '성공 확률 +20%', goldCost: 0, rubyCost: 70, count: 0 },
-  // 부스터 (골드/루비) - 메가부스터 가격 인하
-  { id: 'goldBoost', name: '골드 부스터', emoji: '💰', description: '30분간 골드 2배', goldCost: 50000, rubyCost: 0, count: 0 },
-  { id: 'autoBoost', name: '자동 부스터', emoji: '⚡', description: '30분간 자동클릭 2배', goldCost: 100000, rubyCost: 0, count: 0 },
-  { id: 'megaBoost', name: '메가 부스터', emoji: '🚀', description: '1시간 모든 효과 2배', goldCost: 0, rubyCost: 80, count: 0 },
+  // 메가 부스터 (광고 시청, 2시간 쿨타임)
+  { id: 'megaBoost', name: '메가 부스터', emoji: '🚀', description: '1시간 모든 효과 2배 (광고)', goldCost: 0, rubyCost: 0, count: 0 },
   // VIP 패키지 (프리미엄 캐시) - 가격 인하
   { id: 'vipPass', name: 'VIP 패스 (30일)', emoji: '👑', description: '골드+50%, 오프라인+100%', goldCost: 0, rubyCost: 800, count: 0 },
   { id: 'starterPack', name: '스타터 패키지', emoji: '🎁', description: '파괴방지x10, 축복x10, 500만골드', goldCost: 0, rubyCost: 400, count: 0 },
@@ -622,8 +620,8 @@ interface GameState {
   enhanceAttempts: number;
   enhanceSuccesses: number;
   shopItems: ShopItem[];
-  goldBoostEndTime: number;
-  autoBoostEndTime: number;
+  megaBoostEndTime: number;      // 메가 부스터 효과 종료 시간
+  megaBoostCooldownEnd: number;  // 메가 부스터 쿨타임 종료 시간 (2시간)
   missions: Mission[];
   achievements: Achievement[];
   dailyMissionDate: string;
@@ -641,7 +639,7 @@ interface GameState {
   buyAutoClicker: (clickerId: string) => boolean;
   tryEnhance: (useProtect: boolean, useBlessing: number) => { success: boolean; destroyed: boolean; message: string };
   buyShopItem: (itemId: string) => boolean;
-  useBooster: (boosterId: string) => boolean;
+  useMegaBoost: () => { success: boolean; message: string };  // 메가 부스터 (광고 후 사용)
   claimMissionReward: (missionId: string) => boolean;
   claimAchievement: (achievementId: string) => boolean;
   doPrestige: () => { success: boolean; rubyEarned: number };
@@ -717,8 +715,8 @@ const useGameStore = create<GameState>((set, get) => ({
   enhanceAttempts: 0,
   enhanceSuccesses: 0,
   shopItems: INITIAL_SHOP_ITEMS.map(i => ({ ...i })),
-  goldBoostEndTime: 0,
-  autoBoostEndTime: 0,
+  megaBoostEndTime: 0,
+  megaBoostCooldownEnd: 0,
   missions: INITIAL_MISSIONS.map(m => ({ ...m })),
   achievements: ACHIEVEMENTS.map(a => ({ ...a })),
   dailyMissionDate: getTodayString(),
@@ -736,7 +734,8 @@ const useGameStore = create<GameState>((set, get) => ({
     const isCrit = Math.random() * 100 < state.critChance;
     let baseGold = state.goldPerClick;
 
-    if (Date.now() < state.goldBoostEndTime) {
+    // 메가 부스터 효과 (골드 2배)
+    if (Date.now() < state.megaBoostEndTime) {
       baseGold *= 2;
     }
 
@@ -992,16 +991,31 @@ const useGameStore = create<GameState>((set, get) => ({
     return true;
   },
 
-  useBooster: (boosterId: string) => {
+  useMegaBoost: () => {
     const state = get();
-    const itemIndex = state.shopItems.findIndex(i => i.id === boosterId);
-    if (itemIndex === -1 || state.shopItems[itemIndex].count < 1) return false;
-    const newItems = [...state.shopItems];
-    newItems[itemIndex] = { ...newItems[itemIndex], count: newItems[itemIndex].count - 1 };
+    const now = Date.now();
 
-    if (boosterId === 'goldBoost') set({ shopItems: newItems, goldBoostEndTime: Date.now() + 300000 });
-    else if (boosterId === 'autoBoost') set({ shopItems: newItems, autoBoostEndTime: Date.now() + 300000 });
-    return true;
+    // 이미 효과 중인지 체크
+    if (now < state.megaBoostEndTime) {
+      const remaining = Math.ceil((state.megaBoostEndTime - now) / 60000);
+      return { success: false, message: `효과 진행 중 (${remaining}분 남음)` };
+    }
+
+    // 쿨타임 체크 (2시간 = 7200000ms)
+    if (now < state.megaBoostCooldownEnd) {
+      const remainingMin = Math.ceil((state.megaBoostCooldownEnd - now) / 60000);
+      const hours = Math.floor(remainingMin / 60);
+      const mins = remainingMin % 60;
+      return { success: false, message: `쿨타임 ${hours}시간 ${mins}분 남음` };
+    }
+
+    // 메가 부스터 활성화: 1시간 효과 + 2시간 쿨타임
+    set({
+      megaBoostEndTime: now + 3600000,      // 1시간 효과
+      megaBoostCooldownEnd: now + 7200000,  // 2시간 쿨타임
+    });
+
+    return { success: true, message: '메가 부스터 발동! 1시간간 모든 효과 2배!' };
   },
 
   claimMissionReward: (missionId: string) => {
@@ -1092,10 +1106,10 @@ const useGameStore = create<GameState>((set, get) => ({
     const state = get();
     if (state.autoClicksPerSec === 0) return;
 
-    let goldMultiplier = 1;
-    let autoMultiplier = 1;
-    if (Date.now() < state.goldBoostEndTime) goldMultiplier *= 2;
-    if (Date.now() < state.autoBoostEndTime) autoMultiplier *= 2;
+    // 메가 부스터 효과 (골드 2배, 자동클릭 2배)
+    const isMegaBoostActive = Date.now() < state.megaBoostEndTime;
+    const goldMultiplier = isMegaBoostActive ? 2 : 1;
+    const autoMultiplier = isMegaBoostActive ? 2 : 1;
 
     const autoClicks = state.autoClicksPerSec * autoMultiplier;
 
@@ -2166,7 +2180,7 @@ function App() {
               <button className="enhance-btn" onPointerUp={handleEnhanceClick}>
                 <div className="enhance-content">
                   <span className="enhance-main-text">강화하기</span>
-                  <span className="enhance-cost">💰 {formatNumber(getEnhanceCost(currentPiece.rank, currentPiece.level))}</span>
+                  <span className="enhance-cost">🪙 {formatNumber(getEnhanceCost(currentPiece.rank, currentPiece.level))}</span>
                 </div>
                 <div className="enhance-info">
                   <span className="prob success">
@@ -2200,7 +2214,7 @@ function App() {
                       }
                     }}
                   >
-                    💰 {formatNumber(getUpgradeCost(u))}
+                    🪙 {formatNumber(getUpgradeCost(u))}
                   </button>
                 </div>
               ))}
@@ -2250,7 +2264,7 @@ function App() {
                         }
                       }}
                     >
-                      {status.isLocked ? '🔒 잠김' : !status.canBuy ? '최대' : `💰 ${formatNumber(cost)}`}
+                      {status.isLocked ? '🔒 잠김' : !status.canBuy ? '최대' : `🪙 ${formatNumber(cost)}`}
                     </button>
                   </div>
                 );
@@ -2261,7 +2275,61 @@ function App() {
           {/* 상점 탭 */}
           {activeTab === 'shop' && (
             <div className="tab-panel scroll-panel">
-              {useGameStore.getState().shopItems.map(item => {
+              {/* 메가 부스터 (광고 시청) */}
+              {(() => {
+                const state = useGameStore.getState();
+                const now = Date.now();
+                const isActive = now < state.megaBoostEndTime;
+                const isCooldown = now < state.megaBoostCooldownEnd;
+                const canUse = !isActive && !isCooldown;
+
+                let statusText = '📺 광고보기';
+                if (isActive) {
+                  const remaining = Math.ceil((state.megaBoostEndTime - now) / 60000);
+                  statusText = `⚡ ${remaining}분 남음`;
+                } else if (isCooldown) {
+                  const remainingMin = Math.ceil((state.megaBoostCooldownEnd - now) / 60000);
+                  const hours = Math.floor(remainingMin / 60);
+                  const mins = remainingMin % 60;
+                  statusText = `⏳ ${hours}시${mins}분`;
+                }
+
+                return (
+                  <div className={`list-item mega-boost ${isActive ? 'active' : ''}`}>
+                    <div className="list-item-emoji">🚀</div>
+                    <div className="list-item-info">
+                      <div className="list-item-name">메가 부스터 {isActive && <span className="boost-active-badge">발동중!</span>}</div>
+                      <div className="list-item-desc">1시간 모든 효과 2배 (2시간 쿨타임)</div>
+                    </div>
+                    <button
+                      className={`list-item-btn ${canUse ? 'ad-btn can-buy' : isActive ? 'active-btn' : 'cooldown-btn'}`}
+                      onPointerUp={() => {
+                        if (!canUse) {
+                          vibrate(10);
+                          return;
+                        }
+                        // 광고 시청 후 부스터 발동 (실제 광고 연동 전까지는 바로 발동)
+                        const result = useGameStore.getState().useMegaBoost();
+                        if (result.success) {
+                          vibrate([50, 50, 50]);
+                          soundManager.play('success');
+                          setRewardFx({ id: Date.now(), text: result.message });
+                          setTimeout(() => setRewardFx(null), 2000);
+                        } else {
+                          vibrate(10);
+                          setRewardFx({ id: Date.now(), text: result.message });
+                          setTimeout(() => setRewardFx(null), 1500);
+                        }
+                      }}
+                    >
+                      {statusText}
+                    </button>
+                  </div>
+                );
+              })()}
+
+              {/* 일반 상점 아이템 (메가 부스터 제외) */}
+              {useGameStore.getState().shopItems.filter(item => item.id !== 'megaBoost').map(item => {
                 const canBuy = (item.goldCost > 0 && gold >= item.goldCost) || (item.rubyCost > 0 && ruby >= item.rubyCost);
                 return (
                   <div key={item.id} className="list-item">
@@ -2284,7 +2352,7 @@ function App() {
                         }
                       }}
                     >
-                      {item.rubyCost > 0 ? `💎 ${item.rubyCost}` : `💰 ${formatNumber(item.goldCost)}`}
+                      {item.rubyCost > 0 ? `💎 ${item.rubyCost}` : `🪙 ${formatNumber(item.goldCost)}`}
                     </button>
                   </div>
                 );

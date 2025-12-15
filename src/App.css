@@ -2153,6 +2153,64 @@ body {
   box-shadow: 0 3px 0 #1a5276;
 }
 
+/* 메가 부스터 스타일 */
+.list-item.mega-boost {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border: 2px solid #feca57;
+}
+
+.list-item.mega-boost.active {
+  background: linear-gradient(135deg, #2d3436 0%, #1e272e 100%);
+  border-color: #00d2d3;
+  animation: megaBoostGlow 1.5s ease-in-out infinite;
+}
+
+@keyframes megaBoostGlow {
+  0%, 100% { box-shadow: 0 0 5px rgba(0, 210, 211, 0.5); }
+  50% { box-shadow: 0 0 15px rgba(0, 210, 211, 0.8); }
+}
+
+.boost-active-badge {
+  background: linear-gradient(90deg, #00d2d3, #00cec9);
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  margin-left: 6px;
+  animation: pulseBadge 1s ease-in-out infinite;
+}
+
+@keyframes pulseBadge {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.list-item-btn.ad-btn {
+  background: linear-gradient(180deg, #ff9f43 0%, #ee5a24 100%);
+  box-shadow: 0 3px 0 #b33939;
+  color: #fff;
+  font-weight: bold;
+}
+
+.list-item-btn.ad-btn.can-buy:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 0 #b33939;
+}
+
+.list-item-btn.active-btn {
+  background: linear-gradient(180deg, #00d2d3 0%, #00b894 100%);
+  box-shadow: 0 3px 0 #006266;
+  color: #fff;
+  font-weight: bold;
+}
+
+.list-item-btn.cooldown-btn {
+  background: linear-gradient(180deg, #636e72 0%, #2d3436 100%);
+  box-shadow: 0 3px 0 #1e272e;
+  color: #b2bec3;
+  cursor: not-allowed;
+}
+
 /* 동료 잠금 상태 스타일 */
 .list-item.locked {
   opacity: 0.7;
