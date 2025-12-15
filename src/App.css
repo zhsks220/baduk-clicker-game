@@ -271,7 +271,7 @@ body {
   display: flex;
   align-items: flex-start; /* 상단 정렬로 HP바/계급장 라인 맞춤 */
   justify-content: center;
-  gap: 0;
+  gap: 60px; /* 체스말과 바둑돌 사이 간격 */
   width: 100%;
   flex: 1;
   min-height: 150px;
@@ -287,9 +287,9 @@ body {
 .battle-container::before {
   content: 'VS';
   position: absolute;
-  top: 35%; /* 체스말/바둑돌 사이 중앙 */
+  top: 60px; /* 고정 위치로 변경 */
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
   font-size: 2rem;
   font-weight: 900;
   color: #ff6b6b;
@@ -378,6 +378,7 @@ body {
   display: flex;
   flex-direction: column-reverse; /* HP 바를 바둑돌 위에 배치 */
   align-items: center;
+  justify-content: center; /* 바둑돌 크기와 관계없이 중앙 고정 */
   position: relative;
   z-index: 1;
   isolation: isolate;

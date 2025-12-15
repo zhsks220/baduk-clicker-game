@@ -93,6 +93,7 @@ interface Achievement {
   target: number;
   reward: { gold: number; ruby: number };
   unlocked: boolean;
+  claimed: boolean;
 }
 
 // ============ 상수 정의 ============
@@ -129,14 +130,6 @@ const RANK_MULTIPLIERS: Record<ChessPieceRank, number> = {
 //   '준장', '소장', '중장', '대장'      // 장성 (13-16)
 // ];
 
-// 계급별 공격력 배율 (대장 = 80x)
-const MILITARY_POWER_MULTIPLIERS = [
-  1.0, 1.2, 1.5, 2.0,      // 이병~병장
-  2.5, 3.2, 4.0,           // 하사~상사
-  5.0, 6.5, 8.0,           // 소위~대위
-  10, 15, 22,              // 소령~대령
-  32, 45, 60, 80           // 준장~대장
-];
 
 // ============ 밸런스 설계 (F2P 30일 엔딩, 7만원=15일 엔딩) ============
 // 복리 성장 감안: 업그레이드×계급×체스 곱연산 효과 포함
@@ -165,7 +158,7 @@ const ENHANCE_RATES = [
   { level: 13, name: '준장', successRate: 70, cost: 9000000, destroyRate: 9 },
   { level: 14, name: '소장', successRate: 65, cost: 20000000, destroyRate: 9.5 },
   { level: 15, name: '중장', successRate: 60, cost: 45000000, destroyRate: 10 },
-  { level: 16, name: '대장', successRate: 55, cost: 100000000, destroyRate: 0 }, // 대장→승급은 파괴 없음
+  { level: 16, name: '대장', successRate: 55, cost: 100000000, destroyRate: 10.5 }, // 대장→승급
 ];
 
 // 계급별 강화 비용/확률 배수 (폰 기준 1x, 킹 총합 ~1조)
@@ -309,7 +302,7 @@ const INITIAL_SHOP_ITEMS: ShopItem[] = [
   { id: 'blessScroll', name: '축복주문서', emoji: '✨', description: '성공 확률 +10%', goldCost: 0, rubyCost: 40, count: 0 },
   { id: 'luckyScroll', name: '행운주문서', emoji: '🍀', description: '성공 확률 +20%', goldCost: 0, rubyCost: 70, count: 0 },
   // 메가 부스터 (광고 시청, 2시간 쿨타임)
-  { id: 'megaBoost', name: '메가 부스터', emoji: '🚀', description: '1시간 모든 효과 2배 (광고)', goldCost: 0, rubyCost: 0, count: 0 },
+  { id: 'megaBoost', name: '메가 부스터', emoji: '🚀', description: '30분 모든 효과 2배 (광고)', goldCost: 0, rubyCost: 0, count: 0 },
   // VIP 패키지 (프리미엄 캐시) - 가격 인하
   { id: 'vipPass', name: 'VIP 패스 (30일)', emoji: '👑', description: '골드+50%, 오프라인+100%', goldCost: 0, rubyCost: 800, count: 0 },
   { id: 'starterPack', name: '스타터 패키지', emoji: '🎁', description: '파괴방지x10, 축복x10, 500만골드', goldCost: 0, rubyCost: 400, count: 0 },
@@ -379,29 +372,39 @@ const CUMULATIVE_MISSION_TIERS: Record<string, { targets: number[]; rewards: { g
 // 업적 시스템 (확장: 킹, 임페리얼, 보스 처치)
 const ACHIEVEMENTS: Achievement[] = [
   // 강화 업적
-  { id: 'firstEnhance', name: '첫 강화', description: '강화 성공', target: 1, reward: { gold: 1000, ruby: 10 }, unlocked: false },
+  { id: 'firstEnhance', name: '첫 강화', description: '강화 성공', target: 1, reward: { gold: 1000, ruby: 10 }, unlocked: false, claimed: false },
   // 체스 승급 업적
-  { id: 'knight', name: '나이트 승급', description: '나이트 달성', target: 1, reward: { gold: 5000, ruby: 15 }, unlocked: false },
-  { id: 'bishop', name: '비숍 승급', description: '비숍 달성', target: 1, reward: { gold: 10000, ruby: 20 }, unlocked: false },
-  { id: 'rook', name: '룩 승급', description: '룩 달성', target: 1, reward: { gold: 25000, ruby: 30 }, unlocked: false },
-  { id: 'queen', name: '퀸 승급', description: '퀸 달성', target: 1, reward: { gold: 50000, ruby: 40 }, unlocked: false },
-  { id: 'king', name: '킹 승급', description: '킹 달성', target: 1, reward: { gold: 100000, ruby: 50 }, unlocked: false },
-  { id: 'imperial', name: '임페리얼 승급', description: '킹갓제네럴 임페리얼 체스킹 달성', target: 1, reward: { gold: 500000, ruby: 100 }, unlocked: false },
+  { id: 'knight', name: '나이트 승급', description: '나이트 달성', target: 1, reward: { gold: 5000, ruby: 15 }, unlocked: false, claimed: false },
+  { id: 'bishop', name: '비숍 승급', description: '비숍 달성', target: 1, reward: { gold: 10000, ruby: 20 }, unlocked: false, claimed: false },
+  { id: 'rook', name: '룩 승급', description: '룩 달성', target: 1, reward: { gold: 25000, ruby: 30 }, unlocked: false, claimed: false },
+  { id: 'queen', name: '퀸 승급', description: '퀸 달성', target: 1, reward: { gold: 50000, ruby: 40 }, unlocked: false, claimed: false },
+  { id: 'king', name: '킹 승급', description: '킹 달성', target: 1, reward: { gold: 100000, ruby: 50 }, unlocked: false, claimed: false },
+  { id: 'imperial', name: '임페리얼 승급', description: '킹갓제네럴 임페리얼 체스킹 달성', target: 1, reward: { gold: 500000, ruby: 100 }, unlocked: false, claimed: false },
   // 보스 처치 업적
-  { id: 'boss1', name: '화염 정복자', description: '화염의 돌 처치', target: 1, reward: { gold: 2000, ruby: 10 }, unlocked: false },
-  { id: 'boss3', name: '맹독 정복자', description: '맹독의 돌 처치', target: 1, reward: { gold: 20000, ruby: 15 }, unlocked: false },
-  { id: 'boss5', name: '번개 정복자', description: '번개의 돌 처치', target: 1, reward: { gold: 200000, ruby: 25 }, unlocked: false },
-  { id: 'boss7', name: '궁극 정복자', description: '궁극의 돌 처치 (엔딩)', target: 1, reward: { gold: 1000000, ruby: 50 }, unlocked: false },
+  { id: 'boss1', name: '화염 정복자', description: '화염의 돌 처치', target: 1, reward: { gold: 2000, ruby: 10 }, unlocked: false, claimed: false },
+  { id: 'boss3', name: '맹독 정복자', description: '맹독의 돌 처치', target: 1, reward: { gold: 20000, ruby: 15 }, unlocked: false, claimed: false },
+  { id: 'boss5', name: '번개 정복자', description: '번개의 돌 처치', target: 1, reward: { gold: 200000, ruby: 25 }, unlocked: false, claimed: false },
+  { id: 'boss7', name: '궁극 정복자', description: '궁극의 돌 처치 (엔딩)', target: 1, reward: { gold: 1000000, ruby: 50 }, unlocked: false, claimed: false },
 ];
 
 const STORAGE_KEY = 'pony-game-v3';
 
 // ============ 바둑돌 HP 밸런스 시스템 ============
-// 소중대 구분 없이 동일 HP, 파괴할수록 체력 증가
-// 공식: HP = baseHP × (1 + stonesDestroyed × 2%) × max(0.1, 1 - totalLevel × 2%)
-const STONE_BASE_HP = 100;
-const STONE_HP_GROWTH_RATE = 0.02;      // 2% per destroy (파괴할수록 증가)
-const STONE_HP_REDUCTION_RATE = 0.02;   // 2% per upgrade level (강화할수록 감소)
+// 기본 HP 낮추고, 파괴할수록 크게 증가
+// 골드 보상은 HP에 비례, 보스 HP는 현재 일반 돌 HP × 배율
+const STONE_BASE_HP = 30;               // 기본 HP
+const STONE_HP_GROWTH_RATE = 0.05;      // 5% per destroy
+
+// 기물별 HP 감소율 (레벨당) - 강화할수록 바둑돌이 쉬워짐
+const RANK_HP_REDUCTION_RATES: Record<ChessPieceRank, number> = {
+  pawn: 0.002,     // 0.2% per level (17레벨 완료시 3.4%)
+  knight: 0.003,   // 0.3% per level (17레벨 완료시 5.1%)
+  bishop: 0.005,   // 0.5% per level (17레벨 완료시 8.5%)
+  rook: 0.007,     // 0.7% per level (17레벨 완료시 11.9%)
+  queen: 0.008,    // 0.8% per level (17레벨 완료시 13.6%)
+  king: 0.010,     // 1.0% per level (17레벨 완료시 17.0%)
+  imperial: 0,     // Imperial은 고정 10% HP
+};
 
 // 바둑돌 사이즈별 설정 (HP는 동일, 사이즈만 다름)
 const STONE_CONFIG: Record<StoneSize, { hpMultiplier: number; pixelSize: number }> = {
@@ -411,30 +414,53 @@ const STONE_CONFIG: Record<StoneSize, { hpMultiplier: number; pixelSize: number 
 };
 
 // 보스 설정 - 7개 보스
-// 보스 HP 대폭 상향, 보상도 상향
-// recommendedRank/Level: 권장 체스 랭크 및 군대 레벨 (미달 시 데미지 페널티)
+// 보스 HP = 현재 일반 돌 HP × hpMultiplier
+// goldMultiplier = 보스 처치 시 일반 돌 골드의 배율
 const BOSS_CONFIG: Record<BossType, {
   name: string;
-  fixedHp: number;
-  goldReward: number;
+  hpMultiplier: number;      // 일반 돌 HP의 몇 배인지
+  goldMultiplier: number;    // 골드 보상 배율
   element: string;
-  recommendedRank: ChessPieceRank;
-  recommendedLevel: number;
 }> = {
-  none: { name: '', fixedHp: 1, goldReward: 0, element: '', recommendedRank: 'pawn', recommendedLevel: 0 },
-  boss1: { name: '화염의 돌', fixedHp: 50000, goldReward: 50000, element: '🔴', recommendedRank: 'pawn', recommendedLevel: 10 },              // 폰 소령
-  boss2: { name: '빙결의 돌', fixedHp: 2000000, goldReward: 500000, element: '🔵', recommendedRank: 'knight', recommendedLevel: 8 },          // 나이트 중위
-  boss3: { name: '맹독의 돌', fixedHp: 50000000, goldReward: 5000000, element: '🟢', recommendedRank: 'bishop', recommendedLevel: 10 },       // 비숍 소령
-  boss4: { name: '암흑의 돌', fixedHp: 500000000, goldReward: 50000000, element: '🟣', recommendedRank: 'rook', recommendedLevel: 12 },       // 룩 대령
-  boss5: { name: '번개의 돌', fixedHp: 5000000000, goldReward: 300000000, element: '🟡', recommendedRank: 'queen', recommendedLevel: 14 },    // 퀸 소장
-  boss6: { name: '사이버 돌', fixedHp: 50000000000, goldReward: 1500000000, element: '💠', recommendedRank: 'king', recommendedLevel: 15 },   // 킹 중장
-  boss7: { name: '궁극의 돌', fixedHp: 500000000000, goldReward: 10000000000, element: '🌈', recommendedRank: 'imperial', recommendedLevel: 16 }, // 임페리얼 대장
+  none: { name: '', hpMultiplier: 1, goldMultiplier: 0, element: '' },
+  boss1: { name: '화염의 돌', hpMultiplier: 50, goldMultiplier: 100, element: '🔴' },
+  boss2: { name: '빙결의 돌', hpMultiplier: 80, goldMultiplier: 150, element: '🔵' },
+  boss3: { name: '맹독의 돌', hpMultiplier: 120, goldMultiplier: 200, element: '🟢' },
+  boss4: { name: '암흑의 돌', hpMultiplier: 180, goldMultiplier: 300, element: '🟣' },
+  boss5: { name: '번개의 돌', hpMultiplier: 250, goldMultiplier: 400, element: '🟡' },
+  boss6: { name: '사이버 돌', hpMultiplier: 350, goldMultiplier: 500, element: '💠' },
+  boss7: { name: '궁극의 돌', hpMultiplier: 500, goldMultiplier: 700, element: '🌈' },
 };
 
-// 보스 데미지 페널티 계산
-// 권장 레벨 미달 시 레벨 차이당 15% 데미지 감소 (최소 10%)
-const BOSS_DAMAGE_PENALTY_PER_LEVEL = 0.15;
-const BOSS_MIN_DAMAGE_MULTIPLIER = 0.10;
+const BOSS_ORDER: BossType[] = ['boss1', 'boss2', 'boss3', 'boss4', 'boss5', 'boss6', 'boss7'];
+const STONES_PER_BOSS = 100; // 100개 파괴마다 보스 등장
+
+// 현재 일반 돌 HP를 기반으로 보스 HP 계산
+const calculateBossHp = (bossType: BossType, currentStoneHp: number): number => {
+  if (bossType === 'none') return 1;
+  const bossConfig = BOSS_CONFIG[bossType];
+  return Math.floor(currentStoneHp * bossConfig.hpMultiplier);
+};
+
+// 보스 골드 보상 계산 (일반 돌 골드 × 배율)
+const calculateBossGoldReward = (bossType: BossType, baseStoneGold: number): number => {
+  if (bossType === 'none') return 0;
+  const bossConfig = BOSS_CONFIG[bossType];
+  return Math.floor(baseStoneGold * bossConfig.goldMultiplier);
+};
+
+// 보스 데미지 페널티 계산 (권장 스펙에 못 미치면 데미지 감소)
+// 보스가 강해질수록 더 높은 체스말/계급이 필요
+const BOSS_RECOMMENDED_SPEC: Record<BossType, { rank: ChessPieceRank; level: number }> = {
+  none: { rank: 'pawn', level: 0 },
+  boss1: { rank: 'pawn', level: 10 },     // 폰 소령
+  boss2: { rank: 'knight', level: 8 },    // 나이트 중위
+  boss3: { rank: 'bishop', level: 10 },   // 비숍 소령
+  boss4: { rank: 'rook', level: 12 },     // 룩 대령
+  boss5: { rank: 'queen', level: 14 },    // 퀸 소장
+  boss6: { rank: 'king', level: 15 },     // 킹 중장
+  boss7: { rank: 'imperial', level: 16 }, // 임페리얼 대장
+};
 
 const calculateBossDamageMultiplier = (
   playerRank: ChessPieceRank,
@@ -443,41 +469,58 @@ const calculateBossDamageMultiplier = (
 ): number => {
   if (bossType === 'none') return 1;
 
-  const bossConfig = BOSS_CONFIG[bossType];
+  const recommended = BOSS_RECOMMENDED_SPEC[bossType];
   const playerRankIndex = RANK_ORDER.indexOf(playerRank);
-  const bossRankIndex = RANK_ORDER.indexOf(bossConfig.recommendedRank);
+  const recommendedRankIndex = RANK_ORDER.indexOf(recommended.rank);
 
-  // 총 레벨 차이 계산 (체스 랭크 * 17 + 군대 레벨)
-  const playerTotalLevel = playerRankIndex * 17 + playerLevel;
-  const bossTotalLevel = bossRankIndex * 17 + bossConfig.recommendedLevel;
+  // 플레이어의 총 스펙 점수 계산 (계급 × 17 + 레벨)
+  const playerScore = playerRankIndex * 17 + playerLevel;
+  const recommendedScore = recommendedRankIndex * 17 + recommended.level;
 
-  if (playerTotalLevel >= bossTotalLevel) {
-    return 1; // 권장 레벨 이상이면 100% 데미지
-  }
+  // 권장 스펙 이상이면 100% 데미지
+  if (playerScore >= recommendedScore) return 1;
 
-  const levelDiff = bossTotalLevel - playerTotalLevel;
-  const damageMultiplier = Math.max(
-    BOSS_MIN_DAMAGE_MULTIPLIER,
-    1 - levelDiff * BOSS_DAMAGE_PENALTY_PER_LEVEL
-  );
+  // 권장 스펙 미달 시 데미지 감소 (최소 10%)
+  const scoreDiff = recommendedScore - playerScore;
+  const penalty = Math.max(0.1, 1 - scoreDiff * 0.15); // 차이 1당 15% 감소, 최소 10%
 
-  return damageMultiplier;
+  return penalty;
 };
-
-const BOSS_ORDER: BossType[] = ['boss1', 'boss2', 'boss3', 'boss4', 'boss5', 'boss6', 'boss7'];
-const STONES_PER_BOSS = 100; // 100개 파괴마다 보스 등장 (F2P 30일 기준)
 
 // 바둑돌 HP 계산 함수
 // stonesDestroyed: 파괴한 돌 수 (HP 증가 요소)
 // totalUpgradeLevel: 총 업그레이드 레벨 (HP 감소 요소 - 강해지는 느낌)
+// totalUpgradeLevel = rankIndex * 17 + level (예: 나이트 5레벨 = 1*17+5 = 22)
 const calculateStoneHp = (size: StoneSize, stonesDestroyed: number, totalUpgradeLevel: number): number => {
   const config = STONE_CONFIG[size];
 
-  // HP 증가: 파괴할수록 어려워짐 (1% per destroy)
+  // HP 증가: 파괴할수록 어려워짐
   const growthMultiplier = 1 + stonesDestroyed * STONE_HP_GROWTH_RATE;
 
-  // HP 감소: 강화할수록 쉬워짐 (2% per level, 최소 10%)
-  const reductionMultiplier = Math.max(0.1, 1 - totalUpgradeLevel * STONE_HP_REDUCTION_RATE);
+  // HP 감소: 기물별 차등 감소율 적용
+  let totalReduction = 0;
+
+  // 현재 기물과 레벨 역산
+  const currentRankIndex = Math.floor(totalUpgradeLevel / 17);
+  const currentLevel = totalUpgradeLevel % 17;
+
+  // Imperial(인덱스 6)은 고정 10% HP
+  if (currentRankIndex >= 6) {
+    totalReduction = 0.90; // 10% HP = 90% 감소
+  } else {
+    // 이전 기물들의 누적 감소 계산
+    for (let i = 0; i < currentRankIndex; i++) {
+      const rank = RANK_ORDER[i];
+      totalReduction += 17 * RANK_HP_REDUCTION_RATES[rank];
+    }
+    // 현재 기물의 감소 추가
+    if (currentRankIndex < RANK_ORDER.length) {
+      const currentRank = RANK_ORDER[currentRankIndex];
+      totalReduction += currentLevel * RANK_HP_REDUCTION_RATES[currentRank];
+    }
+  }
+
+  const reductionMultiplier = Math.max(0.1, 1 - totalReduction);
 
   // 최종 HP = 기본HP × 사이즈배율 × 성장배율 × 감소배율
   const hp = Math.floor(STONE_BASE_HP * config.hpMultiplier * growthMultiplier * reductionMultiplier);
@@ -508,14 +551,15 @@ const createRandomStone = (stonesDestroyed: number, totalUpgradeLevel: number): 
   };
 };
 
-// 보스 생성 함수 (파괴 수에 따라 HP 증가)
-const createBossStone = (_playerDps: number, bossIndex: number, stonesDestroyed: number = 0): GoStone => {
+// 보스 생성 함수 (일반 돌 HP × 보스 배율)
+const createBossStone = (_playerDps: number, bossIndex: number, stonesDestroyed: number = 0, totalUpgradeLevel: number = 0): GoStone => {
   const bossType = BOSS_ORDER[bossIndex % BOSS_ORDER.length];
-  const bossConfig = BOSS_CONFIG[bossType];
 
-  // 보스 HP = 기본HP × (1 + 파괴수 × 1%)
-  const growthMultiplier = 1 + stonesDestroyed * 0.01;
-  const hp = Math.floor(bossConfig.fixedHp * growthMultiplier);
+  // 먼저 현재 일반 돌의 HP를 계산
+  const normalStoneHp = calculateStoneHp('medium', stonesDestroyed, totalUpgradeLevel);
+
+  // 보스 HP = 일반 돌 HP × 보스 배율
+  const hp = calculateBossHp(bossType, normalStoneHp);
 
   return {
     color: 'black', // 보스는 색상 무관
@@ -633,6 +677,11 @@ interface GameState {
   attackPower: number;
   critChance: number;
   critDamage: number;
+  // 일일 미션용 카운터 (매일 리셋됨)
+  dailyClicks: number;
+  dailyStonesDestroyed: number;
+  dailyEnhanceAttempts: number;
+  dailyGoldEarned: number;
 
   handleClick: () => { gold: number; isCrit: boolean; destroyed: boolean; bonusGold: number };
   upgradestat: (statId: string) => boolean;
@@ -653,13 +702,10 @@ interface GameState {
   resetDailyMissions: () => void;
 }
 
-// 공격력 계산: 체스랭크 배율 x 군대계급 배율 x 업그레이드
+// 공격력 계산: 체스랭크 배율 x 업그레이드
 const calculateStats = (upgrades: UpgradeStat[], piece: ChessPiece, prestigeBonus: number) => {
   // 체스 랭크 배율 (폰 1x ~ 임페리얼 20x)
   const rankMultiplier = RANK_MULTIPLIERS[piece.rank];
-
-  // 군대 계급 배율 (이병 1x ~ 대장 80x)
-  const militaryMultiplier = MILITARY_POWER_MULTIPLIERS[piece.level] || 1;
 
   // 프레스티지 보너스
   const prestige = 1 + prestigeBonus;
@@ -669,13 +715,13 @@ const calculateStats = (upgrades: UpgradeStat[], piece: ChessPiece, prestigeBonu
   const critChanceUpgrade = upgrades.find(u => u.id === 'critChance')!;
   const critDamageUpgrade = upgrades.find(u => u.id === 'critDamage')!;
 
-  // 기본 공격력 = 업그레이드 값 x 랭크 배율 x 계급 배율
+  // 기본 공격력 = 업그레이드 값 x 랭크 배율
   const baseAttack = attackUpgrade.baseValue + attackUpgrade.increment * (attackUpgrade.level - 1);
   const baseGold = goldUpgrade.baseValue + goldUpgrade.increment * (goldUpgrade.level - 1);
 
   return {
-    goldPerClick: Math.max(1, Math.floor(baseGold * rankMultiplier * militaryMultiplier * prestige)), // 골드도 동일한 배율
-    attackPower: Math.floor(baseAttack * rankMultiplier * militaryMultiplier * prestige),
+    goldPerClick: Math.max(1, Math.floor(baseGold * rankMultiplier * prestige)),
+    attackPower: Math.floor(baseAttack * rankMultiplier * prestige),
     critChance: Math.min(100, critChanceUpgrade.baseValue + critChanceUpgrade.increment * critChanceUpgrade.level),
     critDamage: critDamageUpgrade.baseValue + critDamageUpgrade.increment * critDamageUpgrade.level,
   };
@@ -728,6 +774,11 @@ const useGameStore = create<GameState>((set, get) => ({
   attackPower: 1,
   critChance: 0,
   critDamage: 150,
+  // 일일 미션용 카운터
+  dailyClicks: 0,
+  dailyStonesDestroyed: 0,
+  dailyEnhanceAttempts: 0,
+  dailyGoldEarned: 0,
 
   handleClick: () => {
     const state = get();
@@ -757,11 +808,14 @@ const useGameStore = create<GameState>((set, get) => ({
 
     let bonusGold = 0;
     if (destroyed) {
-      // 보스 처치 시 고정 보상, 일반 돌은 HP 기반 보상
+      // 보스 처치 시 HP 기반 × 배율 보상, 일반 돌은 HP 기반 보상
       if (state.currentStone.isBoss) {
-        bonusGold = BOSS_CONFIG[state.currentStone.bossType || 'none'].goldReward;
+        // 보스 보상 = 일반 돌 기준 골드 × 보스 goldMultiplier
+        const baseStoneGold = state.currentStone.maxHp * baseGold * 0.3;
+        bonusGold = calculateBossGoldReward(state.currentStone.bossType || 'none', baseStoneGold);
       } else {
-        const totalStoneGold = state.currentStone.maxHp * baseGold * 0.1;
+        // 일반 돌 보상 = HP × 기본골드 × 0.3 × (33~99%)
+        const totalStoneGold = state.currentStone.maxHp * baseGold * 0.3;
         const bonusPercent = [33, 66, 99][Math.floor(Math.random() * 3)];
         bonusGold = Math.floor(totalStoneGold * bonusPercent / 100);
       }
@@ -788,7 +842,7 @@ const useGameStore = create<GameState>((set, get) => ({
 
         if (newStonesUntilBoss <= 0) {
           // 보스 등장!
-          nextStone = createBossStone(state.attackPower, state.bossesDefeated, state.stonesDestroyed + 1);
+          nextStone = createBossStone(state.attackPower, state.bossesDefeated, state.stonesDestroyed + 1, chessPieceLevel);
           newStonesUntilBoss = 0; // 보스전 중에는 0 유지
         } else {
           nextStone = createRandomStone(state.stonesDestroyed + 1, chessPieceLevel);
@@ -799,6 +853,9 @@ const useGameStore = create<GameState>((set, get) => ({
         gold: s.gold + totalGoldEarned,
         totalGold: s.totalGold + totalGoldEarned,
         totalClicks: s.totalClicks + 1,
+        dailyClicks: s.dailyClicks + 1,
+        dailyGoldEarned: s.dailyGoldEarned + totalGoldEarned,
+        dailyStonesDestroyed: s.dailyStonesDestroyed + (wasKillingBoss ? 0 : 1),
         currentStone: nextStone,
         stonesDestroyed: s.stonesDestroyed + (wasKillingBoss ? 0 : 1),
         stonesUntilBoss: newStonesUntilBoss,
@@ -809,6 +866,8 @@ const useGameStore = create<GameState>((set, get) => ({
         gold: s.gold + earnedGold,
         totalGold: s.totalGold + earnedGold,
         totalClicks: s.totalClicks + 1,
+        dailyClicks: s.dailyClicks + 1,
+        dailyGoldEarned: s.dailyGoldEarned + earnedGold,
         currentStone: { ...s.currentStone, currentHp: newHp },
       }));
     }
@@ -921,7 +980,7 @@ const useGameStore = create<GameState>((set, get) => ({
       return item;
     });
 
-    set(s => ({ gold: s.gold - enhanceCost, enhanceAttempts: s.enhanceAttempts + 1, shopItems: consumeBlessingItems }));
+    set(s => ({ gold: s.gold - enhanceCost, enhanceAttempts: s.enhanceAttempts + 1, dailyEnhanceAttempts: s.dailyEnhanceAttempts + 1, shopItems: consumeBlessingItems }));
 
     let successRate = baseSuccessRate;
     if (useBlessing === 1) successRate += 10;
@@ -1009,13 +1068,13 @@ const useGameStore = create<GameState>((set, get) => ({
       return { success: false, message: `쿨타임 ${hours}시간 ${mins}분 남음` };
     }
 
-    // 메가 부스터 활성화: 1시간 효과 + 2시간 쿨타임
+    // 메가 부스터 활성화: 30분 효과 + 2시간 쿨타임
     set({
-      megaBoostEndTime: now + 3600000,      // 1시간 효과
+      megaBoostEndTime: now + 1800000,      // 30분 효과
       megaBoostCooldownEnd: now + 7200000,  // 2시간 쿨타임
     });
 
-    return { success: true, message: '메가 부스터 발동! 1시간간 모든 효과 2배!' };
+    return { success: true, message: '메가 부스터 발동! 30분간 모든 효과 2배!' };
   },
 
   claimMissionReward: (missionId: string) => {
@@ -1065,8 +1124,18 @@ const useGameStore = create<GameState>((set, get) => ({
   claimAchievement: (achId: string) => {
     const state = get();
     const idx = state.achievements.findIndex(a => a.id === achId);
-    if (idx === -1 || !state.achievements[idx].unlocked) return false;
-    set({ gold: state.gold + state.achievements[idx].reward.gold, ruby: state.ruby + state.achievements[idx].reward.ruby }); // Achievement usually one time, but here we just give reward and keep visible
+    // 업적이 없거나, 해금 안됐거나, 이미 수령한 경우 거부
+    if (idx === -1 || !state.achievements[idx].unlocked || state.achievements[idx].claimed) return false;
+
+    // claimed를 true로 업데이트
+    const newAchievements = [...state.achievements];
+    newAchievements[idx] = { ...newAchievements[idx], claimed: true };
+
+    set({
+      gold: state.gold + state.achievements[idx].reward.gold,
+      ruby: state.ruby + state.achievements[idx].reward.ruby,
+      achievements: newAchievements
+    });
     return true;
   },
 
@@ -1084,6 +1153,8 @@ const useGameStore = create<GameState>((set, get) => ({
       upgrades: INITIAL_UPGRADES.map(u => ({ ...u })), autoClickers: INITIAL_AUTO_CLICKERS.map(c => ({ ...c })),
       autoClicksPerSec: 0, enhanceAttempts: 0, enhanceSuccesses: 0, upgradeCount: 0,
       stonesDestroyed: 0, // 프레스티지 시 파괴 수 리셋
+      stonesUntilBoss: STONES_PER_BOSS, // 보스 카운터 리셋
+      bossesDefeated: 0, // 처치한 보스 수 리셋
       ruby: state.ruby + rubyEarned, prestigeCount: state.prestigeCount + 1, prestigeBonus: newPrestigeBonus,
       currentStone: createRandomStone(0, 0), // 프레스티지 후 초기화
       ...initialStats
@@ -1156,11 +1227,13 @@ const useGameStore = create<GameState>((set, get) => ({
     while (newHp <= 0) {
       const wasKillingBoss = currentStone.isBoss;
 
-      // 파괴 보너스 골드 (보스는 고정 보상, 일반 돌은 HP 기반)
+      // 파괴 보너스 골드 (보스는 HP 기반 × 배율 보상, 일반 돌은 HP 기반)
       if (wasKillingBoss) {
-        bonusGold += BOSS_CONFIG[currentStone.bossType || 'none'].goldReward;
+        // 보스 보상 = 일반 돌 기준 골드 × 보스 goldMultiplier × 메가부스터 goldMultiplier
+        const baseStoneGold = currentStone.maxHp * state.goldPerClick * 0.3;
+        bonusGold += calculateBossGoldReward(currentStone.bossType || 'none', baseStoneGold) * goldMultiplier;
       } else {
-        const stoneBonus = Math.floor(currentStone.maxHp * state.goldPerClick * 0.1);
+        const stoneBonus = Math.floor(currentStone.maxHp * state.goldPerClick * 0.3);
         bonusGold += stoneBonus;
       }
 
@@ -1173,7 +1246,7 @@ const useGameStore = create<GameState>((set, get) => ({
         newStonesUntilBoss--;
 
         if (newStonesUntilBoss <= 0) {
-          currentStone = createBossStone(state.attackPower, newBossesDefeated, state.stonesDestroyed + destroyed);
+          currentStone = createBossStone(state.attackPower, newBossesDefeated, state.stonesDestroyed + destroyed, chessPieceLevel);
           newStonesUntilBoss = 0;
         } else {
           currentStone = createRandomStone(state.stonesDestroyed + destroyed, chessPieceLevel);
@@ -1186,6 +1259,8 @@ const useGameStore = create<GameState>((set, get) => ({
     set(s => ({
       gold: s.gold + totalGoldEarned + bonusGold,
       totalGold: s.totalGold + totalGoldEarned + bonusGold,
+      dailyGoldEarned: s.dailyGoldEarned + totalGoldEarned + bonusGold,
+      dailyStonesDestroyed: s.dailyStonesDestroyed + destroyed,
       currentStone: { ...currentStone, currentHp: Math.max(0, newHp) },
       stonesDestroyed: s.stonesDestroyed + destroyed,
       stonesUntilBoss: newStonesUntilBoss,
@@ -1200,11 +1275,11 @@ const useGameStore = create<GameState>((set, get) => ({
     const newMissions = s.missions.map(m => {
       if (m.claimed) return m;
       let c = 0;
-      // 일일 미션 (daily_ 접두어)
-      if (m.id === 'daily_click') c = s.totalClicks; // 일일이지만 총 클릭으로 체크 (리셋 시 current가 0으로 초기화됨)
-      else if (m.id === 'daily_stone') c = s.stonesDestroyed;
-      else if (m.id === 'daily_enhance') c = s.enhanceAttempts;
-      else if (m.id === 'daily_gold') c = s.totalGold;
+      // 일일 미션 (daily_ 접두어) - 일일 카운터 사용
+      if (m.id === 'daily_click') c = s.dailyClicks;
+      else if (m.id === 'daily_stone') c = s.dailyStonesDestroyed;
+      else if (m.id === 'daily_enhance') c = s.dailyEnhanceAttempts;
+      else if (m.id === 'daily_gold') c = s.dailyGoldEarned;
       // 누적 미션 (total_ 접두어)
       else if (m.id === 'total_click') c = s.totalClicks;
       else if (m.id === 'total_stone') c = s.stonesDestroyed;
@@ -1254,7 +1329,15 @@ const useGameStore = create<GameState>((set, get) => ({
         // 누적 미션은 그대로 유지
         return m;
       });
-      set({ missions: newMissions, dailyMissionDate: today });
+      // 일일 미션 및 일일 카운터 모두 리셋
+      set({
+        missions: newMissions,
+        dailyMissionDate: today,
+        dailyClicks: 0,
+        dailyStonesDestroyed: 0,
+        dailyEnhanceAttempts: 0,
+        dailyGoldEarned: 0
+      });
     }
   },
 
@@ -1573,7 +1656,10 @@ function ExitConfirmModal({ onCancel, onConfirm }: { onCancel: () => void; onCon
 }
 
 // 더보기 메뉴 모달
-function MoreMenuModal({ onClose, onReset }: { onClose: () => void; onReset: () => void }) {
+function MoreMenuModal({ onClose, onReset }: {
+  onClose: () => void;
+  onReset: () => void;
+}) {
   const [bgmMuted, setBgmMuted] = useState(soundManager.isBgmMuted());
   const [sfxMuted, setSfxMuted] = useState(soundManager.isSfxMuted());
   const [bgmVolume, setBgmVolume] = useState(soundManager.getBgmVolume());
@@ -1969,7 +2055,10 @@ function App() {
       {showExitModal && <ExitConfirmModal onCancel={() => setShowExitModal(false)} onConfirm={handleExit} />}
 
       {/* 더보기 메뉴 모달 */}
-      {showMoreMenu && <MoreMenuModal onClose={() => setShowMoreMenu(false)} onReset={() => useGameStore.getState().resetGame()} />}
+      {showMoreMenu && <MoreMenuModal
+        onClose={() => setShowMoreMenu(false)}
+        onReset={() => useGameStore.getState().resetGame()}
+      />}
 
       {/* Top Header */}
       <div className="game-header">
@@ -2018,8 +2107,8 @@ function App() {
           {/* Character */}
           <div className={`character-wrapper ${shake ? 'shake' : ''}`}>
             <div className="weapon-badge">
-              {/* 계급장 아이콘만 표시 */}
-              {(() => {
+              {/* 계급장 아이콘 표시 (임페리얼은 최종 등급이라 계급장 없음) */}
+              {currentPiece.rank !== 'imperial' && (() => {
                 const RankIcon = MILITARY_RANK_ICONS[currentPiece.level];
                 return RankIcon ? <RankIcon className="rank-icon" /> : null;
               })()}
@@ -2299,7 +2388,7 @@ function App() {
                     <div className="list-item-emoji">🚀</div>
                     <div className="list-item-info">
                       <div className="list-item-name">메가 부스터 {isActive && <span className="boost-active-badge">발동중!</span>}</div>
-                      <div className="list-item-desc">1시간 모든 효과 2배 (2시간 쿨타임)</div>
+                      <div className="list-item-desc">30분 모든 효과 2배 (2시간 쿨타임)</div>
                     </div>
                     <button
                       className={`list-item-btn ${canUse ? 'ad-btn can-buy' : isActive ? 'active-btn' : 'cooldown-btn'}`}
