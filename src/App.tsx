@@ -1656,14 +1656,16 @@ function ExitConfirmModal({ onCancel, onConfirm }: { onCancel: () => void; onCon
 }
 
 // 더보기 메뉴 모달
-function MoreMenuModal({ onClose, onReset }: {
+function MoreMenuModal({ onClose, onReset, onShowGuide }: {
   onClose: () => void;
   onReset: () => void;
+  onShowGuide: () => void;
 }) {
   const [bgmMuted, setBgmMuted] = useState(soundManager.isBgmMuted());
   const [sfxMuted, setSfxMuted] = useState(soundManager.isSfxMuted());
   const [bgmVolume, setBgmVolume] = useState(soundManager.getBgmVolume());
   const [sfxVolume, setSfxVolume] = useState(soundManager.getSfxVolume());
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const handleBgmToggle = () => {
     const muted = soundManager.toggleBgmMute();
@@ -1751,10 +1753,29 @@ function MoreMenuModal({ onClose, onReset }: {
 
           {/* 기타 설정 */}
           <div className="other-settings-section">
-            <button className="more-menu-item danger" onPointerUp={() => { soundManager.play('click'); onReset(); onClose(); }}>
-              <span>🔄</span>
-              <span>게임 초기화</span>
+            <button className="more-menu-item" onPointerUp={() => { soundManager.play('click'); onShowGuide(); onClose(); }}>
+              <span>📖</span>
+              <span>게임 가이드</span>
             </button>
+            {!showResetConfirm ? (
+              <button className="more-menu-item danger" onPointerUp={() => { soundManager.play('click'); setShowResetConfirm(true); }}>
+                <span>🔄</span>
+                <span>게임 초기화</span>
+              </button>
+            ) : (
+              <div className="reset-confirm-box">
+                <p>⚠️ 정말 초기화하시겠습니까?</p>
+                <p className="reset-warning">모든 진행 상황이 삭제됩니다!</p>
+                <div className="reset-confirm-buttons">
+                  <button className="confirm-btn cancel" onPointerUp={() => { soundManager.play('click'); setShowResetConfirm(false); }}>
+                    취소
+                  </button>
+                  <button className="confirm-btn confirm" onPointerUp={() => { soundManager.play('click'); onReset(); onClose(); }}>
+                    초기화
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="more-menu-info">
@@ -2058,6 +2079,7 @@ function App() {
       {showMoreMenu && <MoreMenuModal
         onClose={() => setShowMoreMenu(false)}
         onReset={() => useGameStore.getState().resetGame()}
+        onShowGuide={() => setShowGuide(true)}
       />}
 
       {/* Top Header */}

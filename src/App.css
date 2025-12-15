@@ -1719,6 +1719,57 @@ body {
   margin-top: 5px;
 }
 
+/* 초기화 확인 박스 */
+.reset-confirm-box {
+  background: #fff5f5;
+  border: 2px solid #e74c3c;
+  border-radius: 12px;
+  padding: 15px;
+  text-align: center;
+}
+
+.reset-confirm-box p {
+  margin: 0 0 8px 0;
+  font-weight: bold;
+  color: #333;
+}
+
+.reset-confirm-box .reset-warning {
+  font-size: 12px;
+  color: #e74c3c;
+  margin-bottom: 12px;
+}
+
+.reset-confirm-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.reset-confirm-buttons .confirm-btn {
+  flex: 1;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.reset-confirm-buttons .confirm-btn.cancel {
+  background: #e9ecef;
+  color: #495057;
+}
+
+.reset-confirm-buttons .confirm-btn.confirm {
+  background: #e74c3c;
+  color: white;
+}
+
+.reset-confirm-buttons .confirm-btn:active {
+  transform: scale(0.95);
+}
+
 /* ============ 스와이프 방지 ============ */
 .app {
   touch-action: pan-y;

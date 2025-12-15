@@ -57,6 +57,13 @@ const GUIDE_STEPS: GuideStep[] = [
     description: '일정 수 파괴 후\n강력한 보스가 출현!',
     icon: '👹',
     tip: '보스 처치 시 대량 보상!'
+  },
+  {
+    id: 'goal',
+    title: '최종 목표',
+    description: '킹갓제네럴임페리얼 체스킹이 되어\n체스 왕국을 지켜주세요!',
+    icon: '👑',
+    tip: '강화와 진화를 거듭해 최강이 되자!'
   }
 ];
 
