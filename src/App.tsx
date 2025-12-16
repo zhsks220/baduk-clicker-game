@@ -71,6 +71,7 @@ interface ShopItem {
   description: string;
   goldCost: number;
   rubyCost: number;
+  wonPrice?: string;  // 원화 결제 아이템용
   count: number;
 }
 
@@ -136,28 +137,28 @@ const RANK_MULTIPLIERS: Record<ChessPieceRank, number> = {
 // 1사이클(이병→대장): 약 452억, 7사이클: 약 3,164억 (성공시)
 // 폰 기준 강화 테이블 (계급별 배수 적용됨)
 const ENHANCE_RATES = [
-  // 병사 (초반, 파괴 없음) - 성장률 ×2.5
-  { level: 0, name: '이병', successRate: 100, cost: 500, destroyRate: 0 },
-  { level: 1, name: '일병', successRate: 99, cost: 1300, destroyRate: 0 },
-  { level: 2, name: '상병', successRate: 98, cost: 3200, destroyRate: 0 },
-  { level: 3, name: '병장', successRate: 97, cost: 8000, destroyRate: 0 },
-  // 부사관 (하사부터 파괴 시작) - 성장률 ×2.3
-  { level: 4, name: '하사', successRate: 96, cost: 20000, destroyRate: 3 },
-  { level: 5, name: '중사', successRate: 94, cost: 45000, destroyRate: 3.5 },
-  { level: 6, name: '상사', successRate: 92, cost: 100000, destroyRate: 4 },
-  // 위관 - 성장률 ×2.2
-  { level: 7, name: '소위', successRate: 90, cost: 220000, destroyRate: 4.5 },
-  { level: 8, name: '중위', successRate: 88, cost: 480000, destroyRate: 5 },
-  { level: 9, name: '대위', successRate: 85, cost: 1050000, destroyRate: 6 },
-  // 영관 - 성장률 ×1.7 (완만)
-  { level: 10, name: '소령', successRate: 82, cost: 2600000, destroyRate: 7 },
-  { level: 11, name: '중령', successRate: 78, cost: 4400000, destroyRate: 8 },
-  { level: 12, name: '대령', successRate: 74, cost: 7500000, destroyRate: 8.5 },
-  // 장성 - 성장률 ×1.7 (완만)
-  { level: 13, name: '준장', successRate: 69, cost: 12750000, destroyRate: 9 },
-  { level: 14, name: '소장', successRate: 64, cost: 21700000, destroyRate: 9.5 },
-  { level: 15, name: '중장', successRate: 58, cost: 36900000, destroyRate: 10 },
-  { level: 16, name: '대장', successRate: 50, cost: 62700000, destroyRate: 10.5 }, // 대장→승급
+  // 병사 (초반, 파괴 없음) - 비용 2배
+  { level: 0, name: '이병', successRate: 100, cost: 1000, destroyRate: 0 },
+  { level: 1, name: '일병', successRate: 99, cost: 2600, destroyRate: 0 },
+  { level: 2, name: '상병', successRate: 98, cost: 6400, destroyRate: 0 },
+  { level: 3, name: '병장', successRate: 97, cost: 16000, destroyRate: 0 },
+  // 부사관 (하사부터 파괴 시작) - 비용 2배
+  { level: 4, name: '하사', successRate: 96, cost: 40000, destroyRate: 3 },
+  { level: 5, name: '중사', successRate: 94, cost: 90000, destroyRate: 3.5 },
+  { level: 6, name: '상사', successRate: 92, cost: 200000, destroyRate: 4 },
+  // 위관 - 비용 2배
+  { level: 7, name: '소위', successRate: 90, cost: 440000, destroyRate: 4.5 },
+  { level: 8, name: '중위', successRate: 88, cost: 960000, destroyRate: 5 },
+  { level: 9, name: '대위', successRate: 85, cost: 2100000, destroyRate: 6 },
+  // 영관 - 비용 2배
+  { level: 10, name: '소령', successRate: 82, cost: 5200000, destroyRate: 7 },
+  { level: 11, name: '중령', successRate: 78, cost: 8800000, destroyRate: 8 },
+  { level: 12, name: '대령', successRate: 74, cost: 15000000, destroyRate: 8.5 },
+  // 장성 - 비용 2배
+  { level: 13, name: '준장', successRate: 69, cost: 25500000, destroyRate: 9 },
+  { level: 14, name: '소장', successRate: 64, cost: 43400000, destroyRate: 9.5 },
+  { level: 15, name: '중장', successRate: 58, cost: 73800000, destroyRate: 10 },
+  { level: 16, name: '대장', successRate: 50, cost: 125400000, destroyRate: 10.5 }, // 대장→승급
 ];
 
 // 계급별 강화 비용/확률 배수 (폰 기준 1x, 킹 총합 ~1조)
@@ -269,20 +270,28 @@ const INITIAL_AUTO_CLICKERS: AutoClicker[] = [
   },
 ];
 
-// 상점 아이템 (밸런스 조정: 무과금 30일 ~900루비 기준)
-// 일일 미션 15~20루비 + 업적 300루비 + 보스 100루비 = 약 900루비/30일
+// 상점 아이템 (간소화: 6개 핵심 아이템)
+// 강화 보조 3개 + 골드 구매 1개 + 캐시템 2개 (원화 결제)
 const INITIAL_SHOP_ITEMS: ShopItem[] = [
-  // 강화 보조 아이템 (루비) - 가격 3~5배 인하
-  { id: 'protectScroll', name: '파괴방지권', emoji: '🛡️', description: '파괴 발생 시 방어 (1회)', goldCost: 0, rubyCost: 25, count: 0 },
-  { id: 'blessScroll', name: '축복주문서', emoji: '✨', description: '성공 확률 +10%', goldCost: 0, rubyCost: 40, count: 0 },
-  { id: 'luckyScroll', name: '행운주문서', emoji: '🍀', description: '성공 확률 +20%', goldCost: 0, rubyCost: 70, count: 0 },
-  // 메가 부스터 (광고 시청, 2시간 쿨타임)
-  { id: 'megaBoost', name: '메가 부스터', emoji: '🚀', description: '30분 모든 효과 2배 (광고)', goldCost: 0, rubyCost: 0, count: 0 },
-  // VIP 패키지 (프리미엄 캐시) - 가격 인하
-  { id: 'vipPass', name: 'VIP 패스 (30일)', emoji: '👑', description: '골드+50%, 오프라인+100%', goldCost: 0, rubyCost: 800, count: 0 },
-  { id: 'starterPack', name: '스타터 패키지', emoji: '🎁', description: '파괴방지x10, 축복x10, 500만골드', goldCost: 0, rubyCost: 400, count: 0 },
-  { id: 'growthPack', name: '성장 패키지', emoji: '📈', description: '영구 공격력 +20%', goldCost: 0, rubyCost: 500, count: 0 },
+  // 강화 보조 아이템 (다이아)
+  { id: 'protectScroll', name: '파괴방지권', emoji: '🛡️', description: '파괴 발생 시 방어 (1회)', goldCost: 0, rubyCost: 50, count: 0 },
+  { id: 'blessScroll', name: '축복주문서', emoji: '✨', description: '성공 확률 +10%', goldCost: 0, rubyCost: 80, count: 0 },
+  { id: 'luckyScroll', name: '행운주문서', emoji: '🍀', description: '성공 확률 +20%', goldCost: 0, rubyCost: 150, count: 0 },
+  // 골드 구매 (파괴한 돌 수에 비례, 무제한)
+  { id: 'bulkGold', name: '골드 구매', emoji: '💰', description: '파괴한 돌 수에 비례한 골드', goldCost: 0, rubyCost: 450, count: 0 },
+  // 캐시템 (원화 결제, 영구 효과)
+  { id: 'permBoost', name: '영구 부스터', emoji: '🚀', description: '2X 부스트 영구 적용', goldCost: 0, rubyCost: 0, wonPrice: '₩5,900', count: 0 },
+  { id: 'adRemove', name: '광고 제거', emoji: '🚫', description: '모든 광고 제거', goldCost: 0, rubyCost: 0, wonPrice: '₩3,500', count: 0 },
 ];
+
+// 골드 대량 구매 복리 공식 (완만한 버전)
+// 100돌=178만, 500돌=1,780만, 1000돌=3.16억, 2000돌=1000억
+const GOLD_BULK_BASE = 1000000;      // 기본 100만 골드
+const GOLD_BULK_GROWTH = 0.0058;     // 0.58% 복리 성장률
+
+const calculateBulkGold = (stonesDestroyed: number): number => {
+  return Math.floor(GOLD_BULK_BASE * Math.pow(1 + GOLD_BULK_GROWTH, stonesDestroyed));
+};
 
 // 미션 시스템 (일일 반복 + 누적 미션)
 // 일일 미션: 매일 리셋, 하루 15~20루비 획득 가능
@@ -682,6 +691,9 @@ interface GameState {
   dailyStonesDestroyed: number;
   dailyEnhanceAttempts: number;
   dailyGoldEarned: number;
+  // 영구 캐시템 상태
+  permanentBoost: boolean;   // 영구 2X 부스터
+  adsRemoved: boolean;       // 광고 제거
 
   handleClick: () => { gold: number; isCrit: boolean; destroyed: boolean; bonusGold: number };
   upgradestat: (statId: string) => boolean;
@@ -781,14 +793,17 @@ const useGameStore = create<GameState>((set, get) => ({
   dailyStonesDestroyed: 0,
   dailyEnhanceAttempts: 0,
   dailyGoldEarned: 0,
+  // 영구 캐시템 상태
+  permanentBoost: false,
+  adsRemoved: false,
 
   handleClick: () => {
     const state = get();
     const isCrit = Math.random() * 100 < state.critChance;
     let baseGold = state.goldPerClick;
 
-    // 메가 부스터 효과 (골드 2배)
-    if (Date.now() < state.megaBoostEndTime) {
+    // 영구 부스터 또는 메가 부스터 효과 (골드 2배)
+    if (state.permanentBoost || Date.now() < state.megaBoostEndTime) {
       baseGold *= 2;
     }
 
@@ -1063,8 +1078,36 @@ const useGameStore = create<GameState>((set, get) => ({
     const item = state.shopItems[itemIndex];
     if ((item.goldCost > 0 && state.gold < item.goldCost) || (item.rubyCost > 0 && state.ruby < item.rubyCost)) return false;
 
+    // 영구 아이템 중복 구매 방지
+    if (itemId === 'permBoost' && state.permanentBoost) return false;
+    if (itemId === 'adRemove' && state.adsRemoved) return false;
+
     const newItems = [...state.shopItems];
     newItems[itemIndex] = { ...item, count: item.count + 1 };
+
+    // 특수 아이템 처리
+    if (itemId === 'permBoost') {
+      // 영구 부스터: 영구적으로 2X 부스트
+      set({ ruby: state.ruby - item.rubyCost, shopItems: newItems, permanentBoost: true });
+      return true;
+    }
+    if (itemId === 'adRemove') {
+      // 광고 제거
+      set({ ruby: state.ruby - item.rubyCost, shopItems: newItems, adsRemoved: true });
+      return true;
+    }
+    if (itemId === 'bulkGold') {
+      // 골드 대량 구매: 파괴한 돌 수에 비례한 골드 획득
+      const bulkGoldAmount = calculateBulkGold(state.stonesDestroyed);
+      set({
+        ruby: state.ruby - item.rubyCost,
+        gold: state.gold + bulkGoldAmount,
+        totalGold: state.totalGold + bulkGoldAmount,
+        shopItems: newItems,
+      });
+      return true;
+    }
+
     set({ gold: state.gold - item.goldCost, ruby: state.ruby - item.rubyCost, shopItems: newItems });
     return true;
   },
@@ -1196,10 +1239,10 @@ const useGameStore = create<GameState>((set, get) => ({
     const state = get();
     if (state.autoClicksPerSec === 0) return;
 
-    // 메가 부스터 효과 (골드 2배, 자동클릭 2배)
-    const isMegaBoostActive = Date.now() < state.megaBoostEndTime;
-    const goldMultiplier = isMegaBoostActive ? 2 : 1;
-    const autoMultiplier = isMegaBoostActive ? 2 : 1;
+    // 영구 부스터 또는 메가 부스터 효과 (골드 2배 + 자동클릭 2배)
+    const isBoosted = state.permanentBoost || Date.now() < state.megaBoostEndTime;
+    const goldMultiplier = isBoosted ? 2 : 1;
+    const autoMultiplier = isBoosted ? 2 : 1;
 
     const autoClicks = state.autoClicksPerSec * autoMultiplier;
 
@@ -2211,13 +2254,62 @@ function App() {
             {autoClicksPerSec > 0 && <span className="stat-badge">🤖 {autoClicksPerSec}/s</span>}
           </div>
         </div>
-        <div className="nav-buttons">
-          <button className="nav-btn more" onPointerUp={() => { soundManager.play('click'); setShowMoreMenu(true); }}>
-            <span>⋯</span>
-          </button>
-          <button className="nav-btn close" onPointerUp={() => { soundManager.play('click'); setShowExitModal(true); }}>
-            <span>✕</span>
-          </button>
+        <div className="header-buttons-wrapper">
+          <div className="nav-buttons">
+            <button className="nav-btn more" onPointerUp={() => { soundManager.play('click'); setShowMoreMenu(true); }}>
+              <span>⋯</span>
+            </button>
+            <button className="nav-btn close" onPointerUp={() => { soundManager.play('click'); setShowExitModal(true); }}>
+              <span>✕</span>
+            </button>
+          </div>
+          {/* 2X 부스트 버튼 (광고 수익용) - X 버튼 아래 */}
+          {(() => {
+            const state = useGameStore.getState();
+            const now = Date.now();
+            const isPermanent = state.permanentBoost;  // 영구 부스터 보유 여부
+            const isActive = now < state.megaBoostEndTime;
+            const isCooldown = now < state.megaBoostCooldownEnd && !isActive;
+
+            // 남은 시간 계산
+            let timeText = '';
+            if (isActive && !isPermanent) {
+              const remainingSec = Math.ceil((state.megaBoostEndTime - now) / 1000);
+              const mins = Math.floor(remainingSec / 60);
+              const secs = remainingSec % 60;
+              timeText = `${mins}:${secs.toString().padStart(2, '0')}`;
+            } else if (isCooldown && !isPermanent) {
+              const remainingMin = Math.ceil((state.megaBoostCooldownEnd - now) / 60000);
+              const hours = Math.floor(remainingMin / 60);
+              const mins = remainingMin % 60;
+              timeText = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+            }
+
+            return (
+              <button
+                className={`boost-btn-compact ${(isPermanent || isActive) ? 'active permanent' : ''} ${isCooldown && !isPermanent ? 'cooldown' : ''}`}
+                onPointerUp={() => {
+                  if (isPermanent) {
+                    vibrate(10);
+                    return; // 영구 부스터는 항상 활성화 상태
+                  }
+                  if (isActive || isCooldown) {
+                    vibrate(10);
+                    return;
+                  }
+                  soundManager.play('success');
+                  const result = useGameStore.getState().useMegaBoost();
+                  if (result.success) {
+                    vibrate([50, 50, 50]);
+                  }
+                }}
+              >
+                <span className="boost-text">
+                  {isPermanent ? '🚀 영구 2X' : isActive ? `🚀 ${timeText}` : isCooldown ? `⏳ ${timeText}` : '부스트 2X 🚀'}
+                </span>
+              </button>
+            );
+          })()}
         </div>
       </div>
 
@@ -2528,88 +2620,93 @@ function App() {
           {/* 상점 탭 */}
           {activeTab === 'shop' && (
             <div className="tab-panel scroll-panel">
-              {/* 메가 부스터 (광고 시청) */}
-              {(() => {
+              {/* 🛒 상점 아이템 섹션 */}
+              <div className="shop-section">
+                <div className="shop-section-title">🛒 아이템 구매</div>
+              </div>
+              {useGameStore.getState().shopItems.map(item => {
                 const state = useGameStore.getState();
-                const now = Date.now();
-                const isActive = now < state.megaBoostEndTime;
-                const isCooldown = now < state.megaBoostCooldownEnd;
-                const canUse = !isActive && !isCooldown;
+                const isPermanentOwned = (item.id === 'permBoost' && state.permanentBoost) ||
+                                         (item.id === 'adRemove' && state.adsRemoved);
+                const canBuy = !isPermanentOwned && (item.wonPrice || (item.goldCost > 0 && gold >= item.goldCost) || (item.rubyCost > 0 && ruby >= item.rubyCost));
 
-                let statusText = '📺 광고보기';
-                if (isActive) {
-                  const remaining = Math.ceil((state.megaBoostEndTime - now) / 60000);
-                  statusText = `⚡ ${remaining}분 남음`;
-                } else if (isCooldown) {
-                  const remainingMin = Math.ceil((state.megaBoostCooldownEnd - now) / 60000);
-                  const hours = Math.floor(remainingMin / 60);
-                  const mins = remainingMin % 60;
-                  statusText = `⏳ ${hours}시${mins}분`;
-                }
+                // 골드 대량 구매 금액 계산
+                const bulkGoldAmount = item.id === 'bulkGold' ? calculateBulkGold(state.stonesDestroyed) : 0;
 
                 return (
-                  <div className={`list-item mega-boost ${isActive ? 'active' : ''}`}>
-                    <div className="list-item-emoji">🚀</div>
-                    <div className="list-item-info">
-                      <div className="list-item-name">메가 부스터 {isActive && <span className="boost-active-badge">발동중!</span>}</div>
-                      <div className="list-item-desc">30분 모든 효과 2배 (2시간 쿨타임)</div>
-                    </div>
-                    <button
-                      className={`list-item-btn ${canUse ? 'ad-btn can-buy' : isActive ? 'active-btn' : 'cooldown-btn'}`}
-                      onPointerUp={() => {
-                        if (!canUse) {
-                          vibrate(10);
-                          return;
-                        }
-                        // 광고 시청 후 부스터 발동 (실제 광고 연동 전까지는 바로 발동)
-                        const result = useGameStore.getState().useMegaBoost();
-                        if (result.success) {
-                          vibrate([50, 50, 50]);
-                          soundManager.play('success');
-                          setRewardFx({ id: Date.now(), text: result.message });
-                          setTimeout(() => setRewardFx(null), 2000);
-                        } else {
-                          vibrate(10);
-                          setRewardFx({ id: Date.now(), text: result.message });
-                          setTimeout(() => setRewardFx(null), 1500);
-                        }
-                      }}
-                    >
-                      {statusText}
-                    </button>
-                  </div>
-                );
-              })()}
-
-              {/* 일반 상점 아이템 (메가 부스터 제외) */}
-              {useGameStore.getState().shopItems.filter(item => item.id !== 'megaBoost').map(item => {
-                const canBuy = (item.goldCost > 0 && gold >= item.goldCost) || (item.rubyCost > 0 && ruby >= item.rubyCost);
-                return (
-                  <div key={item.id} className="list-item">
+                  <div key={item.id} className={`list-item ${isPermanentOwned ? 'owned' : ''}`}>
                     <div className="list-item-emoji">{item.emoji}</div>
                     <div className="list-item-info">
-                      <div className="list-item-name">{item.name} <span className="count-badge">x{item.count}</span></div>
-                      <div className="list-item-desc">{item.description}</div>
+                      <div className="list-item-name">
+                        {item.name}
+                        {!isPermanentOwned && item.id !== 'permBoost' && item.id !== 'adRemove' && item.id !== 'bulkGold' && (
+                          <span className="count-badge">x{item.count}</span>
+                        )}
+                        {isPermanentOwned && <span className="owned-badge">✓ 보유중</span>}
+                      </div>
+                      <div className="list-item-desc">
+                        {item.id === 'bulkGold' ? `💰 ${formatNumber(bulkGoldAmount)} 골드 획득` : item.description}
+                      </div>
                     </div>
                     <button
-                      className={`list-item-btn blue ${canBuy ? 'can-buy' : ''}`}
+                      className={`list-item-btn blue ${canBuy ? 'can-buy' : ''} ${isPermanentOwned ? 'disabled' : ''}`}
+                      disabled={isPermanentOwned}
                       onPointerUp={() => {
+                        if (isPermanentOwned) return;
+                        // 원화 결제 아이템
+                        if (item.wonPrice) {
+                          vibrate(10);
+                          alert(`💳 ${item.name} 구매\n가격: ${item.wonPrice}\n\n(인앱결제 연동 예정)`);
+                          return;
+                        }
                         const success = useGameStore.getState().buyShopItem(item.id);
                         if (success) {
                           vibrate([30, 30]);
                           soundManager.play('success');
-                          setRewardFx({ id: Date.now(), text: `✅ ${item.name} 구매 완료!` });
+                          const msg = item.id === 'bulkGold'
+                            ? `💰 ${formatNumber(bulkGoldAmount)} 골드 획득!`
+                            : `✅ ${item.name} 구매 완료!`;
+                          setRewardFx({ id: Date.now(), text: msg });
                           setTimeout(() => setRewardFx(null), 1500);
                         } else {
                           vibrate(10);
                         }
                       }}
                     >
-                      {item.rubyCost > 0 ? `💎 ${item.rubyCost}` : `🪙 ${formatNumber(item.goldCost)}`}
+                      {isPermanentOwned ? '보유중' : (item.wonPrice ? item.wonPrice : (item.rubyCost > 0 ? `💎 ${item.rubyCost}` : `🪙 ${formatNumber(item.goldCost)}`))}
                     </button>
                   </div>
                 );
               })}
+
+              {/* 💎 다이아 충전 섹션 (인앱결제) - 하단 배치 */}
+              <div className="shop-section diamond-section">
+                <div className="shop-section-title">💎 다이아 충전</div>
+                <div className="diamond-packages">
+                  {[
+                    { id: 'diamond_100', amount: 100, bonus: 0, price: '₩1,200', popular: false },
+                    { id: 'diamond_320', amount: 300, bonus: 20, price: '₩3,500', popular: false },
+                    { id: 'diamond_550', amount: 500, bonus: 50, price: '₩5,900', popular: true },
+                    { id: 'diamond_1000', amount: 900, bonus: 100, price: '₩11,000', popular: false },
+                    { id: 'diamond_2000', amount: 1800, bonus: 200, price: '₩22,000', popular: false },
+                  ].map(pkg => (
+                    <button
+                      key={pkg.id}
+                      className={`diamond-package ${pkg.popular ? 'popular' : ''}`}
+                      onPointerUp={() => {
+                        vibrate(10);
+                        // TODO: 실제 인앱결제 연동
+                        alert(`💎 ${pkg.amount}${pkg.bonus > 0 ? ` +${pkg.bonus}` : ''} 다이아 구매\n가격: ${pkg.price}\n\n(인앱결제 연동 예정)`);
+                      }}
+                    >
+                      {pkg.popular && <span className="popular-badge">인기!</span>}
+                      <span className="diamond-amount">💎 {pkg.amount}</span>
+                      {pkg.bonus > 0 && <span className="diamond-bonus">+{pkg.bonus} 보너스</span>}
+                      <span className="diamond-price">{pkg.price}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 

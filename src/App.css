@@ -1365,6 +1365,13 @@ body {
 }
 
 /* ============ TODO 1: 내비게이션 버튼 ============ */
+.header-buttons-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
 .nav-buttons {
   display: flex;
   gap: 8px;
@@ -1399,6 +1406,64 @@ body {
   background: rgba(255, 107, 107, 0.95);
   color: white;
   box-shadow: 0 4px 0 #c44040;
+}
+
+/* 2X 부스트 컴팩트 버튼 (nav-buttons 너비에 맞춤) */
+.boost-btn-compact {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 104px; /* nav-buttons 2개 + gap 크기 (48+48+8) */
+  padding: 8px 0;
+  margin-top: 4px;
+  background: linear-gradient(135deg, #ff9500, #ff6b00);
+  border: none;
+  border-radius: 12px;
+  color: white;
+  font-family: var(--font-family);
+  font-size: 0.85rem;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #cc5500, 0 0 8px rgba(255, 149, 0, 0.4);
+  animation: boostPulse 2s ease-in-out infinite;
+  transition: transform 0.1s;
+}
+
+.boost-btn-compact:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #cc5500;
+}
+
+.boost-btn-compact .boost-icon {
+  font-size: 1rem;
+}
+
+.boost-btn-compact .boost-text {
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.boost-btn-compact.active {
+  background: linear-gradient(135deg, #00d4aa, #00b894);
+  box-shadow: 0 3px 0 #009670, 0 0 12px rgba(0, 212, 170, 0.6);
+  animation: boostActive 0.8s ease-in-out infinite;
+}
+
+.boost-btn-compact.cooldown {
+  background: linear-gradient(135deg, #636e72, #535c60);
+  box-shadow: 0 3px 0 #3d4244;
+  animation: none;
+}
+
+@keyframes boostPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+
+@keyframes boostActive {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
 }
 
 /* ============ TODO 5: 풀스크린 대응 ============ */
@@ -2526,6 +2591,93 @@ body {
   font-size: 1.1rem;
 }
 
+/* 상점 섹션 */
+.shop-section {
+  margin-bottom: 12px;
+}
+
+.shop-section-title {
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: #2f3542;
+  margin-bottom: 8px;
+  padding-left: 4px;
+}
+
+/* 다이아 충전 섹션 (하단 배치) */
+.diamond-section {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px dashed #e0e0e0;
+}
+
+/* 다이아 충전 패키지 */
+.diamond-packages {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.diamond-package {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 10px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border: none;
+  border-radius: 12px;
+  color: white;
+  font-family: var(--font-family);
+  cursor: pointer;
+  box-shadow: 0 3px 0 #4c3d80, 0 4px 15px rgba(102, 126, 234, 0.3);
+  transition: transform 0.1s;
+}
+
+.diamond-package:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #4c3d80;
+}
+
+.diamond-package.popular {
+  background: linear-gradient(135deg, #f093fb, #f5576c);
+  box-shadow: 0 3px 0 #c44068, 0 4px 15px rgba(245, 87, 108, 0.4);
+}
+
+.diamond-package .popular-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #ff9f43;
+  color: white;
+  font-size: 0.6rem;
+  font-weight: bold;
+  padding: 3px 8px;
+  border-radius: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.diamond-package .diamond-amount {
+  font-size: 1.1rem;
+  font-weight: bold;
+  margin-bottom: 2px;
+}
+
+.diamond-package .diamond-bonus {
+  font-size: 0.7rem;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 8px;
+  border-radius: 8px;
+  margin-bottom: 4px;
+}
+
+.diamond-package .diamond-price {
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
 /* 리스트 아이템 (성장, 동료, 상점 공통) */
 .list-item {
   display: flex;
@@ -2568,6 +2720,25 @@ body {
   font-size: 0.75rem;
   color: #e67e22;
   font-weight: bold;
+}
+
+.owned-badge {
+  font-size: 0.75rem;
+  color: #2ecc71;
+  font-weight: bold;
+  margin-left: 6px;
+}
+
+.list-item.owned {
+  opacity: 0.8;
+  background: rgba(46, 204, 113, 0.1);
+}
+
+.list-item-btn.disabled {
+  background: #7f8c8d !important;
+  box-shadow: none !important;
+  cursor: default;
+  opacity: 0.7;
 }
 
 .list-item-btn {
