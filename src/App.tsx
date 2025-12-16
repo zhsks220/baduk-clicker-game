@@ -217,7 +217,7 @@ const INITIAL_AUTO_CLICKERS: AutoClicker[] = [
     ]
   },
   {
-    id: 'pickaxe', name: '곡괭이', emoji: '⛏️', clicksPerSec: 1, baseCost: 1800, count: 0,
+    id: 'pickaxe', name: '곡괭이', emoji: '⛏️', clicksPerSec: 1, baseCost: 7500, count: 0,
     unlockRequirement: { rank: 'pawn', level: 4 },
     purchaseTiers: [
       { cap: 10, requirement: { rank: 'pawn', level: 4 } },
@@ -226,7 +226,7 @@ const INITIAL_AUTO_CLICKERS: AutoClicker[] = [
     ]
   },
   {
-    id: 'mace', name: '철퇴', emoji: '🔨', clicksPerSec: 3, baseCost: 9000, count: 0,
+    id: 'mace', name: '철퇴', emoji: '🔨', clicksPerSec: 3, baseCost: 160000, count: 0,
     unlockRequirement: { rank: 'knight', level: 0 },
     purchaseTiers: [
       { cap: 10, requirement: { rank: 'knight', level: 0 } },
@@ -235,7 +235,7 @@ const INITIAL_AUTO_CLICKERS: AutoClicker[] = [
     ]
   },
   {
-    id: 'drill', name: '드릴', emoji: '⚙️', clicksPerSec: 8, baseCost: 48000, count: 0,
+    id: 'drill', name: '드릴', emoji: '⚙️', clicksPerSec: 8, baseCost: 3600000, count: 0,
     unlockRequirement: { rank: 'bishop', level: 0 },
     purchaseTiers: [
       { cap: 10, requirement: { rank: 'bishop', level: 0 } },
@@ -244,7 +244,7 @@ const INITIAL_AUTO_CLICKERS: AutoClicker[] = [
     ]
   },
   {
-    id: 'dynamite', name: '다이너마이트', emoji: '🧨', clicksPerSec: 20, baseCost: 240000, count: 0,
+    id: 'dynamite', name: '다이너마이트', emoji: '🧨', clicksPerSec: 20, baseCost: 75000000, count: 0,
     unlockRequirement: { rank: 'rook', level: 0 },
     purchaseTiers: [
       { cap: 10, requirement: { rank: 'rook', level: 0 } },
@@ -253,7 +253,7 @@ const INITIAL_AUTO_CLICKERS: AutoClicker[] = [
     ]
   },
   {
-    id: 'laser', name: '레이저 빔', emoji: '🔴', clicksPerSec: 50, baseCost: 1200000, count: 0,
+    id: 'laser', name: '레이저 빔', emoji: '🔴', clicksPerSec: 50, baseCost: 1600000000, count: 0,
     unlockRequirement: { rank: 'queen', level: 0 },
     purchaseTiers: [
       { cap: 10, requirement: { rank: 'queen', level: 0 } },
@@ -262,7 +262,7 @@ const INITIAL_AUTO_CLICKERS: AutoClicker[] = [
     ]
   },
   {
-    id: 'blackhole', name: '블랙홀', emoji: '🌀', clicksPerSec: 120, baseCost: 9000000, count: 0,
+    id: 'blackhole', name: '블랙홀', emoji: '🌀', clicksPerSec: 120, baseCost: 50000000000, count: 0,
     unlockRequirement: { rank: 'king', level: 0 },
     purchaseTiers: [
       { cap: 9999, requirement: { rank: 'king', level: 0 } },
@@ -582,8 +582,8 @@ const getUpgradeCost = (upgrade: UpgradeStat): number => {
 };
 
 const getAutoClickerCost = (clicker: AutoClicker): number => {
-  // 도구 중복 구매 시 가격 급등 (50%씩 증가)
-  return Math.floor(clicker.baseCost * Math.pow(1.50, clicker.count));
+  // 도구 중복 구매 시 가격 증가 (30%씩 증가)
+  return Math.floor(clicker.baseCost * Math.pow(1.30, clicker.count));
 };
 
 // 도구 구매 가능 상태 확인 (UI용)
