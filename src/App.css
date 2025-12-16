@@ -1442,69 +1442,470 @@ body {
   min-height: 120px;
 }
 
-/* ============ 동료 자동 공격 이펙트 ============ */
-.auto-attack-fx {
+/* ============ 도구 공격 이펙트 시스템 ============ */
+.tool-fx {
   position: absolute;
-  font-size: 1.8rem;
   pointer-events: none;
   z-index: 50;
-  animation: autoAttackFly 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  transform: translate(-50%, -50%);
 }
 
-@keyframes autoAttackFly {
-  0% {
-    transform: translateX(0) translateY(0) scale(1) rotate(0deg);
-    opacity: 0;
-  }
-
-  15% {
-    opacity: 1;
-    transform: translateX(20px) translateY(-10px) scale(1.2) rotate(-10deg);
-  }
-
-  50% {
-    opacity: 1;
-    transform: translateX(80px) translateY(5px) scale(1.1) rotate(5deg);
-  }
-
-  85% {
-    opacity: 0.8;
-    transform: translateX(140px) translateY(0) scale(0.9) rotate(15deg);
-  }
-
-  100% {
-    opacity: 0;
-    transform: translateX(160px) translateY(10px) scale(0.5) rotate(20deg);
-  }
+.tool-emoji {
+  font-size: 2rem;
+  display: block;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
 }
 
-/* 공격 히트 이펙트 (바둑돌에 닿을 때) */
-.auto-attack-fx::after {
-  content: '💥';
+/* ===== 나무 망치 (hammer) - 위에서 내려찍기 ===== */
+.tool-fx-hammer {
+  animation: hammerSmash 0.7s cubic-bezier(0.5, 0, 0.7, 1) forwards;
+}
+
+.tool-fx-hammer .tool-emoji {
+  animation: hammerSwing 0.7s ease-out forwards;
+}
+
+@keyframes hammerSmash {
+  0% { transform: translate(-50%, -200%); opacity: 0; }
+  20% { transform: translate(-50%, -150%); opacity: 1; }
+  50% { transform: translate(-50%, 0%); }
+  60% { transform: translate(-50%, -10%); }
+  100% { transform: translate(-50%, 0%); opacity: 0; }
+}
+
+@keyframes hammerSwing {
+  0% { transform: rotate(-30deg); }
+  50% { transform: rotate(15deg); }
+  60% { transform: rotate(-5deg) scale(1.2); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+
+.tool-particle-hammer {
   position: absolute;
-  right: -30px;
-  top: 50%;
-  transform: translateY(-50%) scale(0);
-  font-size: 1.2rem;
-  animation: hitBurst 0.3s ease-out 0.5s forwards;
+  width: 8px;
+  height: 8px;
+  background: linear-gradient(135deg, #d4a574 0%, #8b6914 100%);
+  border-radius: 50%;
+  animation: dustFloat 0.6s ease-out 0.35s forwards;
+  opacity: 0;
 }
 
-@keyframes hitBurst {
-  0% {
-    transform: translateY(-50%) scale(0);
-    opacity: 0;
-  }
+@keyframes dustFloat {
+  0% { transform: translate(0, 0) scale(1); opacity: 0.8; }
+  100% { transform: translate(var(--px), calc(var(--py) + 30px)) scale(0); opacity: 0; }
+}
 
-  50% {
-    transform: translateY(-50%) scale(1.5);
+.tool-hit-hammer {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  font-size: 1.5rem;
+  animation: hitPow 0.3s ease-out 0.35s forwards;
+}
+
+.tool-hit-hammer::after {
+  content: '💨';
+}
+
+/* ===== 곡괭이 (pickaxe) - 측면에서 쪼기 ===== */
+.tool-fx-pickaxe {
+  animation: pickaxeStrike 0.7s ease-out forwards;
+}
+
+.tool-fx-pickaxe .tool-emoji {
+  animation: pickaxeSwing 0.7s ease-out forwards;
+}
+
+@keyframes pickaxeStrike {
+  0% { transform: translate(-200%, -50%); opacity: 0; }
+  30% { transform: translate(-100%, -50%); opacity: 1; }
+  50% { transform: translate(0%, -50%); }
+  60% { transform: translate(-20%, -50%); }
+  100% { transform: translate(0%, -50%); opacity: 0; }
+}
+
+@keyframes pickaxeSwing {
+  0% { transform: rotate(-45deg); }
+  50% { transform: rotate(30deg); }
+  60% { transform: rotate(-10deg) scale(1.1); }
+  100% { transform: rotate(0deg); }
+}
+
+.tool-particle-pickaxe {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: linear-gradient(135deg, #888 0%, #555 100%);
+  border-radius: 2px;
+  animation: rockChip 0.5s ease-out 0.3s forwards;
+  opacity: 0;
+}
+
+@keyframes rockChip {
+  0% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 1; }
+  100% { transform: translate(var(--px), var(--py)) rotate(var(--angle)) scale(0); opacity: 0; }
+}
+
+.tool-hit-pickaxe::after {
+  content: '🪨';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  font-size: 1rem;
+  animation: chipBurst 0.4s ease-out 0.3s forwards;
+}
+
+@keyframes chipBurst {
+  0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+  50% { transform: translate(-50%, -50%) scale(1.3); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+}
+
+/* ===== 철퇴 (mace) - 강하게 내리치기 ===== */
+.tool-fx-mace {
+  animation: maceSlam 0.7s cubic-bezier(0.6, 0, 0.8, 1) forwards;
+}
+
+.tool-fx-mace .tool-emoji {
+  font-size: 2.4rem;
+  animation: maceSwing 0.7s ease-out forwards;
+}
+
+@keyframes maceSlam {
+  0% { transform: translate(-50%, -300%); opacity: 0; }
+  15% { transform: translate(-50%, -200%); opacity: 1; }
+  45% { transform: translate(-50%, 0%); }
+  55% { transform: translate(-50%, -15%); }
+  70% { transform: translate(-50%, 0%); }
+  100% { transform: translate(-50%, 0%); opacity: 0; }
+}
+
+@keyframes maceSwing {
+  0% { transform: rotate(-60deg) scale(0.8); }
+  45% { transform: rotate(20deg) scale(1.3); }
+  55% { transform: rotate(-10deg) scale(1.1); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+
+.tool-particle-mace {
+  position: absolute;
+  width: 4px;
+  height: 12px;
+  background: linear-gradient(180deg, rgba(100,100,100,0.8) 0%, transparent 100%);
+  animation: crackLine 0.5s ease-out 0.35s forwards;
+  opacity: 0;
+  transform-origin: top center;
+}
+
+@keyframes crackLine {
+  0% { transform: translate(0, 0) rotate(var(--angle)) scaleY(0); opacity: 1; }
+  50% { transform: translate(var(--px), var(--py)) rotate(var(--angle)) scaleY(1); opacity: 0.8; }
+  100% { transform: translate(var(--px), var(--py)) rotate(var(--angle)) scaleY(0.5); opacity: 0; }
+}
+
+.tool-hit-mace {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 40px;
+  height: 40px;
+  animation: crackBurst 0.4s ease-out 0.35s forwards;
+  opacity: 0;
+}
+
+.tool-hit-mace::after {
+  content: '💥';
+  font-size: 2rem;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+@keyframes crackBurst {
+  0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+  40% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+}
+
+/* ===== 드릴 (drill) - 바둑돌 위에서 회전 ===== */
+.tool-fx-drill {
+  animation: drillAppear 1.2s ease-out forwards;
+}
+
+.tool-fx-drill .tool-emoji {
+  font-size: 2.2rem;
+  animation: drillSpin 1.2s linear forwards;
+}
+
+@keyframes drillAppear {
+  0% { transform: translate(-50%, -100%); opacity: 0; }
+  15% { transform: translate(-50%, -50%); opacity: 1; }
+  85% { transform: translate(-50%, -50%); opacity: 1; }
+  100% { transform: translate(-50%, -50%); opacity: 0; }
+}
+
+@keyframes drillSpin {
+  0% { transform: rotate(0deg); }
+  15% { transform: rotate(180deg); }
+  100% { transform: rotate(1440deg); }
+}
+
+.tool-particle-drill {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  background: #ffd700;
+  border-radius: 50%;
+  box-shadow: 0 0 4px #ff6600;
+  animation: sparkFly 0.4s ease-out forwards;
+  animation-delay: calc(0.2s + var(--angle) * 0.01s);
+  opacity: 0;
+}
+
+@keyframes sparkFly {
+  0% { transform: translate(0, 0) scale(1); opacity: 1; }
+  100% { transform: translate(var(--px), var(--py)) scale(0); opacity: 0; }
+}
+
+.tool-hit-drill {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.tool-hit-drill::after {
+  content: '✨';
+  font-size: 1.2rem;
+  animation: sparkPulse 0.3s ease-in-out infinite;
+}
+
+@keyframes sparkPulse {
+  0%, 100% { opacity: 0.5; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* ===== 다이너마이트 (dynamite) - 설치 후 폭발 ===== */
+.tool-fx-dynamite {
+  animation: dynamiteDrop 1s ease-out forwards;
+}
+
+.tool-fx-dynamite .tool-emoji {
+  font-size: 2rem;
+  animation: dynamiteShake 1s ease-out forwards;
+}
+
+@keyframes dynamiteDrop {
+  0% { transform: translate(-50%, -100%); opacity: 0; }
+  20% { transform: translate(-50%, -50%); opacity: 1; }
+  70% { transform: translate(-50%, -50%); opacity: 1; }
+  75% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+}
+
+@keyframes dynamiteShake {
+  0%, 20% { transform: rotate(0deg); }
+  25% { transform: rotate(-5deg); }
+  30% { transform: rotate(5deg); }
+  35% { transform: rotate(-5deg); }
+  40% { transform: rotate(5deg); }
+  45% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
+  55% { transform: rotate(-3deg); }
+  60% { transform: rotate(3deg); }
+  65% { transform: rotate(0deg); }
+  75% { transform: scale(0); }
+  100% { transform: scale(0); }
+}
+
+.tool-particle-dynamite {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: radial-gradient(circle, #ff6600 0%, #ff0000 50%, transparent 70%);
+  border-radius: 50%;
+  animation: explosionParticle 0.5s ease-out 0.7s forwards;
+  opacity: 0;
+}
+
+@keyframes explosionParticle {
+  0% { transform: translate(0, 0) scale(1); opacity: 1; }
+  100% { transform: translate(var(--px), var(--py)) scale(0); opacity: 0; }
+}
+
+.tool-hit-dynamite {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: explosionBurst 0.4s ease-out 0.7s forwards;
+  opacity: 0;
+}
+
+.tool-hit-dynamite::after {
+  content: '🔥';
+  font-size: 3rem;
+}
+
+@keyframes explosionBurst {
+  0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+  30% { transform: translate(-50%, -50%) scale(2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
+}
+
+/* ===== 레이저 빔 (laser) - 위에서 빔 발사 ===== */
+.tool-fx-laser {
+  animation: laserCharge 0.9s ease-out forwards;
+}
+
+.tool-fx-laser .tool-emoji {
+  font-size: 1.8rem;
+  animation: laserGlow 0.9s ease-out forwards;
+}
+
+@keyframes laserCharge {
+  0% { transform: translate(-50%, 0); opacity: 0; }
+  20% { transform: translate(-50%, 0); opacity: 1; }
+  30% { transform: translate(-50%, 0); opacity: 1; }
+  100% { transform: translate(-50%, 200%); opacity: 0; }
+}
+
+@keyframes laserGlow {
+  0%, 20% { filter: brightness(1); }
+  30% { filter: brightness(2) drop-shadow(0 0 10px #ff0000); }
+  50% { filter: brightness(3) drop-shadow(0 0 20px #ff0000); }
+  100% { filter: brightness(1); }
+}
+
+.tool-particle-laser {
+  position: absolute;
+  width: 4px;
+  height: 60px;
+  background: linear-gradient(180deg,
+    rgba(255,0,0,0) 0%,
+    rgba(255,0,0,0.8) 20%,
+    rgba(255,100,100,1) 50%,
+    rgba(255,0,0,0.8) 80%,
+    rgba(255,0,0,0) 100%);
+  box-shadow: 0 0 10px #ff0000, 0 0 20px #ff3300;
+  animation: laserBeam 0.6s ease-out 0.25s forwards;
+  opacity: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+@keyframes laserBeam {
+  0% { opacity: 0; height: 0; }
+  30% { opacity: 1; height: 80px; }
+  70% { opacity: 1; height: 80px; }
+  100% { opacity: 0; height: 100px; }
+}
+
+.tool-hit-laser {
+  position: absolute;
+  top: 80%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: laserHit 0.4s ease-out 0.5s forwards;
+  opacity: 0;
+}
+
+.tool-hit-laser::after {
+  content: '🔴';
+  font-size: 2rem;
+  filter: drop-shadow(0 0 15px #ff0000);
+}
+
+@keyframes laserHit {
+  0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+  50% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+}
+
+/* ===== 블랙홀 (blackhole) - 소용돌이 흡수 ===== */
+.tool-fx-blackhole {
+  animation: blackholeAppear 1.5s ease-out forwards;
+}
+
+.tool-fx-blackhole .tool-emoji {
+  font-size: 3rem;
+  animation: blackholeSpin 1.5s linear forwards;
+}
+
+@keyframes blackholeAppear {
+  0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+  20% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  80% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+}
+
+@keyframes blackholeSpin {
+  0% { transform: rotate(0deg) scale(0.5); }
+  20% { transform: rotate(180deg) scale(1); }
+  80% { transform: rotate(900deg) scale(1.2); }
+  100% { transform: rotate(1080deg) scale(0); }
+}
+
+.tool-particle-blackhole {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: radial-gradient(circle, #9933ff 0%, #6600cc 50%, transparent 70%);
+  border-radius: 50%;
+  box-shadow: 0 0 6px #9933ff;
+  animation: blackholeSuck 1.2s ease-in 0.2s forwards;
+  opacity: 0;
+  left: 50%;
+  top: 50%;
+}
+
+@keyframes blackholeSuck {
+  0% {
+    transform: translate(var(--px), var(--py)) scale(1) rotate(0deg);
     opacity: 1;
   }
-
+  70% {
+    transform: translate(calc(var(--px) * 0.3), calc(var(--py) * 0.3)) scale(0.8) rotate(360deg);
+    opacity: 0.8;
+  }
   100% {
-    transform: translateY(-50%) scale(1);
+    transform: translate(0, 0) scale(0) rotate(720deg);
     opacity: 0;
   }
+}
+
+.tool-hit-blackhole {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: radial-gradient(circle,
+    rgba(0,0,0,0.9) 0%,
+    rgba(102,0,204,0.5) 40%,
+    rgba(153,51,255,0.3) 60%,
+    transparent 70%);
+  animation: blackholeVortex 1.5s ease-out forwards;
+  opacity: 0;
+}
+
+@keyframes blackholeVortex {
+  0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+  20% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+  80% { transform: translate(-50%, -50%) scale(1.3); opacity: 0.6; }
+  100% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+}
+
+/* ===== 공통 히트 이펙트 ===== */
+@keyframes hitPow {
+  0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+  50% { transform: translate(-50%, -50%) scale(1.3); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
 }
 
 /* 동료 DPS 활성화 표시 (상단 헤더) */
@@ -2393,3 +2794,4 @@ body {
     padding-bottom: calc(10px + env(safe-area-inset-bottom));
   }
 }
+

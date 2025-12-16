@@ -199,87 +199,72 @@ const getEnhanceDestroyRate = (rank: ChessPieceRank, level: number): number => {
 
 // 업그레이드 비용 (F2P 30일 기준 - 복리효과 감안)
 const INITIAL_UPGRADES: UpgradeStat[] = [
-  { id: 'goldPerClick', name: '클릭당 골드', level: 1, baseValue: 1, increment: 1, baseCost: 50, costMultiplier: 1.12 },
+  { id: 'goldPerClick', name: '클릭당 골드', level: 1, baseValue: 1, increment: 1, baseCost: 50, costMultiplier: 1.08 },
   { id: 'attackPower', name: '공격력', level: 1, baseValue: 1, increment: 1, baseCost: 100, costMultiplier: 1.20 },
   { id: 'critChance', name: '치명타 확률', level: 0, baseValue: 0, increment: 0.2, baseCost: 200, costMultiplier: 1.24 },
   { id: 'critDamage', name: '치명타 데미지', level: 0, baseValue: 150, increment: 10, baseCost: 300, costMultiplier: 1.22 },
 ];
 
-// 동료 시스템 (오토클릭) - 단계별 구매 제한 (마지막 티어 해금 후 무제한)
+// 도구 시스템 (오토클릭) - 단계별 구매 제한 (마지막 티어 해금 후 무제한)
 const INITIAL_AUTO_CLICKERS: AutoClicker[] = [
   {
-    id: 'finger', name: '보조 손가락', emoji: '👆', clicksPerSec: 0.5, baseCost: 300, count: 0,
+    id: 'hammer', name: '나무 망치', emoji: '🪵', clicksPerSec: 0.5, baseCost: 300, count: 0,
     purchaseTiers: [
       { cap: 10, requirement: { rank: 'pawn', level: 0 } },
-      { cap: 20, requirement: { rank: 'pawn', level: 4 } },
       { cap: 30, requirement: { rank: 'pawn', level: 7 } },
-      { cap: 40, requirement: { rank: 'pawn', level: 10 } },
       { cap: 50, requirement: { rank: 'knight', level: 0 } },
     ]
   },
   {
-    id: 'fan', name: '부채', emoji: '🪭', clicksPerSec: 1, baseCost: 1800, count: 0,
-    purchaseTiers: [
-      { cap: 10, requirement: { rank: 'pawn', level: 0 } },
-      { cap: 20, requirement: { rank: 'pawn', level: 4 } },
-      { cap: 30, requirement: { rank: 'pawn', level: 7 } },
-      { cap: 40, requirement: { rank: 'pawn', level: 10 } },
-      { cap: 50, requirement: { rank: 'knight', level: 0 } },
-    ]
-  },
-  {
-    id: 'sword', name: '검', emoji: '⚔️', clicksPerSec: 3, baseCost: 9000, count: 0,
+    id: 'pickaxe', name: '곡괭이', emoji: '⛏️', clicksPerSec: 1, baseCost: 1800, count: 0,
     unlockRequirement: { rank: 'pawn', level: 4 },
     purchaseTiers: [
       { cap: 10, requirement: { rank: 'pawn', level: 4 } },
-      { cap: 20, requirement: { rank: 'pawn', level: 7 } },
       { cap: 30, requirement: { rank: 'pawn', level: 10 } },
-      { cap: 40, requirement: { rank: 'knight', level: 4 } },
-      { cap: 50, requirement: { rank: 'bishop', level: 0 } },
+      { cap: 50, requirement: { rank: 'knight', level: 7 } },
     ]
   },
   {
-    id: 'magic', name: '마법봉', emoji: '🪄', clicksPerSec: 8, baseCost: 48000, count: 0,
-    unlockRequirement: { rank: 'pawn', level: 7 },
-    purchaseTiers: [
-      { cap: 10, requirement: { rank: 'pawn', level: 7 } },
-      { cap: 20, requirement: { rank: 'pawn', level: 10 } },
-      { cap: 30, requirement: { rank: 'knight', level: 4 } },
-      { cap: 40, requirement: { rank: 'bishop', level: 4 } },
-      { cap: 50, requirement: { rank: 'rook', level: 0 } },
-    ]
-  },
-  {
-    id: 'knight', name: '기사', emoji: '🛡️', clicksPerSec: 20, baseCost: 240000, count: 0,
+    id: 'mace', name: '철퇴', emoji: '🔨', clicksPerSec: 3, baseCost: 9000, count: 0,
     unlockRequirement: { rank: 'knight', level: 0 },
     purchaseTiers: [
       { cap: 10, requirement: { rank: 'knight', level: 0 } },
-      { cap: 20, requirement: { rank: 'knight', level: 7 } },
-      { cap: 30, requirement: { rank: 'bishop', level: 4 } },
-      { cap: 40, requirement: { rank: 'rook', level: 4 } },
-      { cap: 50, requirement: { rank: 'queen', level: 0 } },
+      { cap: 30, requirement: { rank: 'knight', level: 10 } },
+      { cap: 50, requirement: { rank: 'bishop', level: 7 } },
     ]
   },
   {
-    id: 'wizard', name: '마법사', emoji: '🧙', clicksPerSec: 50, baseCost: 1200000, count: 0,
+    id: 'drill', name: '드릴', emoji: '⚙️', clicksPerSec: 8, baseCost: 48000, count: 0,
     unlockRequirement: { rank: 'bishop', level: 0 },
     purchaseTiers: [
       { cap: 10, requirement: { rank: 'bishop', level: 0 } },
-      { cap: 20, requirement: { rank: 'bishop', level: 7 } },
-      { cap: 30, requirement: { rank: 'rook', level: 4 } },
-      { cap: 40, requirement: { rank: 'queen', level: 4 } },
-      { cap: 50, requirement: { rank: 'king', level: 0 } },
+      { cap: 30, requirement: { rank: 'bishop', level: 10 } },
+      { cap: 50, requirement: { rank: 'rook', level: 7 } },
     ]
   },
   {
-    id: 'dragon', name: '드래곤', emoji: '🐉', clicksPerSec: 120, baseCost: 9000000, count: 0,
+    id: 'dynamite', name: '다이너마이트', emoji: '🧨', clicksPerSec: 20, baseCost: 240000, count: 0,
     unlockRequirement: { rank: 'rook', level: 0 },
     purchaseTiers: [
       { cap: 10, requirement: { rank: 'rook', level: 0 } },
-      { cap: 20, requirement: { rank: 'rook', level: 10 } },
-      { cap: 30, requirement: { rank: 'queen', level: 7 } },
-      { cap: 40, requirement: { rank: 'king', level: 7 } },
-      { cap: 50, requirement: { rank: 'imperial', level: 10 } },
+      { cap: 30, requirement: { rank: 'rook', level: 10 } },
+      { cap: 50, requirement: { rank: 'queen', level: 7 } },
+    ]
+  },
+  {
+    id: 'laser', name: '레이저 빔', emoji: '🔴', clicksPerSec: 50, baseCost: 1200000, count: 0,
+    unlockRequirement: { rank: 'queen', level: 0 },
+    purchaseTiers: [
+      { cap: 10, requirement: { rank: 'queen', level: 0 } },
+      { cap: 30, requirement: { rank: 'queen', level: 10 } },
+      { cap: 50, requirement: { rank: 'king', level: 7 } },
+    ]
+  },
+  {
+    id: 'blackhole', name: '블랙홀', emoji: '🌀', clicksPerSec: 120, baseCost: 9000000, count: 0,
+    unlockRequirement: { rank: 'king', level: 0 },
+    purchaseTiers: [
+      { cap: 9999, requirement: { rank: 'king', level: 0 } },
     ]
   },
 ];
@@ -576,11 +561,11 @@ const getUpgradeCost = (upgrade: UpgradeStat): number => {
 };
 
 const getAutoClickerCost = (clicker: AutoClicker): number => {
-  // 동료 중복 구매 시 가격 급등 (50%씩 증가)
+  // 도구 중복 구매 시 가격 급등 (50%씩 증가)
   return Math.floor(clicker.baseCost * Math.pow(1.50, clicker.count));
 };
 
-// 동료 구매 가능 상태 확인 (UI용)
+// 도구 구매 가능 상태 확인 (UI용)
 const getAutoClickerStatus = (
   clickerId: string,
   currentCount: number,
@@ -913,7 +898,7 @@ const useGameStore = create<GameState>((set, get) => ({
     const clicker = state.autoClickers[clickerIndex];
     const originalClicker = INITIAL_AUTO_CLICKERS.find(c => c.id === clickerId);
 
-    // 동료 해금 조건 체크
+    // 도구 해금 조건 체크
     if (originalClicker?.unlockRequirement) {
       const reqRankIndex = RANK_ORDER.indexOf(originalClicker.unlockRequirement.rank);
       const playerRankIndex = RANK_ORDER.indexOf(state.currentPiece.rank);
@@ -1203,7 +1188,7 @@ const useGameStore = create<GameState>((set, get) => ({
 
     const autoClicks = state.autoClicksPerSec * autoMultiplier;
 
-    // 동료 치명타 계산 (클릭당 치명타 판정)
+    // 도구 치명타 계산 (클릭당 치명타 판정)
     let totalDamage = 0;
     let totalGoldEarned = 0;
     for (let i = 0; i < autoClicks; i++) {
@@ -1836,8 +1821,16 @@ function App() {
   const [useProtect, setUseProtect] = useState(false);
   const [useBlessing, setUseBlessing] = useState<0 | 1 | 2>(0); // 0: 없음, 1: 축복주문서, 2: 행운주문서
 
-  // 동료 공격 이펙트 상태
-  const [autoAttackFx, setAutoAttackFx] = useState<{ id: number; emoji: string; x: number; y: number; delay: number }[]>([]);
+  // 도구 공격 이펙트 상태
+  const [autoAttackFx, setAutoAttackFx] = useState<{
+    id: number;
+    toolId: string;
+    emoji: string;
+    x: number;
+    y: number;
+    delay: number;
+    particles?: { id: number; x: number; y: number; angle: number }[];
+  }[]>([]);
 
   // 스케일링 상태
   const [scale, setScale] = useState(1);
@@ -1912,7 +1905,7 @@ function App() {
     };
   }, []);
 
-  // 동료 자동 공격 시각화 이펙트
+  // 도구 자동 공격 시각화 이펙트
   useEffect(() => {
     if (autoClicksPerSec === 0) return;
 
@@ -1920,31 +1913,117 @@ function App() {
       const activeClickers = useGameStore.getState().autoClickers.filter(c => c.count > 0);
       if (activeClickers.length === 0) return;
 
-      // 랜덤으로 동료 하나 선택하여 공격 이펙트 생성
+      // 랜덤으로 도구 하나 선택하여 공격 이펙트 생성
       const randomClicker = activeClickers[Math.floor(Math.random() * activeClickers.length)];
+      const toolId = randomClicker.id;
 
-      // 화면 좌측에서 바둑돌 방향으로 날아가는 이펙트
-      const startX = -20 + Math.random() * 40; // 좌측 시작점
-      const startY = 20 + Math.random() * 60; // 랜덤 높이
+      // 도구별 시작 위치 및 파티클 설정
+      let startX = 50; // 바둑돌 중앙 기준
+      let startY = 50;
+      let particles: { id: number; x: number; y: number; angle: number }[] = [];
+
+      // 도구별 위치 및 파티클 생성
+      switch (toolId) {
+        case 'hammer': // 나무 망치 - 위에서 내려찍기
+          startX = 45 + Math.random() * 10;
+          startY = 10;
+          particles = Array.from({ length: 3 }, (_, i) => ({
+            id: i,
+            x: -10 + Math.random() * 20,
+            y: Math.random() * 10,
+            angle: -30 + Math.random() * 60
+          }));
+          break;
+        case 'pickaxe': // 곡괭이 - 측면에서 쪼기
+          startX = 10 + Math.random() * 10;
+          startY = 40 + Math.random() * 20;
+          particles = Array.from({ length: 4 }, (_, i) => ({
+            id: i,
+            x: Math.random() * 30,
+            y: -15 + Math.random() * 30,
+            angle: -60 + Math.random() * 120
+          }));
+          break;
+        case 'mace': // 철퇴 - 강하게 내리치기
+          startX = 45 + Math.random() * 10;
+          startY = 5;
+          particles = Array.from({ length: 5 }, (_, i) => ({
+            id: i,
+            x: -20 + Math.random() * 40,
+            y: Math.random() * 15,
+            angle: -45 + Math.random() * 90
+          }));
+          break;
+        case 'drill': // 드릴 - 바둑돌 위에서 회전
+          startX = 48 + Math.random() * 4;
+          startY = 30 + Math.random() * 10;
+          particles = Array.from({ length: 6 }, (_, i) => ({
+            id: i,
+            x: -15 + Math.random() * 30,
+            y: -15 + Math.random() * 30,
+            angle: i * 60
+          }));
+          break;
+        case 'dynamite': // 다이너마이트 - 폭발
+          startX = 30 + Math.random() * 40;
+          startY = 35 + Math.random() * 30;
+          particles = Array.from({ length: 8 }, (_, i) => ({
+            id: i,
+            x: -25 + Math.random() * 50,
+            y: -25 + Math.random() * 50,
+            angle: i * 45
+          }));
+          break;
+        case 'laser': // 레이저 빔 - 위에서 빔 발사
+          startX = 45 + Math.random() * 10;
+          startY = 0;
+          particles = Array.from({ length: 4 }, (_, i) => ({
+            id: i,
+            x: -5 + Math.random() * 10,
+            y: 20 + i * 15,
+            angle: 0
+          }));
+          break;
+        case 'blackhole': // 블랙홀 - 소용돌이
+          startX = 50;
+          startY = 50;
+          particles = Array.from({ length: 12 }, (_, i) => ({
+            id: i,
+            x: Math.cos(i * 30 * Math.PI / 180) * (30 + Math.random() * 20),
+            y: Math.sin(i * 30 * Math.PI / 180) * (30 + Math.random() * 20),
+            angle: i * 30
+          }));
+          break;
+        default:
+          startX = 45 + Math.random() * 10;
+          startY = 20;
+      }
 
       const newFx = {
         id: Date.now() + Math.random(),
+        toolId,
         emoji: randomClicker.emoji,
         x: startX,
         y: startY,
-        delay: Math.random() * 0.3
+        delay: Math.random() * 0.1,
+        particles
       };
 
-      setAutoAttackFx(prev => [...prev.slice(-5), newFx]); // 최대 6개 이펙트 유지
+      setAutoAttackFx(prev => [...prev.slice(-7), newFx]); // 최대 8개 이펙트 유지
 
-      // 이펙트 제거 (애니메이션 후)
+      // 도구별 이펙트 지속시간
+      const duration = toolId === 'drill' ? 1200 :
+                       toolId === 'dynamite' ? 1000 :
+                       toolId === 'blackhole' ? 1500 :
+                       toolId === 'laser' ? 900 : 700;
+
       setTimeout(() => {
         setAutoAttackFx(prev => prev.filter(f => f.id !== newFx.id));
-      }, 800);
+      }, duration);
     };
 
-    // 초당 클릭 수에 비례하여 이펙트 생성 (최대 초당 5회)
-    const fxPerSecond = Math.min(5, Math.max(1, Math.floor(autoClicksPerSec / 10) + 1));
+    // 초당 클릭 수에 비례하여 이펙트 생성 (최대 초당 4회)
+    const fxPerSecond = Math.min(4, Math.max(1, Math.floor(autoClicksPerSec / 15) + 1));
     const interval = setInterval(spawnAutoAttackFx, 1000 / fxPerSecond);
 
     return () => clearInterval(interval);
@@ -2201,25 +2280,38 @@ function App() {
                 {currentBossConfig.element} {currentBossConfig.name}
               </div>
             )}
+            {/* Auto Attack FX Layer - 도구 공격 이펙트 (바둑돌 기준) */}
+            {autoAttackFx.map(f => (
+              <div
+                key={f.id}
+                className={`tool-fx tool-fx-${f.toolId}`}
+                style={{
+                  left: `${f.x}%`,
+                  top: `${f.y}%`,
+                  animationDelay: `${f.delay}s`
+                }}
+              >
+                <span className="tool-emoji">{f.emoji}</span>
+                {/* 파티클 이펙트 */}
+                {f.particles?.map(p => (
+                  <span
+                    key={p.id}
+                    className={`tool-particle tool-particle-${f.toolId}`}
+                    style={{
+                      '--px': `${p.x}px`,
+                      '--py': `${p.y}px`,
+                      '--angle': `${p.angle}deg`
+                    } as React.CSSProperties}
+                  />
+                ))}
+                {/* 히트 이펙트 */}
+                <span className={`tool-hit tool-hit-${f.toolId}`} />
+              </div>
+            ))}
           </div>
 
           {/* FX Layer */}
           {fx.map(f => <FloatingText key={f.id} x={f.x} y={f.y} text={f.text} type={f.type} />)}
-
-          {/* Auto Attack FX Layer - 동료 공격 이펙트 */}
-          {autoAttackFx.map(f => (
-            <div
-              key={f.id}
-              className="auto-attack-fx"
-              style={{
-                left: `${f.x}%`,
-                top: `${f.y}%`,
-                animationDelay: `${f.delay}s`
-              }}
-            >
-              {f.emoji}
-            </div>
-          ))}
         </div>
 
         {/* Stats Mini */}
@@ -2251,8 +2343,8 @@ function App() {
             className={`tab-btn ${activeTab === 'auto' ? 'active' : ''}`}
             onPointerUp={() => { soundManager.play('click'); setActiveTab('auto'); }}
           >
-            <span className="tab-icon">🐾</span>
-            <span className="tab-label">동료</span>
+            <span className="tab-icon">🔧</span>
+            <span className="tab-label">도구</span>
           </button>
           <button
             className={`tab-btn ${activeTab === 'shop' ? 'active' : ''}`}
@@ -2357,7 +2449,7 @@ function App() {
             </div>
           )}
 
-          {/* 동료 탭 */}
+          {/* 도구 탭 */}
           {activeTab === 'auto' && (
             <div className="tab-panel scroll-panel">
               {useGameStore.getState().autoClickers.map(ac => {

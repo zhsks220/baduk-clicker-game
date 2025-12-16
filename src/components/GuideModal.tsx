@@ -45,11 +45,11 @@ const GUIDE_STEPS: GuideStep[] = [
     tip: '대장 달성 시 다음 체스말 해금'
   },
   {
-    id: 'companion',
-    title: '동료 영입',
-    description: '동료 탭에서 자동 공격\n도우미를 구매하세요!',
-    icon: '🤝',
-    tip: '동료가 자동으로 골드 획득'
+    id: 'tools',
+    title: '도구 장착',
+    description: '도구 탭에서 자동 파괴\n장비를 구매하세요!',
+    icon: '🔧',
+    tip: '도구가 자동으로 돌 파괴'
   },
   {
     id: 'boss',
