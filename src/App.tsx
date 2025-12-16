@@ -1130,13 +1130,13 @@ const useGameStore = create<GameState>((set, get) => ({
       return { success: false, message: `쿨타임 ${hours}시간 ${mins}분 남음` };
     }
 
-    // 메가 부스터 활성화: 30분 효과 + 2시간 쿨타임
+    // 메가 부스터 활성화: 15분 효과 + 1시간 쿨타임
     set({
-      megaBoostEndTime: now + 1800000,      // 30분 효과
-      megaBoostCooldownEnd: now + 7200000,  // 2시간 쿨타임
+      megaBoostEndTime: now + 900000,       // 15분 효과
+      megaBoostCooldownEnd: now + 3600000,  // 1시간 쿨타임
     });
 
-    return { success: true, message: '메가 부스터 발동! 30분간 모든 효과 2배!' };
+    return { success: true, message: '메가 부스터 발동! 15분간 모든 효과 2배!' };
   },
 
   claimMissionReward: (missionId: string) => {
