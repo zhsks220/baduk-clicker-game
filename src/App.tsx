@@ -200,7 +200,7 @@ const getEnhanceDestroyRate = (rank: ChessPieceRank, level: number): number => {
 
 // 업그레이드 비용 (F2P 30일 기준 - 복리효과 감안)
 const INITIAL_UPGRADES: UpgradeStat[] = [
-  { id: 'goldPerClick', name: '클릭당 골드', level: 1, baseValue: 1, increment: 1, baseCost: 50, costMultiplier: 1.08 },
+  { id: 'goldPerClick', name: '클릭당 골드', level: 1, baseValue: 1, increment: 1, baseCost: 50, costMultiplier: 1.10 },
   { id: 'attackPower', name: '공격력', level: 1, baseValue: 1, increment: 1, baseCost: 100, costMultiplier: 1.20 },
   { id: 'critChance', name: '치명타 확률', level: 0, baseValue: 0, increment: 0.2, baseCost: 200, costMultiplier: 1.24 },
   { id: 'critDamage', name: '치명타 데미지', level: 0, baseValue: 150, increment: 2, baseCost: 300, costMultiplier: 1.22 },
