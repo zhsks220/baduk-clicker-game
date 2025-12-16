@@ -418,11 +418,23 @@ const calculateBossHp = (bossType: BossType, currentStoneHp: number): number => 
   return Math.floor(currentStoneHp * bossConfig.hpMultiplier);
 };
 
-// 보스 골드 보상 계산 (일반 돌 골드 × 배율)
-const calculateBossGoldReward = (bossType: BossType, baseStoneGold: number): number => {
+// ============ 새로운 보상 시스템 (파괴 수 기반 복리) ============
+const STONE_REWARD_BASE = 100;           // 기본 보상
+const STONE_REWARD_COMPOUND = 1.004;     // 복리율 0.4%
+
+// 돌 파괴 보상 계산 (파괴 수 기반 복리 × 체스말 배율)
+const calculateStoneReward = (stonesDestroyed: number, rank: ChessPieceRank): number => {
+  const compoundGrowth = Math.pow(STONE_REWARD_COMPOUND, stonesDestroyed);
+  const rankMultiplier = RANK_MULTIPLIERS[rank];
+  return Math.floor(STONE_REWARD_BASE * compoundGrowth * rankMultiplier);
+};
+
+// 보스 골드 보상 계산 (파괴 수 기반 복리 × 체스말 배율 × 보스 배율)
+const calculateBossGoldReward = (bossType: BossType, stonesDestroyed: number, rank: ChessPieceRank): number => {
   if (bossType === 'none') return 0;
   const bossConfig = BOSS_CONFIG[bossType];
-  return Math.floor(baseStoneGold * bossConfig.goldMultiplier);
+  const baseReward = calculateStoneReward(stonesDestroyed, rank);
+  return Math.floor(baseReward * bossConfig.goldMultiplier);
 };
 
 // 보스 데미지 페널티 계산 (권장 스펙에 못 미치면 데미지 감소)
@@ -798,16 +810,17 @@ const useGameStore = create<GameState>((set, get) => ({
 
     let bonusGold = 0;
     if (destroyed) {
-      // 보스 처치 시 HP 기반 × 배율 보상, 일반 돌은 HP 기반 보상
+      // 새로운 보상 시스템: 파괴 수 기반 복리 × 체스말 배율
       if (state.currentStone.isBoss) {
-        // 보스 보상 = 일반 돌 기준 골드 × 보스 goldMultiplier
-        const baseStoneGold = state.currentStone.maxHp * baseGold * 0.1;
-        bonusGold = calculateBossGoldReward(state.currentStone.bossType || 'none', baseStoneGold);
+        // 보스 보상 = 기본보상 × 복리^파괴수 × 체스말배율 × 보스배율
+        bonusGold = calculateBossGoldReward(
+          state.currentStone.bossType || 'none',
+          state.stonesDestroyed,
+          state.currentPiece.rank
+        );
       } else {
-        // 일반 돌 보상 = HP × 기본골드 × 0.1 × (33~99%)
-        const totalStoneGold = state.currentStone.maxHp * baseGold * 0.1;
-        const bonusPercent = [33, 66, 99][Math.floor(Math.random() * 3)];
-        bonusGold = Math.floor(totalStoneGold * bonusPercent / 100);
+        // 일반 돌 보상 = 기본보상 × 복리^파괴수 × 체스말배율
+        bonusGold = calculateStoneReward(state.stonesDestroyed, state.currentPiece.rank);
       }
     }
     const totalGoldEarned = earnedGold + bonusGold;
@@ -1233,13 +1246,18 @@ const useGameStore = create<GameState>((set, get) => ({
     while (newHp <= 0) {
       const wasKillingBoss = currentStone.isBoss;
 
-      // 파괴 보너스 골드 (보스는 HP 기반 × 배율 보상, 일반 돌은 HP 기반)
+      // 새로운 보상 시스템: 파괴 수 기반 복리 × 체스말 배율 (메가부스터 goldMultiplier 적용)
       if (wasKillingBoss) {
-        // 보스 보상 = 일반 돌 기준 골드 × 보스 goldMultiplier × 메가부스터 goldMultiplier
-        const baseStoneGold = currentStone.maxHp * state.goldPerClick * 0.1;
-        bonusGold += calculateBossGoldReward(currentStone.bossType || 'none', baseStoneGold) * goldMultiplier;
+        // 보스 보상 = 기본보상 × 복리^파괴수 × 체스말배율 × 보스배율 × 메가부스터
+        const bossReward = calculateBossGoldReward(
+          currentStone.bossType || 'none',
+          state.stonesDestroyed + destroyed,
+          state.currentPiece.rank
+        );
+        bonusGold += bossReward * goldMultiplier;
       } else {
-        const stoneBonus = Math.floor(currentStone.maxHp * state.goldPerClick * 0.1);
+        // 일반 돌 보상 = 기본보상 × 복리^파괴수 × 체스말배율
+        const stoneBonus = calculateStoneReward(state.stonesDestroyed + destroyed, state.currentPiece.rank);
         bonusGold += stoneBonus;
       }
 
