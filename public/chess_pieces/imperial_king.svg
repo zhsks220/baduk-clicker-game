@@ -1,15 +1,16 @@
 <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-         <linearGradient id="imperialRainbow" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#ff0000" />
-            <stop offset="20%" stop-color="#ffa500" />
-            <stop offset="40%" stop-color="#ffff00" />
-            <stop offset="60%" stop-color="#008000" />
-            <stop offset="80%" stop-color="#0000ff" />
-            <stop offset="100%" stop-color="#4b0082" />
-        </linearGradient>
-        <filter id="glow">
-            <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+        <defs>
+             <linearGradient id="imperialRainbow" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#ff0000" />
+                <stop offset="20%" stop-color="#ffa500" />
+                <stop offset="40%" stop-color="#ffff00" />
+                <stop offset="60%" stop-color="#008000" />
+                <stop offset="80%" stop-color="#0000ff" />
+                <stop offset="100%" stop-color="#4b0082" />
+            </linearGradient>
+            <!-- Simple Glow -->
+        <filter id="fancyGlow">
+            <feGaussianBlur stdDeviation="2.5" result="coloredBlur" />
             <feMerge>
                 <feMergeNode in="coloredBlur" />
                 <feMergeNode in="SourceGraphic" />
@@ -18,23 +19,36 @@
     </defs>
     
     <!-- Aura -->
-    <circle cx="50" cy="50" r="48" fill="url(#imperialRainbow)" opacity="0.4" filter="url(#glow)" />
+    <circle cx="50" cy="50" r="45" fill="#f1c40f" opacity="0.3" filter="url(#fancyGlow)" />
 
-    <g stroke="url(#imperialRainbow)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-         <!-- Body -->
-         <path d="M30 75H70L75 85H25L30 75Z" fill="#f1c40f" />
-         <path d="M35 75L40 50H60L65 75H35Z" fill="#f1c40f" />
-         <!-- Head - Mecha Style -->
-         <path d="M35 50L30 20L42 30L50 10L58 30L70 20L65 50H35Z" fill="#f1c40f" />
-         <!-- V-Fin -->
-         <path d="M50 10L30 0M50 10L70 0" stroke-width="2" />
+    <g stroke="black" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <!-- Robe/Armor -->
+        <path d="M20 90H80L75 50H25L20 90Z" fill="#c0392b" />
+        <path d="M50 50V90" stroke="#a93226" stroke-width="2" />
+        
+            <!-- Shoulder Pads -->
+        <path d="M20 50L10 40H30L20 50Z" fill="#f1c40f" />
+        <path d="M80 50L90 40H70L80 50Z" fill="#f1c40f" />
+
+        <!-- Pink Head -->
+        <circle cx="50" cy="35" r="20" fill="#ff9ff3" />
+        
+            <!-- Massive Crown -->
+        <path d="M30 20L25 5L40 15L50 0L60 15L75 5L70 20H30Z" fill="url(#imperialRainbow)" stroke="black" />
+        <path d="M30 20H70" fill="#f1c40f" />
+        
+            <!-- Scepter -->
+            <path d="M85 90V20" stroke="#f1c40f" stroke-width="3" />
+            <circle cx={85} cy={20} r={6} fill="#9b59b6" stroke="black" />
     </g>
-     <!-- Face - Mecha Eyes -->
-    <path d="M40 35L48 40" stroke="#e74c3c" stroke-width="2" />
-    <path d="M60 35L52 40" stroke="#e74c3c" stroke-width="2" />
-    <!-- Red Eyes -->
-    <circle cx="46" cy="42" r="2" fill="#ff0000" stroke="none" />
-    <circle cx="54" cy="42" r="2" fill="#ff0000" stroke="none" />
     
-    <circle cx="50" cy="25" r="3" fill="#2ecc71" stroke="white" stroke-width="1" />
+    <!-- Face -->
+    <circle cx="44" cy="35" r="2.5" fill="black" />
+    <circle cx="56" cy="35" r="2.5" fill="black" />
+    <path d="M48 39 Q50 41 52 39" stroke="black" stroke-width="1.5" fill="none" stroke-linecap="round" />
+    <circle cx="42" cy="40" r="2" fill="#ffcccc" opacity="0.6" />
+    <circle cx="58" cy="40" r="2" fill="#ffcccc" opacity="0.6" />
+    <!-- Blush more intense -->
+    <circle cx="42" cy="40" r="3" fill="#e74c3c" opacity="0.5" />
+    <circle cx="58" cy="40" r="3" fill="#e74c3c" opacity="0.5" />
 </svg>

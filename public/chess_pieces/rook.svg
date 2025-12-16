@@ -1,18 +1,19 @@
 <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <g stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <!-- Purple Rook -->
-        <path d="M30 75H70L75 85H25L30 75Z" fill="#5f27cd" />
-        <path d="M35 75L35 35H65L65 75H35Z" fill="#5f27cd" />
-        <path d="M32 35V20H40V25H45V20H55V25H60V20H68V35H32Z" fill="#5f27cd" />
+        <g stroke="black" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <!-- Tower Costume (Grey) -->
+        <path d="M25 85H75V40H25V85Z" fill="#95a5a6" />
+        <path d="M20 85H80V90H20V85Z" fill="#7f8c8d" />
+        
+        <!-- Battlements -->
+        <path d="M20 40H80V30H70V35H60V30H50V35H40V30H30V35H20V30Z" fill="#95a5a6" />
+
+        <!-- Window/Face Hole -->
+        <path d="M35 85V45C35 45 35 30 50 30C65 30 65 45 65 45V85" fill="#ff9ff3" />
     </g>
-     <!-- Face: Angry (Gritting Teeth) -->
-    <path d="M40 50L46 54" stroke="black" stroke-width="2" />
-    <path d="M60 50L54 54" stroke="black" stroke-width="2" />
-    <circle cx="45" cy="56" r="1.5" fill="black" />
-    <circle cx="55" cy="56" r="1.5" fill="black" />
-    <!-- Mouth -->
-    <rect x="44" y="60" width="12" height="4" rx="1" fill="white" stroke="black" stroke-width="1" />
-    <line x1="44" y1="62" x2="56" y2="62" stroke="black" stroke-width="1" />
-    <line x1="48" y1="60" x2="48" y2="64" stroke="black" stroke-width="1" />
-    <line x1="52" y1="60" x2="52" y2="64" stroke="black" stroke-width="1" />
+    <!-- Face -->
+    <circle cx="44" cy="50" r="2.5" fill="black" />
+    <circle cx="56" cy="50" r="2.5" fill="black" />
+    <path d="M48 54 Q50 56 52 54" stroke="black" stroke-width="1.5" fill="none" stroke-linecap="round" />
+    <circle cx="42" cy="55" r="2" fill="#ffcccc" opacity="0.6" />
+    <circle cx="58" cy="55" r="2" fill="#ffcccc" opacity="0.6" />
 </svg>

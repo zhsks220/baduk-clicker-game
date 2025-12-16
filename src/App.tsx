@@ -60,9 +60,8 @@ interface AutoClicker {
   clicksPerSec: number;
   baseCost: number;
   count: number;
-  // 동료 단계별 구매 제한 시스템
   unlockRequirement?: { rank: ChessPieceRank; level: number }; // 해금 조건
-  purchaseTiers?: { cap: number; requirement: { rank: ChessPieceRank; level: number } }[]; // 구매 티어
+  purchaseTiers?: { cap: number; requirement: { rank: ChessPieceRank; level: number } }[]; // 구매 티어 (마지막 티어 해금 후 무제한)
 }
 
 interface ShopItem {
@@ -137,28 +136,28 @@ const RANK_MULTIPLIERS: Record<ChessPieceRank, number> = {
 // 1사이클(이병→대장): 약 452억, 7사이클: 약 3,164억 (성공시)
 // 폰 기준 강화 테이블 (계급별 배수 적용됨)
 const ENHANCE_RATES = [
-  // 병사 (초반, 파괴 없음)
+  // 병사 (초반, 파괴 없음) - 하락폭 -1
   { level: 0, name: '이병', successRate: 100, cost: 100, destroyRate: 0 },
-  { level: 1, name: '일병', successRate: 100, cost: 300, destroyRate: 0 },
-  { level: 2, name: '상병', successRate: 100, cost: 800, destroyRate: 0 },
-  { level: 3, name: '병장', successRate: 100, cost: 2000, destroyRate: 0 },
-  // 부사관 (하사부터 파괴 시작)
-  { level: 4, name: '하사', successRate: 98, cost: 5000, destroyRate: 3 },
-  { level: 5, name: '중사', successRate: 95, cost: 12000, destroyRate: 3.5 },
+  { level: 1, name: '일병', successRate: 99, cost: 300, destroyRate: 0 },
+  { level: 2, name: '상병', successRate: 98, cost: 800, destroyRate: 0 },
+  { level: 3, name: '병장', successRate: 97, cost: 2000, destroyRate: 0 },
+  // 부사관 (하사부터 파괴 시작) - 하락폭 -1~-2
+  { level: 4, name: '하사', successRate: 96, cost: 5000, destroyRate: 3 },
+  { level: 5, name: '중사', successRate: 94, cost: 12000, destroyRate: 3.5 },
   { level: 6, name: '상사', successRate: 92, cost: 30000, destroyRate: 4 },
-  // 위관
+  // 위관 - 하락폭 -2
   { level: 7, name: '소위', successRate: 90, cost: 70000, destroyRate: 4.5 },
   { level: 8, name: '중위', successRate: 88, cost: 150000, destroyRate: 5 },
   { level: 9, name: '대위', successRate: 85, cost: 350000, destroyRate: 6 },
-  // 영관
+  // 영관 - 하락폭 -3~-4
   { level: 10, name: '소령', successRate: 82, cost: 800000, destroyRate: 7 },
-  { level: 11, name: '중령', successRate: 80, cost: 1800000, destroyRate: 8 },
-  { level: 12, name: '대령', successRate: 75, cost: 4000000, destroyRate: 8.5 },
-  // 장성
-  { level: 13, name: '준장', successRate: 70, cost: 9000000, destroyRate: 9 },
-  { level: 14, name: '소장', successRate: 65, cost: 20000000, destroyRate: 9.5 },
-  { level: 15, name: '중장', successRate: 60, cost: 45000000, destroyRate: 10 },
-  { level: 16, name: '대장', successRate: 55, cost: 100000000, destroyRate: 10.5 }, // 대장→승급
+  { level: 11, name: '중령', successRate: 78, cost: 1800000, destroyRate: 8 },
+  { level: 12, name: '대령', successRate: 74, cost: 4000000, destroyRate: 8.5 },
+  // 장성 - 하락폭 -5~-8 (급격히 증가)
+  { level: 13, name: '준장', successRate: 69, cost: 9000000, destroyRate: 9 },
+  { level: 14, name: '소장', successRate: 64, cost: 20000000, destroyRate: 9.5 },
+  { level: 15, name: '중장', successRate: 58, cost: 45000000, destroyRate: 10 },
+  { level: 16, name: '대장', successRate: 50, cost: 100000000, destroyRate: 10.5 }, // 대장→승급
 ];
 
 // 계급별 강화 비용/확률 배수 (폰 기준 1x, 킹 총합 ~1조)
@@ -200,96 +199,87 @@ const getEnhanceDestroyRate = (rank: ChessPieceRank, level: number): number => {
 
 // 업그레이드 비용 (F2P 30일 기준 - 복리효과 감안)
 const INITIAL_UPGRADES: UpgradeStat[] = [
-  { id: 'goldPerClick', name: '클릭당 골드', level: 1, baseValue: 1, increment: 1, baseCost: 50, costMultiplier: 1.18 },
+  { id: 'goldPerClick', name: '클릭당 골드', level: 1, baseValue: 1, increment: 1, baseCost: 50, costMultiplier: 1.12 },
   { id: 'attackPower', name: '공격력', level: 1, baseValue: 1, increment: 1, baseCost: 100, costMultiplier: 1.20 },
-  { id: 'critChance', name: '치명타 확률', level: 0, baseValue: 0, increment: 0.2, baseCost: 200, costMultiplier: 1.12 },
+  { id: 'critChance', name: '치명타 확률', level: 0, baseValue: 0, increment: 0.2, baseCost: 200, costMultiplier: 1.24 },
   { id: 'critDamage', name: '치명타 데미지', level: 0, baseValue: 150, increment: 10, baseCost: 300, costMultiplier: 1.22 },
 ];
 
-// 동료 시스템 (F2P 30일 기준 - 단계별 구매 제한 적용)
-// 초반 빠른 진행 → 중반 성장 → 후반 안정적 DPS
-// 각 동료는 10개씩 구매 가능, 조건 충족 시 다음 10개 해금
+// 동료 시스템 (오토클릭) - 단계별 구매 제한 (마지막 티어 해금 후 무제한)
 const INITIAL_AUTO_CLICKERS: AutoClicker[] = [
   {
-    id: 'finger', name: '보조 손가락', emoji: '👆', clicksPerSec: 0.5, baseCost: 1500, count: 0,
-    // 초반용 - 처음부터 해금, 10개씩 단계별 구매
+    id: 'finger', name: '보조 손가락', emoji: '👆', clicksPerSec: 0.5, baseCost: 300, count: 0,
     purchaseTiers: [
-      { cap: 10, requirement: { rank: 'pawn', level: 0 } },   // 0~10: 시작부터
-      { cap: 20, requirement: { rank: 'pawn', level: 4 } },   // 11~20: 하사
-      { cap: 30, requirement: { rank: 'pawn', level: 7 } },   // 21~30: 소위
-      { cap: 40, requirement: { rank: 'pawn', level: 10 } },  // 31~40: 소령
-      { cap: 50, requirement: { rank: 'knight', level: 0 } }, // 41~50: 나이트
+      { cap: 10, requirement: { rank: 'pawn', level: 0 } },
+      { cap: 20, requirement: { rank: 'pawn', level: 4 } },
+      { cap: 30, requirement: { rank: 'pawn', level: 7 } },
+      { cap: 40, requirement: { rank: 'pawn', level: 10 } },
+      { cap: 50, requirement: { rank: 'knight', level: 0 } },
     ]
   },
   {
-    id: 'fan', name: '부채', emoji: '🪭', clicksPerSec: 1, baseCost: 9000, count: 0,
-    // 병사급 - 처음부터 해금, 10개씩 단계별 구매
+    id: 'fan', name: '부채', emoji: '🪭', clicksPerSec: 1, baseCost: 1800, count: 0,
     purchaseTiers: [
-      { cap: 10, requirement: { rank: 'pawn', level: 0 } },   // 0~10: 시작부터
-      { cap: 20, requirement: { rank: 'pawn', level: 4 } },   // 11~20: 하사
-      { cap: 30, requirement: { rank: 'pawn', level: 7 } },   // 21~30: 소위
-      { cap: 40, requirement: { rank: 'pawn', level: 10 } },  // 31~40: 소령
-      { cap: 50, requirement: { rank: 'knight', level: 0 } }, // 41~50: 나이트
+      { cap: 10, requirement: { rank: 'pawn', level: 0 } },
+      { cap: 20, requirement: { rank: 'pawn', level: 4 } },
+      { cap: 30, requirement: { rank: 'pawn', level: 7 } },
+      { cap: 40, requirement: { rank: 'pawn', level: 10 } },
+      { cap: 50, requirement: { rank: 'knight', level: 0 } },
     ]
   },
   {
-    id: 'sword', name: '검', emoji: '⚔️', clicksPerSec: 3, baseCost: 45000, count: 0,
-    // 부사관급 - 하사부터 해금
+    id: 'sword', name: '검', emoji: '⚔️', clicksPerSec: 3, baseCost: 9000, count: 0,
     unlockRequirement: { rank: 'pawn', level: 4 },
     purchaseTiers: [
-      { cap: 10, requirement: { rank: 'pawn', level: 4 } },   // 0~10: 하사
-      { cap: 20, requirement: { rank: 'pawn', level: 7 } },   // 11~20: 소위
-      { cap: 30, requirement: { rank: 'pawn', level: 10 } },  // 21~30: 소령
-      { cap: 40, requirement: { rank: 'knight', level: 4 } }, // 31~40: 나이트 하사
-      { cap: 50, requirement: { rank: 'bishop', level: 0 } }, // 41~50: 비숍
+      { cap: 10, requirement: { rank: 'pawn', level: 4 } },
+      { cap: 20, requirement: { rank: 'pawn', level: 7 } },
+      { cap: 30, requirement: { rank: 'pawn', level: 10 } },
+      { cap: 40, requirement: { rank: 'knight', level: 4 } },
+      { cap: 50, requirement: { rank: 'bishop', level: 0 } },
     ]
   },
   {
-    id: 'magic', name: '마법봉', emoji: '🪄', clicksPerSec: 8, baseCost: 240000, count: 0,
-    // 위관급 - 소위부터 해금
+    id: 'magic', name: '마법봉', emoji: '🪄', clicksPerSec: 8, baseCost: 48000, count: 0,
     unlockRequirement: { rank: 'pawn', level: 7 },
     purchaseTiers: [
-      { cap: 10, requirement: { rank: 'pawn', level: 7 } },   // 0~10: 소위
-      { cap: 20, requirement: { rank: 'pawn', level: 10 } },  // 11~20: 소령
-      { cap: 30, requirement: { rank: 'knight', level: 4 } }, // 21~30: 나이트 하사
-      { cap: 40, requirement: { rank: 'bishop', level: 4 } }, // 31~40: 비숍 하사
-      { cap: 50, requirement: { rank: 'rook', level: 0 } },   // 41~50: 룩
+      { cap: 10, requirement: { rank: 'pawn', level: 7 } },
+      { cap: 20, requirement: { rank: 'pawn', level: 10 } },
+      { cap: 30, requirement: { rank: 'knight', level: 4 } },
+      { cap: 40, requirement: { rank: 'bishop', level: 4 } },
+      { cap: 50, requirement: { rank: 'rook', level: 0 } },
     ]
   },
   {
-    id: 'knight', name: '기사', emoji: '🛡️', clicksPerSec: 20, baseCost: 1200000, count: 0,
-    // 영관급 - 나이트부터 해금
+    id: 'knight', name: '기사', emoji: '🛡️', clicksPerSec: 20, baseCost: 240000, count: 0,
     unlockRequirement: { rank: 'knight', level: 0 },
     purchaseTiers: [
-      { cap: 10, requirement: { rank: 'knight', level: 0 } }, // 0~10: 나이트
-      { cap: 20, requirement: { rank: 'knight', level: 7 } }, // 11~20: 나이트 소위
-      { cap: 30, requirement: { rank: 'bishop', level: 4 } }, // 21~30: 비숍 하사
-      { cap: 40, requirement: { rank: 'rook', level: 4 } },   // 31~40: 룩 하사
-      { cap: 50, requirement: { rank: 'queen', level: 0 } },  // 41~50: 퀸
+      { cap: 10, requirement: { rank: 'knight', level: 0 } },
+      { cap: 20, requirement: { rank: 'knight', level: 7 } },
+      { cap: 30, requirement: { rank: 'bishop', level: 4 } },
+      { cap: 40, requirement: { rank: 'rook', level: 4 } },
+      { cap: 50, requirement: { rank: 'queen', level: 0 } },
     ]
   },
   {
-    id: 'wizard', name: '마법사', emoji: '🧙', clicksPerSec: 50, baseCost: 6000000, count: 0,
-    // 장성급 - 비숍부터 해금
+    id: 'wizard', name: '마법사', emoji: '🧙', clicksPerSec: 50, baseCost: 1200000, count: 0,
     unlockRequirement: { rank: 'bishop', level: 0 },
     purchaseTiers: [
-      { cap: 10, requirement: { rank: 'bishop', level: 0 } }, // 0~10: 비숍
-      { cap: 20, requirement: { rank: 'bishop', level: 7 } }, // 11~20: 비숍 소위
-      { cap: 30, requirement: { rank: 'rook', level: 4 } },   // 21~30: 룩 하사
-      { cap: 40, requirement: { rank: 'queen', level: 4 } },  // 31~40: 퀸 하사
-      { cap: 50, requirement: { rank: 'king', level: 0 } },   // 41~50: 킹
+      { cap: 10, requirement: { rank: 'bishop', level: 0 } },
+      { cap: 20, requirement: { rank: 'bishop', level: 7 } },
+      { cap: 30, requirement: { rank: 'rook', level: 4 } },
+      { cap: 40, requirement: { rank: 'queen', level: 4 } },
+      { cap: 50, requirement: { rank: 'king', level: 0 } },
     ]
   },
   {
-    id: 'dragon', name: '드래곤', emoji: '🐉', clicksPerSec: 120, baseCost: 45000000, count: 0,
-    // 엔드게임 - 룩부터 해금
+    id: 'dragon', name: '드래곤', emoji: '🐉', clicksPerSec: 120, baseCost: 9000000, count: 0,
     unlockRequirement: { rank: 'rook', level: 0 },
     purchaseTiers: [
-      { cap: 10, requirement: { rank: 'rook', level: 0 } },      // 0~10: 룩
-      { cap: 20, requirement: { rank: 'rook', level: 10 } },     // 11~20: 룩 소령
-      { cap: 30, requirement: { rank: 'queen', level: 7 } },     // 21~30: 퀸 소위
-      { cap: 40, requirement: { rank: 'king', level: 7 } },      // 31~40: 킹 소위
-      { cap: 50, requirement: { rank: 'imperial', level: 10 } }, // 41~50: 임페리얼 소령
+      { cap: 10, requirement: { rank: 'rook', level: 0 } },
+      { cap: 20, requirement: { rank: 'rook', level: 10 } },
+      { cap: 30, requirement: { rank: 'queen', level: 7 } },
+      { cap: 40, requirement: { rank: 'king', level: 7 } },
+      { cap: 50, requirement: { rank: 'imperial', level: 10 } },
     ]
   },
 ];
@@ -390,10 +380,11 @@ const ACHIEVEMENTS: Achievement[] = [
 const STORAGE_KEY = 'pony-game-v3';
 
 // ============ 바둑돌 HP 밸런스 시스템 ============
-// 기본 HP 낮추고, 파괴할수록 크게 증가
+// 기본 HP 낮추고, 파괴할수록 크게 증가 (복리 성장)
 // 골드 보상은 HP에 비례, 보스 HP는 현재 일반 돌 HP × 배율
-const STONE_BASE_HP = 30;               // 기본 HP
-const STONE_HP_GROWTH_RATE = 0.05;      // 5% per destroy
+const STONE_BASE_HP = 150;              // 기본 HP
+const STONE_HP_GROWTH_RATE = 0.004;     // 복리 성장률 0.4%
+const STONE_HP_GROWTH_INTERVAL = 1;     // 1개마다 복리 적용
 
 // 기물별 HP 감소율 (레벨당) - 강화할수록 바둑돌이 쉬워짐
 const RANK_HP_REDUCTION_RATES: Record<ChessPieceRank, number> = {
@@ -423,13 +414,13 @@ const BOSS_CONFIG: Record<BossType, {
   element: string;
 }> = {
   none: { name: '', hpMultiplier: 1, goldMultiplier: 0, element: '' },
-  boss1: { name: '화염의 돌', hpMultiplier: 50, goldMultiplier: 100, element: '🔴' },
-  boss2: { name: '빙결의 돌', hpMultiplier: 80, goldMultiplier: 150, element: '🔵' },
-  boss3: { name: '맹독의 돌', hpMultiplier: 120, goldMultiplier: 200, element: '🟢' },
-  boss4: { name: '암흑의 돌', hpMultiplier: 180, goldMultiplier: 300, element: '🟣' },
-  boss5: { name: '번개의 돌', hpMultiplier: 250, goldMultiplier: 400, element: '🟡' },
-  boss6: { name: '사이버 돌', hpMultiplier: 350, goldMultiplier: 500, element: '💠' },
-  boss7: { name: '궁극의 돌', hpMultiplier: 500, goldMultiplier: 700, element: '🌈' },
+  boss1: { name: '화염의 돌', hpMultiplier: 15, goldMultiplier: 30, element: '🔴' },
+  boss2: { name: '빙결의 돌', hpMultiplier: 25, goldMultiplier: 50, element: '🔵' },
+  boss3: { name: '맹독의 돌', hpMultiplier: 40, goldMultiplier: 70, element: '🟢' },
+  boss4: { name: '암흑의 돌', hpMultiplier: 60, goldMultiplier: 100, element: '🟣' },
+  boss5: { name: '번개의 돌', hpMultiplier: 85, goldMultiplier: 130, element: '🟡' },
+  boss6: { name: '사이버 돌', hpMultiplier: 120, goldMultiplier: 170, element: '💠' },
+  boss7: { name: '궁극의 돌', hpMultiplier: 300, goldMultiplier: 230, element: '🌈' },
 };
 
 const BOSS_ORDER: BossType[] = ['boss1', 'boss2', 'boss3', 'boss4', 'boss5', 'boss6', 'boss7'];
@@ -494,8 +485,10 @@ const calculateBossDamageMultiplier = (
 const calculateStoneHp = (size: StoneSize, stonesDestroyed: number, totalUpgradeLevel: number): number => {
   const config = STONE_CONFIG[size];
 
-  // HP 증가: 파괴할수록 어려워짐
-  const growthMultiplier = 1 + stonesDestroyed * STONE_HP_GROWTH_RATE;
+  // HP 증가: 파괴할수록 어려워짐 (복리 성장)
+  // 공식: (1 + rate)^(파괴수 / interval)
+  const growthExponent = Math.floor(stonesDestroyed / STONE_HP_GROWTH_INTERVAL);
+  const growthMultiplier = Math.pow(1 + STONE_HP_GROWTH_RATE, growthExponent);
 
   // HP 감소: 기물별 차등 감소율 적용
   let totalReduction = 0;
@@ -619,6 +612,7 @@ const getAutoClickerStatus = (
   if (originalClicker.purchaseTiers) {
     let maxPurchasable = 0;
     let nextReq: string | null = null;
+    const lastTier = originalClicker.purchaseTiers[originalClicker.purchaseTiers.length - 1];
 
     for (let i = 0; i < originalClicker.purchaseTiers.length; i++) {
       const tier = originalClicker.purchaseTiers[i];
@@ -636,6 +630,15 @@ const getAutoClickerStatus = (
       }
     }
 
+    // 마지막 티어 해금 완료 시 무제한
+    const lastTierRankIndex = RANK_ORDER.indexOf(lastTier.requirement.rank);
+    const lastTierUnlocked = playerRankIndex > lastTierRankIndex ||
+        (playerRankIndex === lastTierRankIndex && playerLevel >= lastTier.requirement.level);
+
+    if (lastTierUnlocked) {
+      return { canBuy: true, isLocked: false, maxCount: Infinity, nextRequirement: null };
+    }
+
     return {
       canBuy: currentCount < maxPurchasable,
       isLocked: false,
@@ -644,7 +647,7 @@ const getAutoClickerStatus = (
     };
   }
 
-  return { canBuy: true, isLocked: false, maxCount: 999, nextRequirement: null };
+  return { canBuy: true, isLocked: false, maxCount: Infinity, nextRequirement: null };
 };
 
 // ============ Zustand 스토어 ============
@@ -811,11 +814,11 @@ const useGameStore = create<GameState>((set, get) => ({
       // 보스 처치 시 HP 기반 × 배율 보상, 일반 돌은 HP 기반 보상
       if (state.currentStone.isBoss) {
         // 보스 보상 = 일반 돌 기준 골드 × 보스 goldMultiplier
-        const baseStoneGold = state.currentStone.maxHp * baseGold * 0.3;
+        const baseStoneGold = state.currentStone.maxHp * baseGold * 0.1;
         bonusGold = calculateBossGoldReward(state.currentStone.bossType || 'none', baseStoneGold);
       } else {
-        // 일반 돌 보상 = HP × 기본골드 × 0.3 × (33~99%)
-        const totalStoneGold = state.currentStone.maxHp * baseGold * 0.3;
+        // 일반 돌 보상 = HP × 기본골드 × 0.1 × (33~99%)
+        const totalStoneGold = state.currentStone.maxHp * baseGold * 0.1;
         const bonusPercent = [33, 66, 99][Math.floor(Math.random() * 3)];
         bonusGold = Math.floor(totalStoneGold * bonusPercent / 100);
       }
@@ -883,6 +886,13 @@ const useGameStore = create<GameState>((set, get) => ({
     if (upgradeIndex === -1) return false;
 
     const upgrade = state.upgrades[upgradeIndex];
+
+    // 치명타 확률 100% 도달 시 강화 불가
+    if (statId === 'critChance') {
+      const currentCritChance = upgrade.baseValue + upgrade.increment * upgrade.level;
+      if (currentCritChance >= 100) return false;
+    }
+
     const cost = getUpgradeCost(upgrade);
     if (state.gold < cost) return false;
 
@@ -917,22 +927,31 @@ const useGameStore = create<GameState>((set, get) => ({
     // 구매 티어 제한 체크
     if (originalClicker?.purchaseTiers) {
       const playerRankIndex = RANK_ORDER.indexOf(state.currentPiece.rank);
+      const lastTier = originalClicker.purchaseTiers[originalClicker.purchaseTiers.length - 1];
+      const lastTierRankIndex = RANK_ORDER.indexOf(lastTier.requirement.rank);
 
-      // 현재 구매 가능한 최대 수량 계산
-      let maxPurchasable = 0;
-      for (const tier of originalClicker.purchaseTiers) {
-        const tierRankIndex = RANK_ORDER.indexOf(tier.requirement.rank);
-        if (playerRankIndex > tierRankIndex ||
-            (playerRankIndex === tierRankIndex && state.currentPiece.level >= tier.requirement.level)) {
-          maxPurchasable = tier.cap;
-        } else {
-          break;
+      // 마지막 티어 해금 여부 확인
+      const lastTierUnlocked = playerRankIndex > lastTierRankIndex ||
+          (playerRankIndex === lastTierRankIndex && state.currentPiece.level >= lastTier.requirement.level);
+
+      if (!lastTierUnlocked) {
+        // 현재 구매 가능한 최대 수량 계산
+        let maxPurchasable = 0;
+        for (const tier of originalClicker.purchaseTiers) {
+          const tierRankIndex = RANK_ORDER.indexOf(tier.requirement.rank);
+          if (playerRankIndex > tierRankIndex ||
+              (playerRankIndex === tierRankIndex && state.currentPiece.level >= tier.requirement.level)) {
+            maxPurchasable = tier.cap;
+          } else {
+            break;
+          }
+        }
+
+        if (clicker.count >= maxPurchasable) {
+          return false; // 현재 티어 최대 수량 도달
         }
       }
-
-      if (clicker.count >= maxPurchasable) {
-        return false; // 현재 티어 최대 수량 도달
-      }
+      // lastTierUnlocked가 true면 무제한 구매 가능
     }
 
     const cost = getAutoClickerCost(clicker);
@@ -1230,10 +1249,10 @@ const useGameStore = create<GameState>((set, get) => ({
       // 파괴 보너스 골드 (보스는 HP 기반 × 배율 보상, 일반 돌은 HP 기반)
       if (wasKillingBoss) {
         // 보스 보상 = 일반 돌 기준 골드 × 보스 goldMultiplier × 메가부스터 goldMultiplier
-        const baseStoneGold = currentStone.maxHp * state.goldPerClick * 0.3;
+        const baseStoneGold = currentStone.maxHp * state.goldPerClick * 0.1;
         bonusGold += calculateBossGoldReward(currentStone.bossType || 'none', baseStoneGold) * goldMultiplier;
       } else {
-        const stoneBonus = Math.floor(currentStone.maxHp * state.goldPerClick * 0.3);
+        const stoneBonus = Math.floor(currentStone.maxHp * state.goldPerClick * 0.1);
         bonusGold += stoneBonus;
       }
 
@@ -2309,26 +2328,32 @@ function App() {
           {/* 성장 탭 */}
           {activeTab === 'upgrade' && (
             <div className="tab-panel scroll-panel">
-              {useGameStore.getState().upgrades.map(u => (
-                <div key={u.id} className="list-item">
-                  <div className="list-item-info">
-                    <div className="list-item-name">{u.name} Lv.{u.level}</div>
-                    <div className="list-item-desc">현재 효과: {u.id === 'critChance' ? (u.baseValue + u.increment * u.level).toFixed(1) : Math.floor(u.baseValue + u.increment * u.level)}{u.id === 'critChance' ? '%' : ''}</div>
+              {useGameStore.getState().upgrades.map(u => {
+                const currentValue = u.baseValue + u.increment * u.level;
+                const isMaxed = u.id === 'critChance' && currentValue >= 100;
+                return (
+                  <div key={u.id} className="list-item">
+                    <div className="list-item-info">
+                      <div className="list-item-name">{u.name} Lv.{u.level}</div>
+                      <div className="list-item-desc">현재 효과: {u.id === 'critChance' ? currentValue.toFixed(1) : Math.floor(currentValue)}{u.id === 'critChance' ? '%' : ''}</div>
+                    </div>
+                    <button
+                      className={`list-item-btn ${isMaxed ? 'maxed' : gold >= getUpgradeCost(u) ? 'can-buy' : ''}`}
+                      disabled={isMaxed}
+                      onPointerUp={() => {
+                        if (isMaxed) return;
+                        const success = useGameStore.getState().upgradestat(u.id);
+                        if (success) {
+                          vibrate(5);
+                          soundManager.play('success');
+                        }
+                      }}
+                    >
+                      {isMaxed ? '✨ 최대' : `🪙 ${formatNumber(getUpgradeCost(u))}`}
+                    </button>
                   </div>
-                  <button
-                    className={`list-item-btn ${gold >= getUpgradeCost(u) ? 'can-buy' : ''}`}
-                    onPointerUp={() => {
-                      const success = useGameStore.getState().upgradestat(u.id);
-                      if (success) {
-                        vibrate(5);
-                        soundManager.play('success');
-                      }
-                    }}
-                  >
-                    🪙 {formatNumber(getUpgradeCost(u))}
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
@@ -2349,7 +2374,7 @@ function App() {
                         {ac.name}
                         {!status.isLocked && (
                           <span className="count-badge">
-                            {ac.count}/{status.maxCount}
+                            {status.maxCount === Infinity ? `x${ac.count}` : `${ac.count}/${status.maxCount}`}
                           </span>
                         )}
                       </div>
@@ -2359,7 +2384,7 @@ function App() {
                         ) : status.nextRequirement ? (
                           <span className="tier-requirement">다음 티어: {status.nextRequirement}</span>
                         ) : (
-                          `DPS: +${ac.clicksPerSec}`
+                          `초당 ${ac.clicksPerSec}회 클릭`
                         )}
                       </div>
                     </div>

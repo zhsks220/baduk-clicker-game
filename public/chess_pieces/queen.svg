@@ -1,15 +1,19 @@
 <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <g stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <!-- Pink Queen -->
-        <path d="M30 75H70L75 85H25L30 75Z" fill="#ff9ff3" />
-        <path d="M38 75L42 50H58L62 75H38Z" fill="#ff9ff3" />
-        <path d="M42 50L35 30L45 35L50 20L55 35L65 30L58 50H42Z" fill="#ff9ff3" />
-        <circle cx="50" cy="15" r="3" fill="#ff9ff3" />
+        <g stroke="black" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <!-- Dress (Purple) -->
+        <path d="M20 85H80L65 45H35L20 85Z" fill="#9b59b6" />
+        <path d="M35 45L50 85L65 45" fill="#8e44ad" />
+        
+        <!-- Pink Head -->
+        <circle cx="50" cy="35" r="18" fill="#ff9ff3" />
+
+        <!-- Tiara -->
+        <path d="M35 25L32 20L40 22L42 15L50 22L58 15L60 22L68 20L65 25H35Z" fill="#f1c40f" />
     </g>
-    <!-- Face: Smug -->
-    <path d="M42 40L46 38L48 40" stroke="black" stroke-width="1.5" fill="none" />
-    <path d="M52 40L54 38L58 40" stroke="black" stroke-width="1.5" fill="none" />
-    
-    <!-- Mouth: Smirk -->
-    <path d="M45 44H55Q55 49 50 49Q45 49 45 44Z" fill="white" stroke="black" stroke-width="1.5" />
+    <!-- Face -->
+    <circle cx="44" cy="35" r="2.5" fill="black" />
+    <circle cx="56" cy="35" r="2.5" fill="black" />
+    <path d="M48 39 Q50 41 52 39" stroke="black" stroke-width="1.5" fill="none" stroke-linecap="round" />
+    <circle cx="42" cy="40" r="2" fill="#ffcccc" opacity="0.6" />
+    <circle cx="58" cy="40" r="2" fill="#ffcccc" opacity="0.6" />
 </svg>

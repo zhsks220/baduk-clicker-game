@@ -1,19 +1,22 @@
 <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <!-- Green King -->
-    <g stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-         <path d="M30 75H70L75 85H25L30 75Z" fill="#2ecc71" />
-         <path d="M35 75L40 50H60L65 75H35Z" fill="#2ecc71" />
-         <path d="M40 50L35 30L45 30L50 20L55 30L65 30L60 50H40Z" fill="#2ecc71" />
-         <path d="M50 5V18M45 12H55" stroke-width="2" />
+        <g stroke="black" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <!-- Cape (Red) -->
+        <path d="M25 85H75L65 50H35L25 85Z" fill="#e74c3c" />
+        <path d="M50 85V50" stroke-opacity="0.5" />
+        
+            <!-- Fur Collar -->
+        <path d="M30 50Q50 60 70 50Q75 55 70 60Q50 70 30 60Q25 55 30 50Z" fill="white" />
+
+        <!-- Pink Head -->
+        <circle cx="50" cy="35" r="18" fill="#ff9ff3" />
+        
+        <!-- Crown -->
+        <path d="M35 25V15L42 20L50 10L58 20L65 15V25H35Z" fill="#f1c40f" />
     </g>
-    <!-- Face: Angry (Gritting) -->
-    <path d="M40 33L46 37" stroke="black" stroke-width="1.5" />
-    <path d="M60 33L54 37" stroke="black" stroke-width="1.5" />
-    <circle cx="45" cy="38" r="1.5" fill="black" />
-    <circle cx="55" cy="38" r="1.5" fill="black" />
-    <!-- Mouth -->
-    <rect x="44" y="42" width="12" height="4" rx="1" fill="white" stroke="black" stroke-width="1" />
-     <line x1="44" y1="44" x2="56" y2="44" stroke="black" stroke-width="1" />
-    <line x1="48" y1="42" x2="48" y2="46" stroke="black" stroke-width="1" />
-    <line x1="52" y1="42" x2="52" y2="46" stroke="black" stroke-width="1" />
+    <!-- Face -->
+    <circle cx="44" cy="35" r="2.5" fill="black" />
+    <circle cx="56" cy="35" r="2.5" fill="black" />
+    <path d="M48 39 Q50 41 52 39" stroke="black" stroke-width="1.5" fill="none" stroke-linecap="round" />
+    <circle cx="42" cy="40" r="2" fill="#ffcccc" opacity="0.6" />
+    <circle cx="58" cy="40" r="2" fill="#ffcccc" opacity="0.6" />
 </svg>
