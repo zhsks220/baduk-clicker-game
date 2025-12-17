@@ -1939,6 +1939,12 @@ function App() {
     };
   }, [calculateScale]);
 
+  // 탭별 레터박스 높이 조절
+  useEffect(() => {
+    const grayHeight = activeTab === 'enhance' ? 162 : 244; // 강화탭: 162px, 나머지: 244px (더 높은 패널)
+    document.documentElement.style.setProperty('--letterbox-gray-height', `${grayHeight}px`);
+  }, [activeTab]);
+
   useEffect(() => {
     loadGame();
     if (!localStorage.getItem('pony_story_seen')) setShowStory(true);
