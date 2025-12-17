@@ -1898,9 +1898,11 @@ function App() {
 
   // 스케일링 상태
   const [scale, setScale] = useState(1);
+  const [bgScale, setBgScale] = useState(1);
   const appRef = useRef<HTMLDivElement>(null);
+  const targetRef = useRef<HTMLDivElement>(null);
 
-  // 화면 크기에 맞춰 게임 스케일 계산
+  // 화면 크기에 맞춰 게임 스케일 계산 (Safe Zone 방식)
   const calculateScale = useCallback(() => {
     const DESIGN_WIDTH = 390;
     const DESIGN_HEIGHT = 844;
@@ -1909,12 +1911,17 @@ function App() {
     const windowWidth = window.visualViewport?.width || window.innerWidth;
     const windowHeight = window.visualViewport?.height || window.innerHeight;
 
-    // 가로/세로 중 더 큰 스케일 사용 (화면 전체를 채움, 일부 잘릴 수 있음)
     const scaleX = windowWidth / DESIGN_WIDTH;
     const scaleY = windowHeight / DESIGN_HEIGHT;
-    const newScale = Math.max(scaleX, scaleY);
 
-    setScale(newScale);
+    // Safe Zone 방식:
+    // - 콘텐츠: Math.min (잘리지 않도록)
+    // - 배경: Math.max (화면 전체 채우기)
+    const contentScale = Math.min(scaleX, scaleY);
+    const backgroundScale = Math.max(scaleX, scaleY);
+
+    setScale(contentScale);
+    setBgScale(backgroundScale);
   }, []);
 
   // 스케일링 이벤트 리스너
@@ -1936,14 +1943,32 @@ function App() {
     loadGame();
     if (!localStorage.getItem('pony_story_seen')) setShowStory(true);
 
-    // Initial Interaction for BGM
-    const startAudio = () => {
-      soundManager.play('bgm');
-      window.removeEventListener('pointerdown', startAudio);
-      window.removeEventListener('keydown', startAudio);
+    // Initial Interaction for BGM - HTML5 오디오 잠금해제 후 재생
+    const removeAudioListeners = () => {
+      window.removeEventListener('pointerdown', startAudio, true);
+      window.removeEventListener('touchstart', startAudio, true);
+      window.removeEventListener('click', startAudio, true);
     };
-    window.addEventListener('pointerdown', startAudio);
-    window.addEventListener('keydown', startAudio);
+
+    const startAudio = () => {
+      // 먼저 오디오 잠금해제 시도
+      soundManager.unlockAudio();
+      // BGM 재생 요청
+      soundManager.play('bgm');
+
+      // BGM이 실제로 재생되면 이벤트 리스너 제거
+      // 아직 로딩 중이면 100ms 후 재확인
+      setTimeout(() => {
+        if (soundManager.isBgmActuallyPlaying() || soundManager.isBgmMuted()) {
+          removeAudioListeners();
+        }
+      }, 100);
+    };
+
+    // once 제거 - BGM 실제 재생 후에만 리스너 제거
+    window.addEventListener('pointerdown', startAudio, { capture: true });
+    window.addEventListener('touchstart', startAudio, { capture: true });
+    window.addEventListener('click', startAudio, { capture: true });
 
     setTimeout(() => {
       const r = collectOfflineReward();
@@ -1967,8 +1992,7 @@ function App() {
       clearInterval(i);
       clearInterval(s);
       window.removeEventListener('popstate', handlePopState);
-      window.removeEventListener('pointerdown', startAudio);
-      window.removeEventListener('keydown', startAudio);
+      removeAudioListeners();
       soundManager.stopBgm();
     };
   }, []);
@@ -2126,7 +2150,7 @@ function App() {
     setShowGuide(false);
   };
 
-  const handleAttack = (e: React.PointerEvent) => {
+  const handleAttack = (_e: React.PointerEvent) => {
     vibrate(5);
     const result = handleClick();
     soundManager.play('hit');
@@ -2135,9 +2159,25 @@ function App() {
     setShake(true);
     setTimeout(() => setShake(false), 50);
 
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    // 타겟(바둑돌) 영역 기준으로 데미지 텍스트 위치 계산
+    // battle-container 내에서 target-wrapper 위치 사용
+    let x: number, y: number;
+    if (targetRef.current) {
+      const targetRect = targetRef.current.getBoundingClientRect();
+      const parentRect = targetRef.current.parentElement?.getBoundingClientRect();
+      if (parentRect) {
+        // battle-container 내에서의 상대 위치 + 랜덤 오프셋
+        x = (targetRect.left - parentRect.left) + targetRect.width / 2 + (Math.random() * 60 - 30);
+        y = (targetRect.top - parentRect.top) + targetRect.height / 2 + (Math.random() * 40 - 20);
+      } else {
+        x = 200 + Math.random() * 60 - 30;
+        y = 80 + Math.random() * 40 - 20;
+      }
+    } else {
+      // fallback: 고정 위치
+      x = 200 + Math.random() * 60 - 30;
+      y = 80 + Math.random() * 40 - 20;
+    }
 
     const newFx = {
       id: Date.now(),
@@ -2228,14 +2268,22 @@ function App() {
 
   return (
     <div className="game-wrapper">
-    <div
-      ref={appRef}
-      className="app"
-      style={{
-        backgroundImage: `url(${backgroundImage})`,
-        transform: `scale(${scale})`,
-      }}
-    >
+      {/* 배경 레이어: 화면 전체를 덮음 (Safe Zone 방식) */}
+      <div
+        className="app-background"
+        style={{
+          backgroundImage: `url(${backgroundImage})`,
+          transform: `scale(${bgScale})`,
+        }}
+      />
+      {/* 콘텐츠 레이어: 잘리지 않도록 스케일링 */}
+      <div
+        ref={appRef}
+        className="app"
+        style={{
+          transform: `scale(${scale})`,
+        }}
+      >
       {showStory && <StoryIntroModal onClose={onStoryClose} />}
       {showGuide && <GuideModal onClose={onGuideClose} />}
 
@@ -2323,7 +2371,7 @@ function App() {
       </div>
 
       {/* Main Battle Area */}
-      <div className="game-area">
+      <div className="game-area" onPointerDown={handleAttack}>
 
         {/* 보스 게이지 - game-area 안에 배치 */}
         <div className="boss-gauge-container">
@@ -2359,7 +2407,7 @@ function App() {
           </div>
 
           {/* Target - CSS Rendered Stone / Boss */}
-          <div className={`target-wrapper ${shake ? 'shake' : ''} ${currentStone.isBoss ? 'boss-mode' : ''}`} onPointerDown={handleAttack}>
+          <div ref={targetRef} className={`target-wrapper ${shake ? 'shake' : ''} ${currentStone.isBoss ? 'boss-mode' : ''}`}>
 
             {/* 2D SVG Stone Character / Boss */}
             <div className={`stone-character-wrapper ${currentStone.isBoss ? 'boss' : currentStone.color}`}
@@ -2443,7 +2491,7 @@ function App() {
       </div>
 
       {/* Bottom Tab UI - Tap Titans 스타일 */}
-      <div className="bottom-tab-container">
+      <div className="bottom-tab-container" onPointerDown={(e) => e.stopPropagation()}>
         {/* 탭 네비게이션 */}
         <div className="tab-navigation">
           <button

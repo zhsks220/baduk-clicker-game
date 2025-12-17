@@ -35,6 +35,33 @@ body {
   justify-content: center;
   align-items: center;
   overflow: hidden;
+  position: relative;
+}
+
+/* 하단 여백만 회색으로 채우기 */
+.game-wrapper::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 150px;
+  background: #f1f2f6;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* 배경 레이어 - Safe Zone 방식: 화면 전체를 덮음 */
+.app-background {
+  position: absolute;
+  width: 390px;
+  height: 844px;
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: cover;
+  transition: background-image 0.5s ease-in-out;
+  transform-origin: center center;
+  z-index: 0;
 }
 
 /* 고정 크기 게임 컨테이너 - 스케일링 방식 */
@@ -44,9 +71,8 @@ body {
   width: 390px;
   height: 844px;
   position: relative;
-  background: url('./assets/bg_main_wide.png') no-repeat center center;
-  background-size: cover;
-  transition: background-image 0.5s ease-in-out;
+  /* 배경은 별도 레이어에서 처리 (Safe Zone 방식) */
+  background: transparent;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -54,18 +80,18 @@ body {
   overflow: hidden;
   /* 스케일링은 JavaScript에서 처리 */
   transform-origin: center center;
+  z-index: 1;
 }
 
 /* ============ Story Overlay ============ */
 .story-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
+  position: fixed;
+  inset: 0;
   width: 100%;
   height: 100%;
   background: url('./assets/bg_story.png') no-repeat center center;
   background-size: cover;
-  z-index: 1000;
+  z-index: 9999;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -250,6 +276,7 @@ body {
   gap: 8px;
   overflow: hidden;
   padding-top: 5px;
+  z-index: 1; /* 모달보다 낮은 z-index */
 }
 
 /* 파괴한 바둑돌 배지 */
@@ -2408,6 +2435,13 @@ body {
   flex-shrink: 0;
   max-height: 45vh;
   /* 화면의 45% 이하로 제한 */
+  /* 양쪽 + 하단으로 확장하여 전체 화면 채우기 */
+  box-shadow:
+    -100vw 0 0 0 #f1f2f6,
+    100vw 0 0 0 #f1f2f6,
+    -100vw 100vh 0 0 #f1f2f6,
+    100vw 100vh 0 0 #f1f2f6,
+    0 100vh 0 0 #f1f2f6;
 }
 
 /* 탭 네비게이션 바 */

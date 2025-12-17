@@ -1,7 +1,8 @@
 import { Howl, Howler } from 'howler';
 
 // Sound Assets
-import bgmCasual from '../assets/sounds/bgm_casual.mp3';
+import bgmCasualOgg from '../assets/sounds/bgm_casual.ogg';
+import bgmCasualMp3 from '../assets/sounds/bgm_casual.mp3';
 import seHit from '../assets/sounds/se_hit.wav';
 import seDestroy from '../assets/sounds/se_destroy.wav';
 import seCoin from '../assets/sounds/se_coin.wav';
@@ -28,15 +29,27 @@ class SoundManager {
     private bgmVolume: number = 0.3;
     private sfxVolume: number = 0.5;
     private bgmPlaying: boolean = false;
+    private bgmLoaded: boolean = false;
+    private pendingBgmPlay: boolean = false;
+    private audioUnlocked: boolean = false;
 
     constructor() {
-        // BGM 설정 (HTML5 Audio로 스트리밍 - 긴 파일에 적합)
+        // BGM 설정 (OGG 우선, MP3 백업 - 더 작은 용량과 끊김없는 루프)
+        // html5: true 제거 - Web Audio API 사용으로 자동재생 문제 해결 시도
         this.bgm = new Howl({
-            src: [bgmCasual],
+            src: [bgmCasualOgg, bgmCasualMp3],
             loop: true,
             volume: this.bgmVolume,
-            html5: true, // 스트리밍으로 메모리 절약
             preload: true,
+            onload: () => {
+                this.bgmLoaded = true;
+                // 로드 완료 시 대기 중인 재생 요청 처리
+                if (this.pendingBgmPlay && !this.bgmMuted && this.audioUnlocked) {
+                    this.bgm.play();
+                    this.bgmPlaying = true;
+                    this.pendingBgmPlay = false;
+                }
+            },
         });
 
         // SFX 설정 (Web Audio API - 빠른 재생, 낮은 지연)
@@ -122,8 +135,14 @@ class SoundManager {
         if (type === 'bgm') {
             if (this.bgmMuted) return;
             if (!this.bgmPlaying) {
-                this.bgm.play();
-                this.bgmPlaying = true;
+                if (this.bgmLoaded) {
+                    // 이미 로드됨 - 즉시 재생
+                    this.bgm.play();
+                    this.bgmPlaying = true;
+                } else {
+                    // 아직 로딩 중 - 로드 완료 시 재생하도록 예약
+                    this.pendingBgmPlay = true;
+                }
             }
             return;
         }
@@ -209,6 +228,56 @@ class SoundManager {
 
     unmuteAll() {
         Howler.mute(false);
+    }
+
+    // HTML5 오디오 잠금해제 (유저 터치 시 호출)
+    unlockAudio(): boolean {
+        if (this.audioUnlocked) return true;
+
+        try {
+            // HTML5 Audio 직접 잠금해제
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const sounds = (this.bgm as any)._sounds;
+            if (sounds && sounds[0] && sounds[0]._node) {
+                const node = sounds[0]._node as HTMLAudioElement;
+                // 짧게 재생했다 멈추면 잠금해제됨
+                node.play().then(() => {
+                    node.pause();
+                    node.currentTime = 0;
+                    this.audioUnlocked = true;
+
+                    // 대기 중인 재생 요청 처리
+                    if (this.pendingBgmPlay && !this.bgmMuted) {
+                        this.bgm.play();
+                        this.bgmPlaying = true;
+                        this.pendingBgmPlay = false;
+                    }
+                }).catch(() => {
+                    // 잠금해제 실패 - 다음 터치에서 재시도
+                });
+            }
+
+            // Web Audio Context도 함께 잠금해제
+            if (Howler.ctx && Howler.ctx.state === 'suspended') {
+                Howler.ctx.resume();
+            }
+
+            this.audioUnlocked = true;
+            return true;
+        } catch (e) {
+            console.error('Audio unlock failed:', e);
+            return false;
+        }
+    }
+
+    // BGM이 실제로 재생 중인지 확인
+    isBgmActuallyPlaying(): boolean {
+        return this.bgmPlaying && this.bgm.playing();
+    }
+
+    // 오디오 잠금해제 여부 확인
+    isAudioUnlocked(): boolean {
+        return this.audioUnlocked;
     }
 }
 
