@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { create } from 'zustand';
+import { App as CapacitorApp } from '@capacitor/app';
 import './App.css';
 
 // Assets (2D Characters)
@@ -1694,7 +1695,7 @@ function AgeRatingBadge({ onComplete }: { onComplete: () => void }) {
           <span className="age-rating-sub">All Ages</span>
         </div>
         <div className="age-rating-info">
-          <p className="info-item"><span>게임명:</span> 바둑돌 부수기</p>
+          <p className="info-item"><span>게임명:</span> 체스 키우기</p>
           <p className="info-item"><span>제작사:</span> 체스왕국 스튜디오</p>
           <p className="info-item"><span>등급분류:</span> 전체이용가</p>
           <p className="info-item"><span>내용정보:</span> 폭력성 없음, 선정성 없음</p>
@@ -1712,7 +1713,7 @@ function ExitConfirmModal({ onCancel, onConfirm }: { onCancel: () => void; onCon
   return (
     <div className="modal-overlay">
       <div className="exit-modal">
-        <p className="exit-modal-text">바둑돌 부수기를 종료할까요?</p>
+        <p className="exit-modal-text">체스 키우기를 종료할까요?</p>
         <div className="exit-modal-buttons">
           <button className="exit-btn cancel" onClick={onCancel}>취소</button>
           <button className="exit-btn confirm" onClick={onConfirm}>종료하기</button>
@@ -1846,7 +1847,7 @@ function MoreMenuModal({ onClose, onReset, onShowGuide }: {
           </div>
 
           <div className="more-menu-info">
-            <p>바둑돌 부수기 v1.0</p>
+            <p>체스 키우기 v1.0</p>
             <p>제작: 체스왕국 스튜디오</p>
           </div>
         </div>
@@ -1901,13 +1902,17 @@ function App() {
 
   // 화면 크기에 맞춰 게임 스케일 계산
   const calculateScale = useCallback(() => {
+    const DESIGN_WIDTH = 390;
     const DESIGN_HEIGHT = 844;
 
     // visualViewport API 사용 (모바일 브라우저 주소창/하단바 고려)
+    const windowWidth = window.visualViewport?.width || window.innerWidth;
     const windowHeight = window.visualViewport?.height || window.innerHeight;
 
-    // 세로(height) 기준으로 스케일링 (위아래 잘림 없음, 양옆만 빈 공간)
-    const newScale = windowHeight / DESIGN_HEIGHT;
+    // 가로/세로 중 더 큰 스케일 사용 (화면 전체를 채움, 일부 잘릴 수 있음)
+    const scaleX = windowWidth / DESIGN_WIDTH;
+    const scaleY = windowHeight / DESIGN_HEIGHT;
+    const newScale = Math.max(scaleX, scaleY);
 
     setScale(newScale);
   }, []);
@@ -2093,12 +2098,16 @@ function App() {
   }, [autoClicksPerSec]);
 
   // TODO 1: 앱 종료 처리
-  const handleExit = () => {
-    // 토스 앱인앱에서는 window.close() 또는 토스 SDK의 종료 함수 호출
-    window.close();
-    // 폴백: 히스토리 뒤로가기
-    if (window.history.length > 1) {
-      window.history.back();
+  const handleExit = async () => {
+    try {
+      // Capacitor 앱 종료
+      await CapacitorApp.exitApp();
+    } catch {
+      // 웹 환경 폴백
+      window.close();
+      if (window.history.length > 1) {
+        window.history.back();
+      }
     }
   };
 

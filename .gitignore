@@ -24,3 +24,8 @@ dist-ssr
 *.sw?
 
 .vercel
+
+# Keystore (보안)
+keystore/
+*.jks
+*.keystore

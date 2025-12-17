@@ -10,9 +10,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icon-192.png', 'icon-512.png'],
       manifest: {
-        name: '바둑돌 부수기',
-        short_name: '바둑돌',
-        description: '바둑돌을 부수고 체스말을 강화하는 방치형 클리커 게임!',
+        name: '체스 키우기',
+        short_name: '체스 키우기',
+        description: '체스말을 강화하고 성장시키는 방치형 클리커 게임!',
         start_url: '/',
         display: 'standalone',
         background_color: '#1a1a1a',
