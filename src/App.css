@@ -7,8 +7,6 @@
   --text-color: #2f3542;
   --bg-color: #f1f2f6;
   --font-family: 'Jua', 'Inter', system-ui, -apple-system, sans-serif;
-  --letterbox-gray-height: 162px;
-  --letterbox-white-height: 49px;
 }
 
 * {
@@ -38,19 +36,6 @@ body {
   align-items: center;
   overflow: hidden;
   position: relative;
-}
-
-/* 하단 레터박스 (위: 흰색 탭, 아래: 회색 패널) */
-.game-wrapper::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: calc(var(--letterbox-white-height) + var(--letterbox-gray-height));
-  background: linear-gradient(to bottom, #fff 0%, #fff var(--letterbox-white-height), #f1f2f6 var(--letterbox-white-height), #f1f2f6 100%);
-  z-index: 0;
-  pointer-events: none;
 }
 
 /* 배경 레이어 - Safe Zone 방식: 화면 전체를 덮음 */
@@ -283,6 +268,10 @@ body {
 
 /* 파괴한 바둑돌 배지 */
 .stones-destroyed-badge {
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translate(-50%, -100%);
   background: rgba(255, 255, 255, 0.9);
   padding: 6px 14px;
   border-radius: 20px;
@@ -290,8 +279,6 @@ body {
   font-size: 0.85rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   white-space: nowrap;
-  flex-shrink: 0;
-  max-width: 90%;
   text-align: center;
 }
 
@@ -2430,20 +2417,15 @@ body {
 
 /* ============ 탭 기반 UI (Tap Titans 스타일) ============ */
 .bottom-tab-container {
-  width: 100%;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100vw;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(0deg, rgba(241, 242, 246, 1) 0%, rgba(241, 242, 246, 0.98) 100%);
-  flex-shrink: 0;
+  background: transparent;
+  z-index: 50;
   max-height: 45vh;
-  /* 화면의 45% 이하로 제한 */
-  /* 양쪽 + 하단으로 확장하여 전체 화면 채우기 */
-  box-shadow:
-    -100vw 0 0 0 #f1f2f6,
-    100vw 0 0 0 #f1f2f6,
-    -100vw 100vh 0 0 #f1f2f6,
-    100vw 100vh 0 0 #f1f2f6,
-    0 100vh 0 0 #f1f2f6;
 }
 
 /* 탭 네비게이션 바 */
@@ -2520,6 +2502,7 @@ body {
   overflow: hidden;
   padding: 10px;
   padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  background: linear-gradient(0deg, rgba(241, 242, 246, 1) 0%, rgba(241, 242, 246, 0.98) 100%);
 }
 
 .tab-panel {

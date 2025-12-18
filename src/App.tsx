@@ -1939,12 +1939,6 @@ function App() {
     };
   }, [calculateScale]);
 
-  // 탭별 레터박스 높이 조절
-  useEffect(() => {
-    const grayHeight = activeTab === 'enhance' ? 162 : 244; // 강화탭: 162px, 나머지: 244px (더 높은 패널)
-    document.documentElement.style.setProperty('--letterbox-gray-height', `${grayHeight}px`);
-  }, [activeTab]);
-
   useEffect(() => {
     loadGame();
     if (!localStorage.getItem('pony_story_seen')) setShowStory(true);
@@ -2290,22 +2284,6 @@ function App() {
           transform: `scale(${scale})`,
         }}
       >
-      {showStory && <StoryIntroModal onClose={onStoryClose} />}
-      {showGuide && <GuideModal onClose={onGuideClose} />}
-
-      {/* TODO 2: 연령 등급 배지 (3초 표시) */}
-      {showAgeRating && <AgeRatingBadge onComplete={() => setShowAgeRating(false)} />}
-
-      {/* TODO 1: 종료 확인 모달 */}
-      {showExitModal && <ExitConfirmModal onCancel={() => setShowExitModal(false)} onConfirm={handleExit} />}
-
-      {/* 더보기 메뉴 모달 */}
-      {showMoreMenu && <MoreMenuModal
-        onClose={() => setShowMoreMenu(false)}
-        onReset={() => useGameStore.getState().resetGame()}
-        onShowGuide={() => setShowGuide(true)}
-      />}
-
       {/* Top Header */}
       <div className="game-header">
         <div className="resource-bar">
@@ -2489,15 +2467,16 @@ function App() {
           {fx.map(f => <FloatingText key={f.id} x={f.x} y={f.y} text={f.text} type={f.type} />)}
         </div>
 
-        {/* Stats Mini */}
+      </div>
+
+      </div>{/* app div 종료 */}
+
+      {/* Bottom Tab UI - app 밖, 화면 하단 고정 */}
+      <div className="bottom-tab-container" onPointerDown={(e) => e.stopPropagation()}>
+        {/* 파괴한 바둑돌 badge - container 상단에 붙어서 함께 움직임 */}
         <div className="stones-destroyed-badge">
           파괴한 바둑돌: {stonesDestroyed}
         </div>
-
-      </div>
-
-      {/* Bottom Tab UI - Tap Titans 스타일 */}
-      <div className="bottom-tab-container" onPointerDown={(e) => e.stopPropagation()}>
         {/* 탭 네비게이션 */}
         <div className="tab-navigation">
           <button
@@ -2821,12 +2800,22 @@ function App() {
         </div>
       </div>
 
+      {/* 모달들 - app 밖, 하단 UI보다 위에 표시 */}
+      {showStory && <StoryIntroModal onClose={onStoryClose} />}
+      {showGuide && <GuideModal onClose={onGuideClose} />}
+      {showAgeRating && <AgeRatingBadge onComplete={() => setShowAgeRating(false)} />}
+      {showExitModal && <ExitConfirmModal onCancel={() => setShowExitModal(false)} onConfirm={handleExit} />}
+      {showMoreMenu && <MoreMenuModal
+        onClose={() => setShowMoreMenu(false)}
+        onReset={() => useGameStore.getState().resetGame()}
+        onShowGuide={() => setShowGuide(true)}
+      />}
+
       {/* Reward Toast */}
       {rewardFx && (
         <div className="reward-toast">{rewardFx.text}</div>
       )}
 
-    </div>
     </div>
   );
 }
