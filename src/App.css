@@ -2499,10 +2499,11 @@ body {
 .tab-content {
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  overflow: auto;
   padding: 10px;
   padding-bottom: calc(10px + env(safe-area-inset-bottom));
   background: linear-gradient(0deg, rgba(241, 242, 246, 1) 0%, rgba(241, 242, 246, 0.98) 100%);
+  touch-action: pan-y;
 }
 
 .tab-panel {
@@ -2514,6 +2515,8 @@ body {
 .tab-panel.scroll-panel {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
   gap: 8px;
   padding-right: 5px;
 }

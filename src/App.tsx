@@ -2491,13 +2491,13 @@ function App() {
       </div>{/* app div 종료 */}
 
       {/* Bottom Tab UI - app 밖, 화면 하단 고정 */}
-      <div className="bottom-tab-container" onPointerDown={(e) => e.stopPropagation()}>
+      <div className="bottom-tab-container">
         {/* 파괴한 바둑돌 badge - container 상단에 붙어서 함께 움직임 */}
         <div className="stones-destroyed-badge">
           파괴한 바둑돌: {stonesDestroyed}
         </div>
-        {/* 탭 네비게이션 */}
-        <div className="tab-navigation">
+        {/* 탭 네비게이션 - 여기만 이벤트 전파 차단 (스크롤 영역은 허용) */}
+        <div className="tab-navigation" onPointerDown={(e) => e.stopPropagation()}>
           <button
             className={`tab-btn ${activeTab === 'enhance' ? 'active' : ''}`}
             onPointerUp={() => { soundManager.play('click'); setActiveTab('enhance'); }}
