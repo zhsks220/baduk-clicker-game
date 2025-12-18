@@ -1939,6 +1939,25 @@ function App() {
     };
   }, [calculateScale]);
 
+  // 앱 백그라운드/포그라운드 전환 시 오디오 제어
+  useEffect(() => {
+    let listenerHandle: { remove: () => void } | null = null;
+
+    CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) {
+        soundManager.unmuteAll(); // 포그라운드: 음소거 해제
+      } else {
+        soundManager.muteAll();   // 백그라운드: 음소거
+      }
+    }).then(handle => {
+      listenerHandle = handle;
+    });
+
+    return () => {
+      listenerHandle?.remove();
+    };
+  }, []);
+
   useEffect(() => {
     loadGame();
     if (!localStorage.getItem('pony_story_seen')) setShowStory(true);
