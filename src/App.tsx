@@ -2059,8 +2059,10 @@ function App() {
       return;
     }
 
-    // 4. 미션 가이드 (완료된 미션 존재)
+    // 4. 미션 가이드 (첫 번째 미션 완료 시 한 번만)
     if (!missionDone && missions.some(m => m.completed && !m.claimed)) {
+      // 미션 튜토리얼은 딱 한 번만 보여주기 위해 즉시 localStorage 설정
+      localStorage.setItem('tutorial_mission', 'done');
       setActiveTutorial('mission');
       setTutorialStep(0);
       return;
@@ -2878,7 +2880,22 @@ function App() {
           {/* 미션 탭 */}
           {activeTab === 'mission' && (
             <div className="tab-panel scroll-panel">
-              {missions.map(m => {
+              {[...missions].sort((a, b) => {
+                // 1. 완료됨 + 보상 안받음 (보상받기 가능) → 맨 위
+                const aClaimable = a.completed && !a.claimed;
+                const bClaimable = b.completed && !b.claimed;
+                if (aClaimable && !bClaimable) return -1;
+                if (!aClaimable && bClaimable) return 1;
+
+                // 2. 이미 완료함 (claimed) → 맨 아래
+                if (a.claimed && !b.claimed) return 1;
+                if (!a.claimed && b.claimed) return -1;
+
+                // 3. 진행 중인 미션은 진행률 높은 순으로
+                const aProgress = a.current / a.target;
+                const bProgress = b.current / b.target;
+                return bProgress - aProgress;
+              }).map(m => {
                 const progress = Math.min(100, (m.current / m.target) * 100);
                 return (
                   <div key={m.id} className={`mission-item ${m.completed ? 'completed' : ''} ${m.claimed ? 'claimed' : ''} ${activeTutorial === 'mission' && tutorialStep === 1 && m.completed && !m.claimed ? 'tutorial-highlight' : ''}`}>
