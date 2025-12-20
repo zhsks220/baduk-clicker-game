@@ -1432,6 +1432,11 @@ const useGameStore = create<GameState>((set, get) => ({
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem('pony_story_seen'); // 스토리 인트로도 초기화
     localStorage.removeItem('pony_guide_seen'); // 가이드도 초기화
+    // 튜토리얼 초기화
+    localStorage.removeItem('tutorial_first-click');
+    localStorage.removeItem('tutorial_growth');
+    localStorage.removeItem('tutorial_tool');
+    localStorage.removeItem('tutorial_mission');
     window.location.reload();
   }
 }));
@@ -1869,9 +1874,14 @@ function App() {
   const [activeTab, setActiveTab] = useState<TabType>('enhance'); // 탭 기반 UI
   const [fx, setFx] = useState<{ id: number, x: number, y: number, text: string, type: any }[]>([]);
 
+  // 강제 튜토리얼 시스템
+  const [activeTutorial, setActiveTutorial] = useState<'first-click' | 'growth' | 'tool' | 'mission' | null>(null);
+  const [tutorialStep, setTutorialStep] = useState<0 | 1>(0);
+  const [spotlightRect, setSpotlightRect] = useState<{x: number, y: number, width: number, height: number} | null>(null);
+
   const {
     gold, ruby, currentPiece, currentStone, stonesDestroyed,
-    attackPower, critChance, autoClicksPerSec,
+    attackPower, critChance, autoClicksPerSec, upgradeCount,
     stonesUntilBoss, bossesDefeated,
     handleClick, tryEnhance, claimMissionReward, missions,
     loadGame, saveGame, autoTick, collectOfflineReward
@@ -2015,6 +2025,81 @@ function App() {
       soundManager.stopBgm();
     };
   }, []);
+
+  // 강제 튜토리얼 트리거
+  useEffect(() => {
+    // 다른 모달이 열려있으면 체크 안함
+    if (showGuide || showStory || showAgeRating) return;
+    // 이미 튜토리얼 진행 중이면 체크 안함
+    if (activeTutorial) return;
+
+    const firstClickDone = localStorage.getItem('tutorial_first-click');
+    const growthDone = localStorage.getItem('tutorial_growth');
+    const toolDone = localStorage.getItem('tutorial_tool');
+    const missionDone = localStorage.getItem('tutorial_mission');
+
+    // 1. 첫 클릭 가이드
+    if (!firstClickDone && stonesDestroyed === 0) {
+      setActiveTutorial('first-click');
+      setTutorialStep(0);
+      return;
+    }
+
+    // 2. 성장 가이드 (55골드 이상, 업그레이드 0회)
+    if (!growthDone && gold >= 55 && upgradeCount === 0) {
+      setActiveTutorial('growth');
+      setTutorialStep(0);
+      return;
+    }
+
+    // 3. 도구 가이드 (300골드 이상, 자동클릭 0)
+    if (!toolDone && gold >= 300 && autoClicksPerSec === 0) {
+      setActiveTutorial('tool');
+      setTutorialStep(0);
+      return;
+    }
+
+    // 4. 미션 가이드 (완료된 미션 존재)
+    if (!missionDone && missions.some(m => m.completed && !m.claimed)) {
+      setActiveTutorial('mission');
+      setTutorialStep(0);
+      return;
+    }
+  }, [gold, stonesDestroyed, autoClicksPerSec, upgradeCount, missions, showGuide, showStory, showAgeRating, activeTutorial]);
+
+  // 튜토리얼 완료 함수
+  const completeTutorial = (type: 'first-click' | 'growth' | 'tool' | 'mission') => {
+    localStorage.setItem(`tutorial_${type}`, 'done');
+    setActiveTutorial(null);
+    setTutorialStep(0);
+    setSpotlightRect(null);
+  };
+
+  // 튜토리얼 spotlight 위치 계산
+  useEffect(() => {
+    if (!activeTutorial) {
+      setSpotlightRect(null);
+      return;
+    }
+
+    // 약간의 지연 후 위치 계산 (DOM 렌더링 대기)
+    const timer = setTimeout(() => {
+      // tutorial-highlight 클래스가 적용된 요소를 찾음
+      const target = document.querySelector('.tutorial-highlight');
+      if (target) {
+        const rect = target.getBoundingClientRect();
+        const padding = 8;
+        setSpotlightRect({
+          x: rect.left - padding,
+          y: rect.top - padding,
+          width: rect.width + padding * 2,
+          height: rect.height + padding * 2
+        });
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [activeTutorial, tutorialStep, activeTab]);
 
   // 도구 자동 공격 시각화 이펙트
   useEffect(() => {
@@ -2174,6 +2259,8 @@ function App() {
     const result = handleClick();
     soundManager.play('hit');
     if (result.isCrit) soundManager.play('coin');
+    // 첫 클릭 튜토리얼 완료
+    if (activeTutorial === 'first-click') completeTutorial('first-click');
 
     setShake(true);
     setTimeout(() => setShake(false), 50);
@@ -2298,12 +2385,12 @@ function App() {
       {/* 콘텐츠 레이어: 잘리지 않도록 스케일링 */}
       <div
         ref={appRef}
-        className="app"
+        className={`app ${activeTutorial ? 'tutorial-active' : ''}`}
         style={{
           transform: `scale(${scale})`,
         }}
       >
-      {/* Top Header */}
+{/* Top Header */}
       <div className="game-header">
         <div className="resource-bar">
           <div className="resource-item gold">🪙 {formatNumber(gold)}</div>
@@ -2413,7 +2500,7 @@ function App() {
           <div ref={targetRef} className={`target-wrapper ${shake ? 'shake' : ''} ${currentStone.isBoss ? 'boss-mode' : ''}`}>
 
             {/* 2D SVG Stone Character / Boss */}
-            <div className={`stone-character-wrapper ${currentStone.isBoss ? 'boss' : currentStone.color}`}
+            <div className={`stone-character-wrapper ${currentStone.isBoss ? 'boss' : currentStone.color} ${activeTutorial === 'first-click' ? 'tutorial-highlight' : ''}`}
               style={{
                 width: currentStone.isBoss ? 160 : stonePixelSize,
                 height: currentStone.isBoss ? 160 : stonePixelSize,
@@ -2506,15 +2593,25 @@ function App() {
             <span className="tab-label">강화</span>
           </button>
           <button
-            className={`tab-btn ${activeTab === 'upgrade' ? 'active' : ''}`}
-            onPointerUp={() => { soundManager.play('click'); setActiveTab('upgrade'); }}
+            className={`tab-btn ${activeTab === 'upgrade' ? 'active' : ''} ${activeTutorial === 'growth' && tutorialStep === 0 ? 'tutorial-highlight' : ''}`}
+            data-tab="growth"
+            onPointerUp={() => {
+              soundManager.play('click');
+              setActiveTab('upgrade');
+              if (activeTutorial === 'growth' && tutorialStep === 0) setTutorialStep(1);
+            }}
           >
             <span className="tab-icon">📈</span>
             <span className="tab-label">성장</span>
           </button>
           <button
-            className={`tab-btn ${activeTab === 'auto' ? 'active' : ''}`}
-            onPointerUp={() => { soundManager.play('click'); setActiveTab('auto'); }}
+            className={`tab-btn ${activeTab === 'auto' ? 'active' : ''} ${activeTutorial === 'tool' && tutorialStep === 0 ? 'tutorial-highlight' : ''}`}
+            data-tab="tool"
+            onPointerUp={() => {
+              soundManager.play('click');
+              setActiveTab('auto');
+              if (activeTutorial === 'tool' && tutorialStep === 0) setTutorialStep(1);
+            }}
           >
             <span className="tab-icon">🔧</span>
             <span className="tab-label">도구</span>
@@ -2527,8 +2624,13 @@ function App() {
             <span className="tab-label">상점</span>
           </button>
           <button
-            className={`tab-btn ${activeTab === 'mission' ? 'active' : ''}`}
-            onPointerUp={() => { soundManager.play('click'); setActiveTab('mission'); }}
+            className={`tab-btn ${activeTab === 'mission' ? 'active' : ''} ${activeTutorial === 'mission' && tutorialStep === 0 ? 'tutorial-highlight' : ''}`}
+            data-tab="mission"
+            onPointerUp={() => {
+              soundManager.play('click');
+              setActiveTab('mission');
+              if (activeTutorial === 'mission' && tutorialStep === 0) setTutorialStep(1);
+            }}
           >
             <span className="tab-icon">📜</span>
             <span className="tab-label">미션</span>
@@ -2593,7 +2695,7 @@ function App() {
           {/* 성장 탭 */}
           {activeTab === 'upgrade' && (
             <div className="tab-panel scroll-panel">
-              {useGameStore.getState().upgrades.map(u => {
+              {useGameStore.getState().upgrades.map((u, idx) => {
                 // 골드는 복리 성장, 공격력은 level-1, 나머지는 level
                 const currentValue = u.id === 'goldPerClick'
                   ? 1 + (Math.pow(1.03, u.level - 1) - 1) / 0.03
@@ -2602,7 +2704,7 @@ function App() {
                     : u.baseValue + u.increment * u.level;
                 const isMaxed = u.id === 'critChance' && currentValue >= 100;
                 return (
-                  <div key={u.id} className="list-item">
+                  <div key={u.id} className={`list-item ${activeTutorial === 'growth' && tutorialStep === 1 && idx === 0 ? 'tutorial-highlight' : ''}`}>
                     <div className="list-item-info">
                       <div className="list-item-name">{u.name} Lv.{u.level}</div>
                       <div className="list-item-desc">현재 효과: {u.id === 'critChance' ? currentValue.toFixed(1) : Math.floor(currentValue)}{(u.id === 'critChance' || u.id === 'critDamage') ? '%' : ''}</div>
@@ -2616,6 +2718,7 @@ function App() {
                         if (success) {
                           vibrate(5);
                           soundManager.play('success');
+                          if (activeTutorial === 'growth' && tutorialStep === 1) completeTutorial('growth');
                         }
                       }}
                     >
@@ -2630,14 +2733,14 @@ function App() {
           {/* 도구 탭 */}
           {activeTab === 'auto' && (
             <div className="tab-panel scroll-panel">
-              {useGameStore.getState().autoClickers.map(ac => {
+              {useGameStore.getState().autoClickers.map((ac, idx) => {
                 const status = getAutoClickerStatus(ac.id, ac.count, currentPiece.rank, currentPiece.level);
                 const cost = getAutoClickerCost(ac);
                 const canAfford = gold >= cost;
                 const canBuyNow = status.canBuy && canAfford && !status.isLocked;
 
                 return (
-                  <div key={ac.id} className={`list-item ${status.isLocked ? 'locked' : ''}`}>
+                  <div key={ac.id} className={`list-item ${status.isLocked ? 'locked' : ''} ${activeTutorial === 'tool' && tutorialStep === 1 && idx === 0 ? 'tutorial-highlight' : ''}`}>
                     <div className="list-item-emoji">{status.isLocked ? '🔒' : ac.emoji}</div>
                     <div className="list-item-info">
                       <div className="list-item-name">
@@ -2667,6 +2770,7 @@ function App() {
                         if (success) {
                           vibrate(5);
                           soundManager.play('coin');
+                          if (activeTutorial === 'tool' && tutorialStep === 1) completeTutorial('tool');
                         }
                       }}
                     >
@@ -2777,7 +2881,7 @@ function App() {
               {missions.map(m => {
                 const progress = Math.min(100, (m.current / m.target) * 100);
                 return (
-                  <div key={m.id} className={`mission-item ${m.completed ? 'completed' : ''} ${m.claimed ? 'claimed' : ''}`}>
+                  <div key={m.id} className={`mission-item ${m.completed ? 'completed' : ''} ${m.claimed ? 'claimed' : ''} ${activeTutorial === 'mission' && tutorialStep === 1 && m.completed && !m.claimed ? 'tutorial-highlight' : ''}`}>
                     <div className="mission-header">
                       <span className="mission-name">{m.name}</span>
                       <span className="mission-progress">{m.current}/{m.target}</span>
@@ -2803,6 +2907,7 @@ function App() {
                                 text: `🎁 ${m.reward.gold > 0 ? `+${formatNumber(m.reward.gold)} 골드` : ''} ${m.reward.ruby > 0 ? `+${m.reward.ruby} 루비` : ''}`
                               });
                               setTimeout(() => setRewardFx(null), 2000);
+                              if (activeTutorial === 'mission' && tutorialStep === 1) completeTutorial('mission');
                             }
                           }}
                         >
@@ -2829,6 +2934,35 @@ function App() {
         onReset={() => useGameStore.getState().resetGame()}
         onShowGuide={() => setShowGuide(true)}
       />}
+
+      {/* 강제 튜토리얼 오버레이 - 모달들과 같은 레벨 */}
+      {activeTutorial && spotlightRect && (
+        <>
+          {/* Spotlight hole - 구멍 뚫린 유리창 효과 */}
+          <div
+            className="tutorial-spotlight"
+            style={{
+              position: 'fixed',
+              left: spotlightRect.x,
+              top: spotlightRect.y,
+              width: spotlightRect.width,
+              height: spotlightRect.height,
+            }}
+          />
+          {/* 메시지 */}
+          <div className="tutorial-message-container">
+            <div className="tutorial-message">
+              {activeTutorial === 'first-click' && '👆 바둑돌을 터치해서 깨보세요!'}
+              {activeTutorial === 'growth' && tutorialStep === 0 && '📈 성장 탭을 눌러보세요!'}
+              {activeTutorial === 'growth' && tutorialStep === 1 && '⬆️ 첫 번째 업그레이드를 구매하세요!'}
+              {activeTutorial === 'tool' && tutorialStep === 0 && '🔧 도구 탭을 눌러보세요!'}
+              {activeTutorial === 'tool' && tutorialStep === 1 && '🔨 첫 번째 도구를 구매하세요!'}
+              {activeTutorial === 'mission' && tutorialStep === 0 && '📜 미션 탭을 눌러보세요!'}
+              {activeTutorial === 'mission' && tutorialStep === 1 && '🎁 보상을 받으세요!'}
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Reward Toast */}
       {rewardFx && (

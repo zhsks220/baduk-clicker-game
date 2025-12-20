@@ -2988,3 +2988,79 @@ body {
   }
 }
 
+/* ============ 강제 튜토리얼 시스템 ============ */
+
+/* 튜토리얼 활성 시 모든 요소 터치 차단 */
+.app.tutorial-active,
+.app.tutorial-active * {
+  pointer-events: none !important;
+}
+
+/* 하이라이트된 요소만 터치 허용 */
+.app.tutorial-active .tutorial-highlight,
+.app.tutorial-active .tutorial-highlight * {
+  pointer-events: auto !important;
+}
+
+/* Spotlight - 구멍 뚫린 유리창 효과 */
+.tutorial-spotlight {
+  z-index: 9998;
+  border-radius: 12px;
+  pointer-events: none;
+  box-shadow:
+    0 0 0 9999px rgba(0, 0, 0, 0.8),
+    0 0 20px 5px rgba(255, 215, 0, 0.9);
+  animation: spotlightGlow 1.5s infinite;
+}
+
+@keyframes spotlightGlow {
+  0%, 100% {
+    box-shadow:
+      0 0 0 9999px rgba(0, 0, 0, 0.8),
+      0 0 20px 5px rgba(255, 215, 0, 0.9);
+  }
+  50% {
+    box-shadow:
+      0 0 0 9999px rgba(0, 0, 0, 0.8),
+      0 0 30px 10px rgba(255, 215, 0, 1);
+  }
+}
+
+/* 메시지 컨테이너 */
+.tutorial-message-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  pointer-events: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 80px;
+}
+
+.tutorial-message {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 16px 24px;
+  border-radius: 16px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  animation: tutorialPulse 2s infinite;
+}
+
+@keyframes tutorialPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+/* 하이라이트 클래스 (터치 허용용) */
+.tutorial-highlight {
+  position: relative;
+  z-index: 9998 !important;
+}
+
