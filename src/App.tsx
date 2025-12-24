@@ -137,40 +137,43 @@ const RANK_MULTIPLIERS: Record<ChessPieceRank, number> = {
 // F2P 30일 획득 예상: 약 6,500억 / 총 필요: 약 6,300억
 // 1사이클(이병→대장): 약 452억, 7사이클: 약 3,164억 (성공시)
 // 폰 기준 강화 테이블 (계급별 배수 적용됨)
+// 파괴율: 일병부터 시작 (이병은 항상 0%)
 const ENHANCE_RATES = [
-  // 병사 (초반, 파괴 없음) - 비용 2배
+  // 병사 (일병부터 파괴 시작)
   { level: 0, name: '이병', successRate: 100, cost: 1000, destroyRate: 0 },
-  { level: 1, name: '일병', successRate: 99, cost: 2600, destroyRate: 0 },
-  { level: 2, name: '상병', successRate: 98, cost: 6400, destroyRate: 0 },
-  { level: 3, name: '병장', successRate: 97, cost: 16000, destroyRate: 0 },
-  // 부사관 (하사부터 파괴 시작) - 비용 2배
+  { level: 1, name: '일병', successRate: 99, cost: 2600, destroyRate: 1 },
+  { level: 2, name: '상병', successRate: 98, cost: 6400, destroyRate: 2 },
+  { level: 3, name: '병장', successRate: 97, cost: 16000, destroyRate: 2.5 },
+  // 부사관
   { level: 4, name: '하사', successRate: 96, cost: 40000, destroyRate: 3 },
   { level: 5, name: '중사', successRate: 94, cost: 90000, destroyRate: 3.5 },
   { level: 6, name: '상사', successRate: 92, cost: 200000, destroyRate: 4 },
-  // 위관 - 비용 2배
+  // 위관
   { level: 7, name: '소위', successRate: 90, cost: 440000, destroyRate: 4.5 },
   { level: 8, name: '중위', successRate: 88, cost: 960000, destroyRate: 5 },
   { level: 9, name: '대위', successRate: 85, cost: 2100000, destroyRate: 6 },
-  // 영관 - 비용 2배
+  // 영관
   { level: 10, name: '소령', successRate: 82, cost: 5200000, destroyRate: 7 },
   { level: 11, name: '중령', successRate: 78, cost: 8800000, destroyRate: 8 },
   { level: 12, name: '대령', successRate: 74, cost: 15000000, destroyRate: 8.5 },
-  // 장성 - 비용 2배
+  // 장성
   { level: 13, name: '준장', successRate: 69, cost: 25500000, destroyRate: 9 },
   { level: 14, name: '소장', successRate: 64, cost: 43400000, destroyRate: 9.5 },
   { level: 15, name: '중장', successRate: 58, cost: 73800000, destroyRate: 10 },
   { level: 16, name: '대장', successRate: 50, cost: 125400000, destroyRate: 10.5 }, // 대장→승급
 ];
 
-// 계급별 강화 비용/확률 배수 (폰 기준 1x, 킹 총합 ~1조)
+// 계급별 강화 비용/확률 배수
+// 배율: Pawn 1x → Knight 18x → Bishop 23x → Rook 30x → Queen 38x → King 45x
+// 파괴율: 일병(level 1)부터 적용
 const RANK_ENHANCE_MULTIPLIERS: Record<ChessPieceRank, { costMultiplier: number; successRateBonus: number; destroyRateBonus: number; destroyStartLevel: number }> = {
-  pawn: { costMultiplier: 1, successRateBonus: 0, destroyRateBonus: 0, destroyStartLevel: 4 },        // ~1.5억
-  knight: { costMultiplier: 24, successRateBonus: -12, destroyRateBonus: 2, destroyStartLevel: 4 },   // ~36억
-  bishop: { costMultiplier: 135, successRateBonus: -25, destroyRateBonus: 4, destroyStartLevel: 4 },  // ~202억
-  rook: { costMultiplier: 685, successRateBonus: -32, destroyRateBonus: 7, destroyStartLevel: 4 },    // ~1,028억
-  queen: { costMultiplier: 2800, successRateBonus: -38, destroyRateBonus: 12, destroyStartLevel: 4 }, // ~4,206억
-  king: { costMultiplier: 6650, successRateBonus: -45, destroyRateBonus: 20, destroyStartLevel: 4 },  // ~1조
-  imperial: { costMultiplier: 1, successRateBonus: 0, destroyRateBonus: 0, destroyStartLevel: 99 },   // 임페리얼은 단일 계급 (강화 없음)
+  pawn: { costMultiplier: 1, successRateBonus: 0, destroyRateBonus: 0, destroyStartLevel: 1 },            // 총합: 3억
+  knight: { costMultiplier: 18, successRateBonus: -12, destroyRateBonus: 2, destroyStartLevel: 1 },       // 총합: 54억 (18배)
+  bishop: { costMultiplier: 414, successRateBonus: -25, destroyRateBonus: 4, destroyStartLevel: 1 },      // 총합: 1,246억 (23배)
+  rook: { costMultiplier: 12420, successRateBonus: -32, destroyRateBonus: 7, destroyStartLevel: 1 },      // 총합: 3.7조 (30배)
+  queen: { costMultiplier: 471960, successRateBonus: -38, destroyRateBonus: 12, destroyStartLevel: 1 },   // 총합: 142조 (38배)
+  king: { costMultiplier: 21238200, successRateBonus: -45, destroyRateBonus: 20, destroyStartLevel: 1 },  // 총합: 6,392조 (45배)
+  imperial: { costMultiplier: 1, successRateBonus: 0, destroyRateBonus: 0, destroyStartLevel: 99 },       // 임페리얼은 최종 계급 (강화 없음)
 };
 
 // 계급별 강화 비용 계산
@@ -742,7 +745,10 @@ const calculateStats = (upgrades: UpgradeStat[], piece: ChessPiece, prestigeBonu
   };
 };
 
-const getTodayString = () => new Date().toISOString().split('T')[0];
+// 한국시간(KST) 기준 오늘 날짜 (자정에 초기화)
+const getTodayString = () => {
+  return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
+};
 
 const getBackgroundImage = (currentStone: GoStone) => {
   if (currentStone.isBoss) {
@@ -1884,7 +1890,7 @@ function App() {
     attackPower, critChance, autoClicksPerSec, upgradeCount,
     stonesUntilBoss, bossesDefeated,
     handleClick, tryEnhance, claimMissionReward, missions,
-    loadGame, saveGame, autoTick, collectOfflineReward
+    loadGame, saveGame, autoTick, collectOfflineReward, resetDailyMissions
   } = useGameStore();
 
   const [lastEnhanceMsg, setLastEnhanceMsg] = useState('');
@@ -1998,6 +2004,9 @@ function App() {
     window.addEventListener('pointerdown', startAudio, { capture: true });
     window.addEventListener('touchstart', startAudio, { capture: true });
     window.addEventListener('click', startAudio, { capture: true });
+
+    // 일일 미션 초기화 체크 (한국시간 자정 기준)
+    resetDailyMissions();
 
     setTimeout(() => {
       const r = collectOfflineReward();
