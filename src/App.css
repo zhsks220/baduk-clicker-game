@@ -13,6 +13,9 @@
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
+  /* 한글 단어 중간에서 끊기지 않도록 */
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 body {
@@ -3062,5 +3065,719 @@ body {
 .tutorial-highlight {
   position: relative;
   z-index: 9998 !important;
+}
+
+/* ============ Offline Reward Modal ============ */
+.offline-reward-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+  backdrop-filter: blur(8px);
+  animation: fadeIn 0.3s ease-out;
+}
+
+.offline-reward-content {
+  width: 85%;
+  max-width: 340px;
+  background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 24px;
+  padding: 28px 24px;
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.5),
+    0 0 40px rgba(255, 215, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  animation: popModal 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border: 2px solid rgba(255, 215, 0, 0.3);
+}
+
+.offline-reward-title {
+  font-size: 1.5rem;
+  color: #fff;
+  text-align: center;
+  margin: 0 0 8px 0;
+  text-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+}
+
+.offline-reward-time {
+  font-size: 1rem;
+  color: #a0a0a0;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.offline-reward-time span {
+  color: #ffd700;
+  font-weight: bold;
+}
+
+.offline-reward-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.offline-reward-stat {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 14px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.stat-icon {
+  font-size: 1.6rem;
+  margin-right: 14px;
+  min-width: 36px;
+  text-align: center;
+}
+
+.stat-label {
+  flex: 1;
+  color: #b0b0b0;
+  font-size: 0.95rem;
+}
+
+.stat-value {
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
+.stat-value.gold {
+  color: #ffd700;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+}
+
+.stat-value.stones {
+  color: #a0a0a0;
+}
+
+.stat-value.boss {
+  color: #ff6b6b;
+}
+
+.offline-reward-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.offline-reward-btn {
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: 14px;
+  font-size: 1.05rem;
+  font-weight: bold;
+  font-family: var(--font-family);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  touch-action: manipulation;
+}
+
+.offline-reward-btn.double {
+  background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%);
+  color: #1a1a2e;
+  box-shadow:
+    0 6px 20px rgba(255, 215, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.offline-reward-btn.double:active {
+  transform: scale(0.97);
+  box-shadow: 0 3px 10px rgba(255, 215, 0, 0.3);
+}
+
+.offline-reward-btn.double .ad-icon {
+  margin-right: 8px;
+}
+
+.offline-reward-btn.normal {
+  background: rgba(255, 255, 255, 0.1);
+  color: #a0a0a0;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.offline-reward-btn.normal:active {
+  transform: scale(0.97);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* 오프라인 보상 - 광고 시청 화면 */
+.offline-reward-content.ad-watching {
+  text-align: center;
+}
+
+.ad-placeholder {
+  width: 100%;
+  height: 200px;
+  background: linear-gradient(135deg, #2a2a4a 0%, #1a1a3a 100%);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  border: 2px dashed rgba(255, 255, 255, 0.2);
+}
+
+.ad-label {
+  font-size: 1rem;
+  color: #888;
+  margin-bottom: 12px;
+}
+
+.ad-timer {
+  font-size: 3rem;
+  font-weight: bold;
+  color: #ffd700;
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+}
+
+.ad-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ad-complete-btn {
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: 14px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  font-family: var(--font-family);
+  cursor: pointer;
+  background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+  color: #fff;
+  box-shadow: 0 6px 20px rgba(74, 222, 128, 0.4);
+  animation: pulse 1s infinite;
+}
+
+.ad-cancel-btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-family: var(--font-family);
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.1);
+  color: #a0a0a0;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.ad-cancel-btn:active {
+  transform: scale(0.97);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* ============ Ending Modal ============ */
+.ending-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3500;
+  backdrop-filter: blur(12px);
+  animation: fadeIn 0.5s ease-out;
+}
+
+.ending-content {
+  width: 90%;
+  max-width: 360px;
+  background: linear-gradient(145deg, #1a1a2e 0%, #0f0f1a 100%);
+  border-radius: 28px;
+  padding: 32px 24px;
+  box-shadow:
+    0 30px 80px rgba(0, 0, 0, 0.6),
+    0 0 60px rgba(255, 215, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  animation: popModal 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border: 2px solid rgba(255, 215, 0, 0.4);
+  text-align: center;
+}
+
+.ending-celebration {
+  font-size: 4rem;
+  margin-bottom: 12px;
+  animation: celebrateBounce 1s ease-in-out infinite;
+}
+
+@keyframes celebrateBounce {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  25% { transform: scale(1.1) rotate(-5deg); }
+  50% { transform: scale(1) rotate(0deg); }
+  75% { transform: scale(1.1) rotate(5deg); }
+}
+
+.ending-title {
+  font-size: 1.8rem;
+  color: #ffd700;
+  margin: 0 0 8px 0;
+  text-shadow:
+    0 0 20px rgba(255, 215, 0, 0.6),
+    0 4px 8px rgba(0, 0, 0, 0.5);
+}
+
+.ending-subtitle {
+  font-size: 1.1rem;
+  color: #a0a0a0;
+  margin: 0 0 20px 0;
+}
+
+.ending-subtitle span {
+  color: #ff6b6b;
+  font-weight: bold;
+  text-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+}
+
+.ending-message {
+  font-size: 0.95rem;
+  color: #808080;
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.ending-options {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ending-option {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+}
+
+.ending-option.infinite {
+  border-color: rgba(72, 219, 251, 0.3);
+}
+
+.ending-option.prestige {
+  border-color: rgba(255, 107, 107, 0.3);
+}
+
+.option-icon {
+  font-size: 2rem;
+  min-width: 50px;
+  text-align: center;
+}
+
+.option-info {
+  flex: 1;
+  text-align: left;
+}
+
+.option-title {
+  font-size: 1.1rem;
+  color: #fff;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.option-desc {
+  font-size: 0.85rem;
+  color: #808080;
+  line-height: 1.4;
+}
+
+.reward-preview {
+  color: #ffd700;
+  font-size: 0.8rem;
+  display: inline-block;
+  margin-top: 4px;
+}
+
+.option-btn {
+  background: linear-gradient(135deg, #48dbfb 0%, #0abde3 100%);
+  color: #1a1a2e;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 20px;
+  font-size: 0.95rem;
+  font-weight: bold;
+  font-family: var(--font-family);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  touch-action: manipulation;
+}
+
+.ending-option.prestige .option-btn {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5253 100%);
+}
+
+.option-btn:active {
+  transform: scale(0.95);
+}
+
+/* ============ Infinite Mode Prestige Button ============ */
+.infinite-prestige-btn {
+  position: absolute;
+  top: 110px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5253 100%);
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  font-weight: bold;
+  font-family: var(--font-family);
+  cursor: pointer;
+  box-shadow:
+    0 4px 15px rgba(255, 107, 107, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  z-index: 100;
+  touch-action: manipulation;
+  animation: prestigePulse 2s ease-in-out infinite;
+  transition: all 0.2s ease;
+}
+
+@keyframes prestigePulse {
+  0%, 100% {
+    box-shadow:
+      0 4px 15px rgba(255, 107, 107, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 4px 25px rgba(255, 107, 107, 0.6),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+}
+
+.infinite-prestige-btn:active {
+  transform: scale(0.95);
+  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+}
+
+.prestige-icon {
+  font-size: 1.1rem;
+}
+
+.prestige-text {
+  font-size: 0.85rem;
+}
+
+/* ===== 전면 광고 모달 ===== */
+.interstitial-ad-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.interstitial-ad-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  max-width: 350px;
+  padding: 20px;
+}
+
+.ad-placeholder {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed rgba(255, 255, 255, 0.2);
+}
+
+.ad-placeholder-inner {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.ad-icon {
+  font-size: 3rem;
+  margin-bottom: 12px;
+  opacity: 0.7;
+}
+
+.ad-text {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.ad-subtext {
+  font-size: 0.85rem;
+  opacity: 0.5;
+}
+
+.ad-close-btn {
+  padding: 12px 32px;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 140px;
+}
+
+.ad-close-btn:not(.active) {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.4);
+  cursor: not-allowed;
+}
+
+.ad-close-btn.active {
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.ad-close-btn.active:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
+}
+
+.ad-close-btn.active:active {
+  transform: translateY(0);
+}
+
+/* ===== 파괴 복구 모달 ===== */
+.destroy-recovery-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.destroy-recovery-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 90%;
+  max-width: 320px;
+  padding: 28px 24px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 16px;
+  border: 2px solid #ff4757;
+  box-shadow: 0 0 30px rgba(255, 71, 87, 0.3);
+}
+
+.destroy-warning-icon {
+  font-size: 4rem;
+  animation: pulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+  from { transform: scale(1); }
+  to { transform: scale(1.1); }
+}
+
+.destroy-warning-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ff4757;
+  text-shadow: 0 0 10px rgba(255, 71, 87, 0.5);
+}
+
+.destroy-warning-desc {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.8);
+  text-align: center;
+  line-height: 1.5;
+}
+
+.destroy-warning-desc .piece-info {
+  color: #ffd93d;
+  font-weight: 600;
+}
+
+.destroy-recovery-btn {
+  width: 100%;
+  padding: 14px 20px;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.2s ease;
+}
+
+.destroy-recovery-btn .btn-icon {
+  font-size: 1.3rem;
+}
+
+.destroy-recovery-btn .btn-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.destroy-recovery-btn .btn-subtext {
+  font-size: 0.75rem;
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+.destroy-recovery-btn.watch-ad {
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.destroy-recovery-btn.watch-ad:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
+}
+
+.destroy-recovery-btn.watch-ad:active {
+  transform: translateY(0);
+}
+
+.destroy-recovery-btn.confirm-destroy {
+  background: rgba(255, 71, 87, 0.2);
+  color: #ff6b7a;
+  border: 1px solid rgba(255, 71, 87, 0.3);
+}
+
+.destroy-recovery-btn.confirm-destroy:hover {
+  background: rgba(255, 71, 87, 0.3);
+}
+
+.destroy-recovery-btn.confirm-destroy:active {
+  background: rgba(255, 71, 87, 0.4);
+}
+
+/* ===== 일일 보상 섹션 ===== */
+.daily-rewards-section {
+  margin-bottom: 12px;
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 152, 0, 0.05) 100%);
+  border-radius: 12px;
+  padding: 12px;
+  border: 1px solid rgba(255, 193, 7, 0.2);
+}
+
+.daily-rewards-section .shop-section-title {
+  color: #ffc107;
+  margin-bottom: 12px;
+}
+
+.daily-reward-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  gap: 12px;
+}
+
+.daily-reward-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.daily-reward-icon {
+  font-size: 2rem;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+  border-radius: 10px;
+}
+
+.daily-reward-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.daily-reward-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+}
+
+.daily-reward-desc {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.daily-reward-btn {
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+}
+
+.daily-reward-btn:hover:not(.disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+}
+
+.daily-reward-btn:active:not(.disabled) {
+  transform: translateY(0);
+}
+
+.daily-reward-btn.disabled {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.4);
+  cursor: not-allowed;
+  box-shadow: none;
 }
 

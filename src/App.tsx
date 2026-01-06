@@ -165,16 +165,6 @@ interface Mission {
   claimed: boolean;
 }
 
-interface Achievement {
-  id: string;
-  name: string;
-  description: string;
-  target: number;
-  reward: { gold: number; ruby: number };
-  unlocked: boolean;
-  claimed: boolean;
-}
-
 // ============ 상수 정의 ============
 // Mapping ranks to images
 const CHESS_PIECES: Record<ChessPieceRank, Omit<ChessPiece, 'level'>> = {
@@ -433,24 +423,6 @@ const CUMULATIVE_MISSION_TIERS: Record<string, { targets: number[]; rewards: { g
     ],
   },
 };
-
-// 업적 시스템 (확장: 킹, 임페리얼, 보스 처치)
-const ACHIEVEMENTS: Achievement[] = [
-  // 강화 업적
-  { id: 'firstEnhance', name: '첫 강화', description: '강화 성공', target: 1, reward: { gold: 1000, ruby: 10 }, unlocked: false, claimed: false },
-  // 체스 승급 업적
-  { id: 'knight', name: '나이트 승급', description: '나이트 달성', target: 1, reward: { gold: 5000, ruby: 15 }, unlocked: false, claimed: false },
-  { id: 'bishop', name: '비숍 승급', description: '비숍 달성', target: 1, reward: { gold: 10000, ruby: 20 }, unlocked: false, claimed: false },
-  { id: 'rook', name: '룩 승급', description: '룩 달성', target: 1, reward: { gold: 25000, ruby: 30 }, unlocked: false, claimed: false },
-  { id: 'queen', name: '퀸 승급', description: '퀸 달성', target: 1, reward: { gold: 50000, ruby: 40 }, unlocked: false, claimed: false },
-  { id: 'king', name: '킹 승급', description: '킹 달성', target: 1, reward: { gold: 100000, ruby: 50 }, unlocked: false, claimed: false },
-  { id: 'imperial', name: '임페리얼 승급', description: '킹갓제네럴 임페리얼 체스킹 달성', target: 1, reward: { gold: 500000, ruby: 100 }, unlocked: false, claimed: false },
-  // 보스 처치 업적
-  { id: 'boss1', name: '화염 정복자', description: '화염의 돌 처치', target: 1, reward: { gold: 2000, ruby: 10 }, unlocked: false, claimed: false },
-  { id: 'boss3', name: '맹독 정복자', description: '맹독의 돌 처치', target: 1, reward: { gold: 20000, ruby: 15 }, unlocked: false, claimed: false },
-  { id: 'boss5', name: '번개 정복자', description: '번개의 돌 처치', target: 1, reward: { gold: 200000, ruby: 25 }, unlocked: false, claimed: false },
-  { id: 'boss7', name: '궁극 정복자', description: '궁극의 돌 처치 (엔딩)', target: 1, reward: { gold: 1000000, ruby: 50 }, unlocked: false, claimed: false },
-];
 
 const STORAGE_KEY = 'pony-game-v3';
 
@@ -757,7 +729,6 @@ interface GameState {
   megaBoostEndTime: number;      // 메가 부스터 효과 종료 시간
   megaBoostCooldownEnd: number;  // 메가 부스터 쿨타임 종료 시간 (2시간)
   missions: Mission[];
-  achievements: Achievement[];
   dailyMissionDate: string;
   prestigeCount: number;
   prestigeBonus: number;
@@ -806,7 +777,6 @@ interface GameState {
   buyShopItem: (itemId: string) => boolean;
   useMegaBoost: () => { success: boolean; message: string };  // 메가 부스터 (광고 후 사용)
   claimMissionReward: (missionId: string) => boolean;
-  claimAchievement: (achievementId: string) => boolean;
   doPrestige: () => { success: boolean; rubyEarned: number };
   collectOfflineReward: () => { gold: number; stonesDestroyed: number; bossesDefeated: number; time: number };
   claimOfflineReward: (double: boolean) => void;  // 오프라인 보상 수령 (2배 여부)
@@ -828,7 +798,6 @@ interface GameState {
   loadGame: () => void;
   resetGame: () => void;
   checkMissions: () => void;
-  checkAchievements: () => void;
   resetDailyMissions: () => void;
 }
 
@@ -899,7 +868,6 @@ const useGameStore = create<GameState>((set, get) => ({
   megaBoostEndTime: 0,
   megaBoostCooldownEnd: 0,
   missions: INITIAL_MISSIONS.map(m => ({ ...m })),
-  achievements: ACHIEVEMENTS.map(a => ({ ...a })),
   dailyMissionDate: getTodayString(),
   prestigeCount: 0,
   prestigeBonus: 0,
@@ -1037,7 +1005,6 @@ const useGameStore = create<GameState>((set, get) => ({
     }
 
     get().checkMissions();
-    get().checkAchievements();
     return { gold: earnedGold, isCrit, destroyed, bonusGold };
   },
 
@@ -1194,7 +1161,6 @@ const useGameStore = create<GameState>((set, get) => ({
         const newPiece = { ...CHESS_PIECES[nextRank], level: 0 };
         const newStats = calculateStats(state.upgrades, newPiece, state.prestigeBonus);
         set(s => ({ currentPiece: newPiece, enhanceSuccesses: s.enhanceSuccesses + 1, ...newStats }));
-        get().checkAchievements();
 
         // 임페리얼 킹 달성 시 엔딩 표시 (이미 엔딩을 본 적이 없고, 무한모드가 아닐 때만)
         if (nextRank === 'imperial' && !state.hasReachedEnding && !state.isInfiniteMode) {
@@ -1207,7 +1173,6 @@ const useGameStore = create<GameState>((set, get) => ({
       const newStats = calculateStats(state.upgrades, newPiece, state.prestigeBonus);
       set(s => ({ currentPiece: newPiece, enhanceSuccesses: s.enhanceSuccesses + 1, ...newStats }));
       get().checkMissions();
-      get().checkAchievements();
       // 계급명 표시
       const rankNames = ['이병', '일병', '상병', '병장', '하사', '중사', '상사', '소위', '중위', '대위', '소령', '중령', '대령', '준장', '소장', '중장', '대장'];
       return { success: true, destroyed: false, message: `강화 성공! ${rankNames[newLevel]}` };
@@ -1356,24 +1321,6 @@ const useGameStore = create<GameState>((set, get) => ({
       gold: state.gold + mission.reward.gold,
       ruby: state.ruby + mission.reward.ruby,
       missions: newMissions
-    });
-    return true;
-  },
-
-  claimAchievement: (achId: string) => {
-    const state = get();
-    const idx = state.achievements.findIndex(a => a.id === achId);
-    // 업적이 없거나, 해금 안됐거나, 이미 수령한 경우 거부
-    if (idx === -1 || !state.achievements[idx].unlocked || state.achievements[idx].claimed) return false;
-
-    // claimed를 true로 업데이트
-    const newAchievements = [...state.achievements];
-    newAchievements[idx] = { ...newAchievements[idx], claimed: true };
-
-    set({
-      gold: state.gold + state.achievements[idx].reward.gold,
-      ruby: state.ruby + state.achievements[idx].reward.ruby,
-      achievements: newAchievements
     });
     return true;
   },
@@ -1809,31 +1756,6 @@ const useGameStore = create<GameState>((set, get) => ({
     set({ missions: newMissions });
   },
 
-  checkAchievements: () => {
-    const s = get();
-    const rank = RANK_ORDER.indexOf(s.currentPiece.rank);
-    const newAchs = s.achievements.map(a => {
-      if (a.unlocked) return a;
-      let u = false;
-      // 강화 업적
-      if (a.id === 'firstEnhance' && s.enhanceSuccesses > 0) u = true;
-      // 체스 승급 업적
-      else if (a.id === 'knight' && rank >= 1) u = true;
-      else if (a.id === 'bishop' && rank >= 2) u = true;
-      else if (a.id === 'rook' && rank >= 3) u = true;
-      else if (a.id === 'queen' && rank >= 4) u = true;
-      else if (a.id === 'king' && rank >= 5) u = true;
-      else if (a.id === 'imperial' && rank >= 6) u = true;
-      // 보스 처치 업적
-      else if (a.id === 'boss1' && s.bossesDefeated >= 1) u = true;
-      else if (a.id === 'boss3' && s.bossesDefeated >= 3) u = true;
-      else if (a.id === 'boss5' && s.bossesDefeated >= 5) u = true;
-      else if (a.id === 'boss7' && s.bossesDefeated >= 7) u = true;
-      return { ...a, unlocked: u };
-    });
-    set({ achievements: newAchs });
-  },
-
   resetDailyMissions: () => {
     const today = getTodayString();
     const s = get();
@@ -1872,7 +1794,6 @@ const useGameStore = create<GameState>((set, get) => ({
     if (!saved) return;
     try {
       const d = JSON.parse(saved);
-      const stats = calculateStats(d.upgrades || INITIAL_UPGRADES, d.currentPiece || CHESS_PIECES.pawn, d.prestigeBonus || 0);
 
       // Re-map piece to ensure display name and image are correct for rank
       const pieceTemplate = CHESS_PIECES[d.currentPiece.rank as ChessPieceRank] || CHESS_PIECES.pawn;
@@ -1894,7 +1815,22 @@ const useGameStore = create<GameState>((set, get) => ({
         return { ...initial };
       });
 
-      set({ ...d, currentPiece: restoredPiece, shopItems: mergedShopItems, missions: mergedMissions, ...stats });
+      // autoClickers(도구) 마이그레이션: 구매 개수만 유지, 나머지는 최신 정보로
+      const mergedAutoClickers = INITIAL_AUTO_CLICKERS.map(initial => {
+        const saved = d.autoClickers?.find((c: AutoClicker) => c.id === initial.id);
+        return saved ? { ...initial, count: saved.count } : { ...initial };
+      });
+
+      // upgrades(강화) 마이그레이션: 레벨만 유지, 나머지는 최신 정보로
+      const mergedUpgrades = INITIAL_UPGRADES.map(initial => {
+        const saved = d.upgrades?.find((u: UpgradeStat) => u.id === initial.id);
+        return saved ? { ...initial, level: saved.level } : { ...initial };
+      });
+
+      // 마이그레이션된 upgrades로 stats 재계산
+      const migratedStats = calculateStats(mergedUpgrades, restoredPiece, d.prestigeBonus || 0);
+
+      set({ ...d, currentPiece: restoredPiece, shopItems: mergedShopItems, missions: mergedMissions, autoClickers: mergedAutoClickers, upgrades: mergedUpgrades, ...migratedStats });
     } catch (e) { console.error(e); }
   },
   resetGame: () => {
