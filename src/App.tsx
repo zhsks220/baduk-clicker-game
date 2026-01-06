@@ -1884,7 +1884,17 @@ const useGameStore = create<GameState>((set, get) => ({
         return saved ? { ...initial, count: saved.count } : { ...initial };
       });
 
-      set({ ...d, currentPiece: restoredPiece, shopItems: mergedShopItems, ...stats });
+      // missions도 최신 INITIAL_MISSIONS 기준으로 병합 (삭제된 미션 제거, 새 미션 추가)
+      const mergedMissions = INITIAL_MISSIONS.map(initial => {
+        const saved = d.missions?.find((m: Mission) => m.id === initial.id);
+        if (saved) {
+          // 기존 진행상황 유지, 나머지는 최신 정보로
+          return { ...initial, current: saved.current, completed: saved.completed, claimed: saved.claimed };
+        }
+        return { ...initial };
+      });
+
+      set({ ...d, currentPiece: restoredPiece, shopItems: mergedShopItems, missions: mergedMissions, ...stats });
     } catch (e) { console.error(e); }
   },
   resetGame: () => {
