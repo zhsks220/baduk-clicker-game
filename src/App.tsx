@@ -1,5 +1,83 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { create } from 'zustand';
+import { setupAds, showInterstitial, showRewarded } from './services/adService';
+import { initializePurchases, purchaseProduct, restorePurchases, PRODUCT_IDS } from './services/purchaseService';
+
+// ============ Long Press Hook ============
+const useLongPress = (
+  callback: () => void,
+  options: { delay?: number; interval?: number; disabled?: boolean } = {}
+) => {
+  const { delay = 300, interval = 100, disabled = false } = options;
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isPressingRef = useRef(false);
+
+  const start = useCallback(() => {
+    if (disabled) return;
+    isPressingRef.current = true;
+
+    // 첫 클릭은 즉시 실행
+    callback();
+
+    // delay 후 연속 실행 시작
+    timeoutRef.current = setTimeout(() => {
+      if (isPressingRef.current) {
+        intervalRef.current = setInterval(() => {
+          if (isPressingRef.current) {
+            callback();
+          }
+        }, interval);
+      }
+    }, delay);
+  }, [callback, delay, interval, disabled]);
+
+  const stop = useCallback(() => {
+    isPressingRef.current = false;
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  }, []);
+
+  // 컴포넌트 언마운트 시 정리
+  useEffect(() => {
+    return () => {
+      stop();
+    };
+  }, [stop]);
+
+  return {
+    onPointerDown: start,
+    onPointerUp: stop,
+    onPointerLeave: stop,
+    onPointerCancel: stop,
+  };
+};
+
+// ============ Long Press Button Component ============
+interface LongPressButtonProps {
+  onClick: () => void;
+  disabled?: boolean;
+  className?: string;
+  children: React.ReactNode;
+  delay?: number;
+  interval?: number;
+}
+
+const LongPressButton = ({ onClick, disabled, className, children, delay = 300, interval = 100 }: LongPressButtonProps) => {
+  const longPress = useLongPress(onClick, { delay, interval, disabled });
+  return (
+    <button className={className} disabled={disabled} {...longPress}>
+      {children}
+    </button>
+  );
+};
+
 import { App as CapacitorApp } from '@capacitor/app';
 import './App.css';
 
@@ -285,7 +363,7 @@ const INITIAL_SHOP_ITEMS: ShopItem[] = [
   { id: 'bulkGold', name: '골드 구매', emoji: '💰', description: '파괴한 돌 수에 비례한 골드', goldCost: 0, rubyCost: 450, count: 0 },
   // 캐시템 (원화 결제, 영구 효과)
   { id: 'permBoost', name: '영구 부스터', emoji: '🚀', description: '2X 부스트 영구 적용', goldCost: 0, rubyCost: 0, wonPrice: '₩5,900', count: 0 },
-  { id: 'adRemove', name: '광고 제거', emoji: '🚫', description: '모든 광고 제거', goldCost: 0, rubyCost: 0, wonPrice: '₩3,500', count: 0 },
+  { id: 'adRemove', name: '광고 제거', emoji: '🚫', description: '모든 광고 제거', goldCost: 0, rubyCost: 0, wonPrice: '₩3,900', count: 0 },
 ];
 
 // 골드 대량 구매 복리 공식 (완만한 버전)
@@ -303,7 +381,6 @@ const calculateBulkGold = (stonesDestroyed: number): number => {
 const INITIAL_MISSIONS: Mission[] = [
   // === 일일 미션 (매일 리셋) ===
   { id: 'daily_click', name: '📅 일일 클릭', description: '오늘 300번 클릭', target: 300, current: 0, reward: { gold: 1000, ruby: 5 }, completed: false, claimed: false },
-  { id: 'daily_stone', name: '📅 일일 파괴', description: '오늘 바둑돌 30개 파괴', target: 30, current: 0, reward: { gold: 2000, ruby: 5 }, completed: false, claimed: false },
   { id: 'daily_enhance', name: '📅 일일 강화', description: '오늘 강화 5번 시도', target: 5, current: 0, reward: { gold: 1500, ruby: 5 }, completed: false, claimed: false },
   { id: 'daily_gold', name: '📅 일일 수입', description: '오늘 5만 골드 획득', target: 50000, current: 0, reward: { gold: 0, ruby: 5 }, completed: false, claimed: false },
   // === 누적 미션 (단계별 갱신) ===
@@ -698,6 +775,29 @@ interface GameState {
   // 영구 캐시템 상태
   permanentBoost: boolean;   // 영구 2X 부스터
   adsRemoved: boolean;       // 광고 제거
+  // 오프라인 보상 모달 관련
+  showOfflineRewardModal: boolean;
+  offlineRewardData: {
+    gold: number;
+    stonesDestroyed: number;
+    bossesDefeated: number;
+    time: number;
+  } | null;
+  // 엔딩 & 무한모드 관련
+  hasReachedEnding: boolean;    // 엔딩 도달 여부
+  isInfiniteMode: boolean;      // 무한모드 여부
+  showEndingModal: boolean;     // 엔딩 모달 표시
+  // 광고 관련 상태
+  adRemoved: boolean;                 // 광고 제거 구매 여부
+  adDestructionPreventUsed: number;   // 오늘 사용한 파괴방지 광고 횟수 (최대 2회)
+  adFreeRubyUsed: number;             // 오늘 사용한 무료루비 광고 횟수 (최대 3회)
+  enhanceAdCounter: number;           // 강화 시도 카운터 (4마다 전면광고)
+  lastAdResetDate: string;            // 마지막 광고 리셋 날짜
+  showInterstitialAd: boolean;        // 전면 광고 표시 여부
+  pendingInterstitialCallback: (() => void) | null;  // 광고 후 실행할 콜백
+  // 파괴 복구 광고 모달
+  showDestroyRecoveryModal: boolean;  // 파괴 복구 모달 표시 여부
+  pendingDestroyData: { rank: ChessPieceRank; level: number } | null;  // 파괴 대기 중인 데이터
 
   handleClick: () => { gold: number; isCrit: boolean; destroyed: boolean; bonusGold: number };
   upgradestat: (statId: string) => boolean;
@@ -708,7 +808,21 @@ interface GameState {
   claimMissionReward: (missionId: string) => boolean;
   claimAchievement: (achievementId: string) => boolean;
   doPrestige: () => { success: boolean; rubyEarned: number };
-  collectOfflineReward: () => { gold: number; time: number };
+  collectOfflineReward: () => { gold: number; stonesDestroyed: number; bossesDefeated: number; time: number };
+  claimOfflineReward: (double: boolean) => void;  // 오프라인 보상 수령 (2배 여부)
+  closeOfflineRewardModal: () => void;
+  // 엔딩 & 무한모드 관련
+  chooseInfiniteMode: () => void;
+  choosePrestigeFromEnding: () => { success: boolean; rubyEarned: number };
+  closeEndingModal: () => void;
+  // 전면 광고 관련
+  showInterstitial: (callback?: () => void) => void;
+  closeInterstitial: () => void;
+  // 파괴 복구 광고 관련
+  confirmDestroy: () => void;  // 파괴 확정
+  watchAdToRecoverDestroy: () => void;  // 광고 보고 파괴 방지
+  // 무료 루비 광고
+  claimFreeRuby: () => { success: boolean; ruby: number };  // 광고 보고 무료 루비 획득
   autoTick: () => void;
   saveGame: () => void;
   loadGame: () => void;
@@ -803,6 +917,23 @@ const useGameStore = create<GameState>((set, get) => ({
   // 영구 캐시템 상태
   permanentBoost: false,
   adsRemoved: false,
+  // 오프라인 보상 모달 관련
+  showOfflineRewardModal: false,
+  offlineRewardData: null,
+  // 엔딩 & 무한모드 관련
+  hasReachedEnding: false,
+  isInfiniteMode: false,
+  showEndingModal: false,
+  // 광고 관련 상태
+  adRemoved: false,
+  adDestructionPreventUsed: 0,
+  adFreeRubyUsed: 0,
+  enhanceAdCounter: 0,
+  lastAdResetDate: getTodayString(),
+  showInterstitialAd: false,
+  pendingInterstitialCallback: null,
+  showDestroyRecoveryModal: false,
+  pendingDestroyData: null,
 
   handleClick: () => {
     const state = get();
@@ -861,6 +992,14 @@ const useGameStore = create<GameState>((set, get) => ({
         newBossesDefeated = state.bossesDefeated + 1;
         newStonesUntilBoss = STONES_PER_BOSS;
         nextStone = createRandomStone(state.stonesDestroyed, chessPieceLevel);
+
+        // 보스 처치 시 전면 광고 (광고 제거 구매자는 스킵)
+        if (!state.adRemoved) {
+          // set에서 광고 표시 상태 업데이트
+          setTimeout(() => {
+            get().showInterstitial();
+          }, 500);  // 0.5초 후 광고 표시 (보스 처치 이펙트 후)
+        }
       } else {
         // 일반 돌 파괴 - stonesDestroyed + 1 (방금 파괴한 돌 포함)
         newStonesUntilBoss = state.stonesUntilBoss - 1;
@@ -1014,6 +1153,10 @@ const useGameStore = create<GameState>((set, get) => ({
     if (useBlessing === 1 && (!blessItem || blessItem.count < 1)) return { success: false, destroyed: false, message: '축복주문서 부족' };
     if (useBlessing === 2 && (!luckyItem || luckyItem.count < 1)) return { success: false, destroyed: false, message: '행운주문서 부족' };
 
+    // 강화 광고 카운터 증가 (4회마다 전면광고)
+    const newAdCounter = (state.enhanceAdCounter + 1) % 4;
+    const shouldShowAd = state.enhanceAdCounter === 3 && !state.adRemoved;  // 4번째 시도에 광고
+
     // 축복/행운 주문서만 강화 시도 시 소모 (파괴방지권은 나중에 처리)
     const consumeBlessingItems = state.shopItems.map(item => {
       if (useBlessing === 1 && item.id === 'blessScroll') return { ...item, count: item.count - 1 };
@@ -1021,7 +1164,15 @@ const useGameStore = create<GameState>((set, get) => ({
       return item;
     });
 
-    set(s => ({ gold: s.gold - enhanceCost, enhanceAttempts: s.enhanceAttempts + 1, dailyEnhanceAttempts: s.dailyEnhanceAttempts + 1, shopItems: consumeBlessingItems }));
+    set(s => ({
+      gold: s.gold - enhanceCost,
+      enhanceAttempts: s.enhanceAttempts + 1,
+      dailyEnhanceAttempts: s.dailyEnhanceAttempts + 1,
+      shopItems: consumeBlessingItems,
+      enhanceAdCounter: newAdCounter,
+      // 4회마다 전면광고 표시
+      showInterstitialAd: shouldShowAd ? true : s.showInterstitialAd,
+    }));
 
     let successRate = baseSuccessRate;
     if (useBlessing === 1) successRate += 10;
@@ -1044,6 +1195,12 @@ const useGameStore = create<GameState>((set, get) => ({
         const newStats = calculateStats(state.upgrades, newPiece, state.prestigeBonus);
         set(s => ({ currentPiece: newPiece, enhanceSuccesses: s.enhanceSuccesses + 1, ...newStats }));
         get().checkAchievements();
+
+        // 임페리얼 킹 달성 시 엔딩 표시 (이미 엔딩을 본 적이 없고, 무한모드가 아닐 때만)
+        if (nextRank === 'imperial' && !state.hasReachedEnding && !state.isInfiniteMode) {
+          set({ hasReachedEnding: true, showEndingModal: true });
+        }
+
         return { success: true, destroyed: false, message: `🎉 승급 성공! ${newPiece.displayName} (이병)` };
       }
       const newPiece = { ...state.currentPiece, level: newLevel };
@@ -1068,7 +1225,20 @@ const useGameStore = create<GameState>((set, get) => ({
         set({ shopItems: consumeProtect });
         return { success: false, destroyed: false, message: '🛡️ 파괴 방어 성공! (강화 실패)' };
       }
-      // 파괴방지권 없이 파괴됨
+
+      // 광고 복구 가능 여부 확인 (하루 2회 제한)
+      const canUseAdRecovery = state.adDestructionPreventUsed < 2;
+
+      if (canUseAdRecovery) {
+        // 광고 복구 모달 표시 (파괴 보류)
+        set({
+          showDestroyRecoveryModal: true,
+          pendingDestroyData: { rank: state.currentPiece.rank, level: state.currentPiece.level }
+        });
+        return { success: false, destroyed: false, message: '💥 파괴 위험! 광고로 복구 가능' };
+      }
+
+      // 광고 복구 불가 - 즉시 파괴
       const resetPiece = { ...state.currentPiece, level: 0 };
       const newStats = calculateStats(state.upgrades, resetPiece, state.prestigeBonus);
       set({ currentPiece: resetPiece, ...newStats });
@@ -1234,12 +1404,287 @@ const useGameStore = create<GameState>((set, get) => ({
   collectOfflineReward: () => {
     const state = get();
     const now = Date.now();
-    const offlineTime = Math.min(now - state.lastOnlineTime, 28800000);
-    if (offlineTime < 60000) { set({ lastOnlineTime: now }); return { gold: 0, time: 0 }; }
+    const offlineTime = Math.min(now - state.lastOnlineTime, 28800000); // 최대 8시간
 
-    const goldEarned = Math.floor(state.goldPerClick * state.autoClicksPerSec * 0.5 * (offlineTime / 1000));
-    set({ gold: state.gold + goldEarned, totalGold: state.totalGold + goldEarned, lastOnlineTime: now });
-    return { gold: goldEarned, time: offlineTime };
+    // 1분 미만이면 무시
+    if (offlineTime < 60000) {
+      set({ lastOnlineTime: now });
+      return { gold: 0, stonesDestroyed: 0, bossesDefeated: 0, time: 0 };
+    }
+
+    // 자동 클릭이 없으면 보상 없음
+    if (state.autoClicksPerSec === 0) {
+      set({ lastOnlineTime: now });
+      return { gold: 0, stonesDestroyed: 0, bossesDefeated: 0, time: 0 };
+    }
+
+    // 부스터 효과 계산 (영구 부스터 또는 메가 부스터)
+    const offlineStartTime = state.lastOnlineTime;
+    const offlineEndTime = now;
+
+    let goldMultiplier = 1;
+    let autoMultiplier = 1;
+
+    if (state.permanentBoost) {
+      // 영구 부스터: 전체 2배
+      goldMultiplier = 2;
+      autoMultiplier = 2;
+    } else if (state.megaBoostEndTime > offlineStartTime) {
+      // 메가 부스터가 오프라인 시간 중 일부/전체에 적용
+      const boostedEndTime = Math.min(state.megaBoostEndTime, offlineEndTime);
+      const boostedTime = boostedEndTime - offlineStartTime;
+      const totalTime = offlineEndTime - offlineStartTime;
+
+      // 부스트 비율에 따른 가중 평균 배율 (1~2 사이)
+      const boostRatio = boostedTime / totalTime;
+      goldMultiplier = 1 + boostRatio;
+      autoMultiplier = 1 + boostRatio;
+    }
+
+    const totalOfflineSeconds = Math.floor(offlineTime / 1000);
+    const autoClicksPerSec = state.autoClicksPerSec * autoMultiplier;
+    const damagePerSecond = state.attackPower * autoClicksPerSec;
+
+    // 체스말 레벨 계산 (계급 × 17 + 현재 레벨)
+    const chessPieceLevel = RANK_ORDER.indexOf(state.currentPiece.rank) * 17 + state.currentPiece.level;
+
+    // 시뮬레이션 변수
+    let currentStoneHp = state.currentStone.currentHp;
+    let currentStoneIsBoss = state.currentStone.isBoss;
+    let currentStoneBossType = state.currentStone.bossType || 'none';
+    let stonesDestroyed = state.stonesDestroyed;
+    let bossesDefeated = state.bossesDefeated;
+    let stonesUntilBoss = state.stonesUntilBoss;
+    let offlineStonesDestroyed = 0;
+    let offlineBossesDefeated = 0;
+
+    // 클릭당 골드 계산 (온라인 autoTick과 동일하게)
+    const totalAutoClicks = autoClicksPerSec * totalOfflineSeconds;
+    // 평균 치명타 배율: 1 + (치명타확률 × (치명타데미지/100 - 1))
+    const avgCritMultiplier = 1 + (state.critChance / 100) * (state.critDamage / 100 - 1);
+    let totalGoldEarned = Math.floor(state.goldPerClick * avgCritMultiplier * totalAutoClicks * goldMultiplier);
+
+    // 총 데미지 계산
+    let remainingDamage = damagePerSecond * totalOfflineSeconds;
+
+    // 돌 파괴 시뮬레이션 (최대 10000개로 제한 - 무한 루프 방지)
+    let loopCount = 0;
+    const maxLoops = 10000;
+
+    while (remainingDamage > 0 && loopCount < maxLoops) {
+      loopCount++;
+
+      // 보스 데미지 페널티 적용
+      let effectiveDamage = remainingDamage;
+      if (currentStoneIsBoss && currentStoneBossType !== 'none') {
+        const damageMultiplier = calculateBossDamageMultiplier(
+          state.currentPiece.rank,
+          state.currentPiece.level,
+          currentStoneBossType as BossType
+        );
+        effectiveDamage = Math.floor(remainingDamage * damageMultiplier);
+      }
+
+      if (effectiveDamage >= currentStoneHp) {
+        // 돌 파괴!
+        const damageUsed = currentStoneIsBoss
+          ? Math.ceil(currentStoneHp / calculateBossDamageMultiplier(state.currentPiece.rank, state.currentPiece.level, currentStoneBossType as BossType))
+          : currentStoneHp;
+        remainingDamage -= Math.max(damageUsed, 1);
+
+        if (currentStoneIsBoss) {
+          // 보스 처치
+          const bossReward = calculateBossGoldReward(currentStoneBossType as BossType, stonesDestroyed, state.currentPiece.rank);
+          totalGoldEarned += bossReward * goldMultiplier;
+          bossesDefeated++;
+          offlineBossesDefeated++;
+          stonesUntilBoss = STONES_PER_BOSS;
+
+          // 새 일반 돌 생성
+          const newStone = createRandomStone(stonesDestroyed, chessPieceLevel);
+          currentStoneHp = newStone.maxHp;
+          currentStoneIsBoss = false;
+          currentStoneBossType = 'none';
+        } else {
+          // 일반 돌 파괴 (온라인과 동일하게 goldMultiplier 미적용)
+          const stoneReward = calculateStoneReward(stonesDestroyed, state.currentPiece.rank);
+          totalGoldEarned += stoneReward;
+          stonesDestroyed++;
+          offlineStonesDestroyed++;
+          stonesUntilBoss--;
+
+          if (stonesUntilBoss <= 0) {
+            // 보스 등장
+            const bossStone = createBossStone(state.attackPower, bossesDefeated, stonesDestroyed, chessPieceLevel);
+            currentStoneHp = bossStone.maxHp;
+            currentStoneIsBoss = true;
+            currentStoneBossType = bossStone.bossType || 'none';
+            stonesUntilBoss = 0;
+          } else {
+            // 새 일반 돌 생성
+            const newStone = createRandomStone(stonesDestroyed, chessPieceLevel);
+            currentStoneHp = newStone.maxHp;
+          }
+        }
+      } else {
+        // 데미지 부족 - HP만 감소시키고 종료
+        currentStoneHp -= effectiveDamage;
+        remainingDamage = 0;
+      }
+    }
+
+    // 최종 돌 상태 생성
+    let finalStone: GoStone;
+    if (currentStoneIsBoss) {
+      finalStone = createBossStone(state.attackPower, bossesDefeated, stonesDestroyed, chessPieceLevel);
+      finalStone = { ...finalStone, currentHp: Math.max(1, currentStoneHp) };
+    } else {
+      finalStone = createRandomStone(stonesDestroyed, chessPieceLevel);
+      finalStone = { ...finalStone, currentHp: Math.max(1, currentStoneHp) };
+    }
+
+    // 오프라인 시간이 1분 이상이고 자동클릭이 있으면 항상 모달 표시
+    // (돌 파괴가 없어도 데미지는 적용되고 진행 상황 표시)
+    set({
+      lastOnlineTime: now,
+      showOfflineRewardModal: true,
+      offlineRewardData: {
+        gold: totalGoldEarned,
+        stonesDestroyed: offlineStonesDestroyed,
+        bossesDefeated: offlineBossesDefeated,
+        time: offlineTime
+      },
+      // 돌 파괴 상태 및 현재 돌 데미지 적용
+      stonesDestroyed: stonesDestroyed,
+      bossesDefeated: bossesDefeated,
+      stonesUntilBoss: stonesUntilBoss,
+      currentStone: finalStone,
+    });
+
+    return {
+      gold: totalGoldEarned,
+      stonesDestroyed: offlineStonesDestroyed,
+      bossesDefeated: offlineBossesDefeated,
+      time: offlineTime
+    };
+  },
+
+  // 오프라인 보상 수령 (2배 여부 선택)
+  claimOfflineReward: (double: boolean) => {
+    const state = get();
+    if (!state.offlineRewardData) return;
+
+    const multiplier = double ? 2 : 1;
+    const goldToAdd = state.offlineRewardData.gold * multiplier;
+
+    set({
+      gold: state.gold + goldToAdd,
+      totalGold: state.totalGold + goldToAdd,
+      showOfflineRewardModal: false,
+      offlineRewardData: null,
+    });
+  },
+
+  // 오프라인 보상 모달 닫기 (1배로 수령)
+  closeOfflineRewardModal: () => {
+    get().claimOfflineReward(false);
+  },
+
+  // 무한모드 선택
+  chooseInfiniteMode: () => {
+    set({ isInfiniteMode: true, showEndingModal: false });
+  },
+
+  // 엔딩에서 환생 선택
+  choosePrestigeFromEnding: () => {
+    set({ showEndingModal: false });
+    return get().doPrestige();
+  },
+
+  // 엔딩 모달 닫기 (무한모드로)
+  closeEndingModal: () => {
+    set({ isInfiniteMode: true, showEndingModal: false });
+  },
+
+  // 전면 광고 표시 (광고 제거 구매 시 스킵)
+  showInterstitial: (callback?: () => void) => {
+    const state = get();
+    // 광고 제거 구매자는 스킵
+    if (state.adRemoved) {
+      if (callback) callback();
+      return;
+    }
+    // 광고 표시
+    set({
+      showInterstitialAd: true,
+      pendingInterstitialCallback: callback || null,
+    });
+  },
+
+  // 전면 광고 닫기
+  closeInterstitial: () => {
+    const state = get();
+    const callback = state.pendingInterstitialCallback;
+    set({
+      showInterstitialAd: false,
+      pendingInterstitialCallback: null,
+    });
+    // 콜백 실행
+    if (callback) callback();
+  },
+
+  // 파괴 확정 (광고 안 보고 파괴)
+  confirmDestroy: () => {
+    const state = get();
+    if (!state.pendingDestroyData) return;
+
+    // 파괴 실행
+    const resetPiece = { ...state.currentPiece, level: 0 };
+    const newStats = calculateStats(state.upgrades, resetPiece, state.prestigeBonus);
+    set({
+      currentPiece: resetPiece,
+      ...newStats,
+      showDestroyRecoveryModal: false,
+      pendingDestroyData: null,
+    });
+  },
+
+  // 광고 보고 파괴 방지
+  watchAdToRecoverDestroy: () => {
+    const state = get();
+    if (!state.pendingDestroyData) return;
+    if (state.adDestructionPreventUsed >= 2) return;  // 이미 2회 사용
+
+    // TODO: 실제 광고 SDK 연동 시 여기서 광고 재생
+    // 지금은 바로 복구 처리
+
+    // 광고 사용 횟수 증가, 모달 닫기 (파괴 취소)
+    set({
+      adDestructionPreventUsed: state.adDestructionPreventUsed + 1,
+      showDestroyRecoveryModal: false,
+      pendingDestroyData: null,
+    });
+  },
+
+  // 무료 루비 획득 (광고 시청)
+  claimFreeRuby: () => {
+    const state = get();
+
+    // 하루 3회 제한
+    if (state.adFreeRubyUsed >= 3) {
+      return { success: false, ruby: 0 };
+    }
+
+    // TODO: 실제 광고 SDK 연동 시 여기서 광고 재생
+    // 지금은 바로 루비 지급
+
+    const rubyAmount = 25;
+    set({
+      ruby: state.ruby + rubyAmount,
+      adFreeRubyUsed: state.adFreeRubyUsed + 1,
+    });
+
+    return { success: true, ruby: rubyAmount };
   },
 
   autoTick: () => {
@@ -1410,7 +1855,9 @@ const useGameStore = create<GameState>((set, get) => ({
         dailyClicks: 0,
         dailyStonesDestroyed: 0,
         dailyEnhanceAttempts: 0,
-        dailyGoldEarned: 0
+        dailyGoldEarned: 0,
+        adFreeRubyUsed: 0,  // 무료 다이아 횟수도 초기화
+        adDestructionPreventUsed: 0  // 파괴방지 광고 횟수도 초기화
       });
     }
   },
@@ -1431,7 +1878,13 @@ const useGameStore = create<GameState>((set, get) => ({
       const pieceTemplate = CHESS_PIECES[d.currentPiece.rank as ChessPieceRank] || CHESS_PIECES.pawn;
       const restoredPiece = { ...pieceTemplate, level: d.currentPiece.level };
 
-      set({ ...d, currentPiece: restoredPiece, ...stats });
+      // shopItems 가격 정보는 항상 최신 INITIAL_SHOP_ITEMS에서 가져옴
+      const mergedShopItems = INITIAL_SHOP_ITEMS.map(initial => {
+        const saved = d.shopItems?.find((s: ShopItem) => s.id === initial.id);
+        return saved ? { ...initial, count: saved.count } : { ...initial };
+      });
+
+      set({ ...d, currentPiece: restoredPiece, shopItems: mergedShopItems, ...stats });
     } catch (e) { console.error(e); }
   },
   resetGame: () => {
@@ -1836,6 +2289,26 @@ function MoreMenuModal({ onClose, onReset, onShowGuide }: {
               <span>📖</span>
               <span>게임 가이드</span>
             </button>
+            <button className="more-menu-item" onPointerUp={async () => {
+              soundManager.play('click');
+              const restored = await restorePurchases();
+              if (restored.length > 0) {
+                restored.forEach(productId => {
+                  if (productId === PRODUCT_IDS.AD_REMOVAL) {
+                    useGameStore.setState({ adRemoved: true });
+                  } else if (productId === PRODUCT_IDS.PERMANENT_BOOSTER) {
+                    useGameStore.setState({ permanentBoost: true });
+                  }
+                });
+                soundManager.play('success');
+                alert(`✅ ${restored.length}개 구매 복원 완료!`);
+              } else {
+                alert('복원할 구매 내역이 없습니다');
+              }
+            }}>
+              <span>🔄</span>
+              <span>구매 복원</span>
+            </button>
             {!showResetConfirm ? (
               <button className="more-menu-item danger" onPointerUp={() => { soundManager.play('click'); setShowResetConfirm(true); }}>
                 <span>🔄</span>
@@ -1867,6 +2340,290 @@ function MoreMenuModal({ onClose, onReset, onShowGuide }: {
   );
 }
 
+// 오프라인 보상 모달
+function OfflineRewardModal({
+  data,
+  onClaim
+}: {
+  data: { gold: number; stonesDestroyed: number; bossesDefeated: number; time: number };
+  onClaim: (double: boolean) => void;
+}) {
+  const [isLoadingAd, setIsLoadingAd] = useState(false);
+
+  const formatTime = (ms: number) => {
+    const hours = Math.floor(ms / 3600000);
+    const minutes = Math.floor((ms % 3600000) / 60000);
+    if (hours > 0) return `${hours}시간 ${minutes}분`;
+    return `${minutes}분`;
+  };
+
+  // 광고 시청 시작
+  const handleWatchAd = async () => {
+    setIsLoadingAd(true);
+    try {
+      // 실제 광고 호출
+      const rewarded = await showRewarded();
+      // 광고 완료 여부에 따라 보상 지급
+      onClaim(rewarded);
+    } catch (error) {
+      console.error('Ad error:', error);
+      // 광고 실패 시 1배 보상
+      onClaim(false);
+    }
+  };
+
+  // 광고 로딩 중 화면
+  if (isLoadingAd) {
+    return (
+      <div className="offline-reward-modal">
+        <div className="offline-reward-content ad-watching">
+          <div className="ad-placeholder">
+            <div className="ad-label">광고 로딩 중...</div>
+            <div className="ad-timer">⏳</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="offline-reward-modal">
+      <div className="offline-reward-content">
+        <h2 className="offline-reward-title">🎉 돌아오셨군요!</h2>
+        <p className="offline-reward-time">⏱️ <span>{formatTime(data.time)}</span> 동안</p>
+
+        <div className="offline-reward-stats">
+          <div className="offline-reward-stat">
+            <span className="stat-icon">💰</span>
+            <span className="stat-label">골드</span>
+            <span className="stat-value gold">{formatNumber(data.gold)}</span>
+          </div>
+          <div className="offline-reward-stat">
+            <span className="stat-icon">🪨</span>
+            <span className="stat-label">바둑돌</span>
+            <span className="stat-value stones">{formatNumber(data.stonesDestroyed)}개</span>
+          </div>
+          {data.bossesDefeated > 0 && (
+            <div className="offline-reward-stat">
+              <span className="stat-icon">👹</span>
+              <span className="stat-label">보스</span>
+              <span className="stat-value boss">{data.bossesDefeated}마리</span>
+            </div>
+          )}
+        </div>
+
+        <div className="offline-reward-buttons">
+          <button
+            className="offline-reward-btn double"
+            onClick={handleWatchAd}
+          >
+            📺 광고 보고 2배 받기
+          </button>
+          <button
+            className="offline-reward-btn normal"
+            onClick={() => onClaim(false)}
+          >
+            그냥 보상받기
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// 엔딩 모달 (임페리얼 킹 달성 시)
+function EndingModal({
+  currentPiece,
+  prestigeBonus,
+  onInfiniteMode,
+  onPrestige
+}: {
+  currentPiece: ChessPiece;
+  prestigeBonus: number;
+  onInfiniteMode: () => void;
+  onPrestige: () => void;
+}) {
+  // 환생 시 예상 루비 보상 계산
+  const rankIndex = RANK_ORDER.indexOf(currentPiece.rank);
+  const estimatedRuby = (rankIndex + 1) * (currentPiece.level + 1) * 10;
+  const newPrestigeBonus = Math.floor((prestigeBonus + 0.1) * 100);
+
+  return (
+    <div className="ending-modal">
+      <div className="ending-content">
+        <div className="ending-celebration">🎊</div>
+        <h2 className="ending-title">축하합니다!</h2>
+        <p className="ending-subtitle">최고 등급 <span>임페리얼 킹</span> 달성!</p>
+
+        <div className="ending-message">
+          당신은 전설의 체스 마스터가 되었습니다!<br />
+          다음 여정을 선택하세요.
+        </div>
+
+        <div className="ending-options">
+          <div className="ending-option infinite">
+            <div className="option-icon">♾️</div>
+            <div className="option-info">
+              <div className="option-title">무한 모드</div>
+              <div className="option-desc">현재 상태를 유지하며 계속 플레이</div>
+            </div>
+            <button className="option-btn" onClick={onInfiniteMode}>
+              선택
+            </button>
+          </div>
+
+          <div className="ending-option prestige">
+            <div className="option-icon">🔄</div>
+            <div className="option-info">
+              <div className="option-title">환생</div>
+              <div className="option-desc">
+                처음부터 다시 시작<br />
+                <span className="reward-preview">
+                  💎 {formatNumber(estimatedRuby)} 다이아 + 영구 보너스 {newPrestigeBonus}%
+                </span>
+              </div>
+            </div>
+            <button className="option-btn" onClick={onPrestige}>
+              선택
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// 전면 광고 모달 (AdMob 연동 전 플레이스홀더)
+function InterstitialAdModal({ onClose }: { onClose: () => void }) {
+  useEffect(() => {
+    // 전면 광고 즉시 표시
+    const showAd = async () => {
+      try {
+        await showInterstitial();
+      } catch (error) {
+        console.error('Interstitial ad error:', error);
+      }
+      // 광고 종료 후 모달 닫기
+      onClose();
+    };
+
+    showAd();
+  }, [onClose]);
+
+  // 광고 로딩 중 표시
+  return (
+    <div className="interstitial-ad-modal">
+      <div className="interstitial-ad-content">
+        <div className="ad-placeholder">
+          <div className="ad-placeholder-inner">
+            <div className="ad-icon">⏳</div>
+            <div className="ad-text">광고 로딩 중...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// 파괴 복구 모달
+function DestroyRecoveryModal({
+  pendingData,
+  adUsedToday,
+  onWatchAd,
+  onConfirmDestroy
+}: {
+  pendingData: { rank: ChessPieceRank; level: number };
+  adUsedToday: number;
+  onWatchAd: () => void;
+  onConfirmDestroy: () => void;
+}) {
+  const [isLoadingAd, setIsLoadingAd] = useState(false);
+
+  const rankNames: Record<ChessPieceRank, string> = {
+    pawn: '폰', knight: '나이트', bishop: '비숍',
+    rook: '룩', queen: '퀸', king: '킹', imperial: '임페리얼'
+  };
+  // 레벨 이름 매핑 (간단한 버전)
+  const levelNames = ['이병', '일병', '상병', '병장', '하사', '중사', '상사', '소위', '중위', '대위', '소령', '중령', '대령', '준장', '소장', '중장', '대장'];
+  const levelName = levelNames[pendingData.level] || `+${pendingData.level}`;
+  const remainingAds = 2 - adUsedToday;
+
+  // 광고 시청 후 복구
+  const handleWatchAd = async () => {
+    setIsLoadingAd(true);
+    try {
+      const rewarded = await showRewarded();
+      if (rewarded) {
+        soundManager.play('success');
+        vibrate([50, 50, 50]);
+        onWatchAd();
+      } else {
+        // 광고 취소 시 파괴 확정
+        soundManager.play('destroy');
+        vibrate([100, 50, 100]);
+        onConfirmDestroy();
+      }
+    } catch (error) {
+      console.error('Ad error:', error);
+      // 광고 실패 시 파괴 확정
+      onConfirmDestroy();
+    }
+  };
+
+  // 광고 로딩 중
+  if (isLoadingAd) {
+    return (
+      <div className="destroy-recovery-modal">
+        <div className="destroy-recovery-content">
+          <div className="destroy-warning-icon">⏳</div>
+          <div className="destroy-warning-title">광고 로딩 중...</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="destroy-recovery-modal">
+      <div className="destroy-recovery-content">
+        {/* 경고 아이콘 */}
+        <div className="destroy-warning-icon">💥</div>
+
+        {/* 경고 메시지 */}
+        <div className="destroy-warning-title">장비 파괴 위험!</div>
+        <div className="destroy-warning-desc">
+          <span className="piece-info">{rankNames[pendingData.rank]} {levelName}</span>이(가)
+          <br />파괴될 위기입니다!
+        </div>
+
+        {/* 광고로 복구 버튼 */}
+        <button
+          className="destroy-recovery-btn watch-ad"
+          onClick={handleWatchAd}
+        >
+          <span className="btn-icon">📺</span>
+          <span className="btn-text">
+            광고 보고 복구하기
+            <span className="btn-subtext">오늘 {remainingAds}회 남음</span>
+          </span>
+        </button>
+
+        {/* 파괴 확정 버튼 */}
+        <button
+          className="destroy-recovery-btn confirm-destroy"
+          onClick={() => {
+            soundManager.play('destroy');
+            vibrate([100, 50, 100]);
+            onConfirmDestroy();
+          }}
+        >
+          <span className="btn-icon">💀</span>
+          <span className="btn-text">파괴하기 (+0 초기화)</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // 탭 타입 정의
 type TabType = 'enhance' | 'upgrade' | 'auto' | 'shop' | 'mission';
 
@@ -1890,7 +2647,19 @@ function App() {
     attackPower, critChance, autoClicksPerSec, upgradeCount,
     stonesUntilBoss, bossesDefeated,
     handleClick, tryEnhance, claimMissionReward, missions,
-    loadGame, saveGame, autoTick, collectOfflineReward, resetDailyMissions
+    loadGame, saveGame, autoTick, collectOfflineReward, resetDailyMissions,
+    // 오프라인 보상 모달
+    showOfflineRewardModal, offlineRewardData, claimOfflineReward,
+    // 엔딩 & 무한모드
+    isInfiniteMode, showEndingModal, prestigeBonus,
+    chooseInfiniteMode, choosePrestigeFromEnding, doPrestige,
+    // 전면 광고
+    showInterstitialAd, closeInterstitial,
+    // 파괴 복구 광고
+    showDestroyRecoveryModal, pendingDestroyData, adDestructionPreventUsed,
+    confirmDestroy, watchAdToRecoverDestroy,
+    // 무료 루비 광고
+    adFreeRubyUsed, claimFreeRuby,
   } = useGameStore();
 
   const [lastEnhanceMsg, setLastEnhanceMsg] = useState('');
@@ -1974,8 +2743,54 @@ function App() {
     };
   }, []);
 
+  // 구매 완료 콜백
+  const handlePurchaseApproved = useCallback((productId: string) => {
+    console.log('Purchase approved:', productId);
+    const state = useGameStore.getState();
+
+    switch (productId) {
+      case PRODUCT_IDS.AD_REMOVAL:
+        useGameStore.setState({ adRemoved: true });
+        soundManager.play('success');
+        vibrate([50, 50, 50]);
+        break;
+      case PRODUCT_IDS.PERMANENT_BOOSTER:
+        useGameStore.setState({ permanentBoost: true });
+        soundManager.play('success');
+        vibrate([50, 50, 50]);
+        break;
+      case PRODUCT_IDS.DIAMOND_100:
+        useGameStore.setState({ ruby: state.ruby + 100 });
+        soundManager.play('success');
+        vibrate([50, 50, 50]);
+        break;
+      case PRODUCT_IDS.DIAMOND_320:
+        useGameStore.setState({ ruby: state.ruby + 320 });
+        soundManager.play('success');
+        vibrate([50, 50, 50]);
+        break;
+      case PRODUCT_IDS.DIAMOND_550:
+        useGameStore.setState({ ruby: state.ruby + 550 });
+        soundManager.play('success');
+        vibrate([50, 50, 50]);
+        break;
+      case PRODUCT_IDS.DIAMOND_1000:
+        useGameStore.setState({ ruby: state.ruby + 1000 });
+        soundManager.play('success');
+        vibrate([50, 50, 50]);
+        break;
+      case PRODUCT_IDS.DIAMOND_2000:
+        useGameStore.setState({ ruby: state.ruby + 2000 });
+        soundManager.play('success');
+        vibrate([50, 50, 50]);
+        break;
+    }
+  }, []);
+
   useEffect(() => {
     loadGame();
+    setupAds(); // AdMob 초기화
+    initializePurchases(handlePurchaseApproved); // 인앱결제 초기화
     if (!localStorage.getItem('pony_story_seen')) setShowStory(true);
 
     // Initial Interaction for BGM - HTML5 오디오 잠금해제 후 재생
@@ -2009,9 +2824,22 @@ function App() {
     resetDailyMissions();
 
     setTimeout(() => {
-      const r = collectOfflineReward();
-      if (r.gold > 0) alert(`${formatNumber(r.gold)} 골드를 오프라인 수익으로 얻었습니다!`);
+      collectOfflineReward(); // 모달로 표시됨
     }, 1000);
+
+    // 백그라운드/화면 잠금 감지 (Page Visibility API)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        // 백그라운드로 갈 때: 현재 시간 저장 및 게임 저장
+        useGameStore.setState({ lastOnlineTime: Date.now() });
+        saveGame();
+      } else if (document.visibilityState === 'visible') {
+        // 포그라운드로 돌아올 때: 오프라인 보상 계산
+        resetDailyMissions(); // 자정 넘었을 수 있으니 체크
+        collectOfflineReward();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     const i = setInterval(autoTick, 1000);
     const s = setInterval(saveGame, 10000);
@@ -2030,6 +2858,7 @@ function App() {
       clearInterval(i);
       clearInterval(s);
       window.removeEventListener('popstate', handlePopState);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       removeAudioListeners();
       soundManager.stopBgm();
     };
@@ -2323,7 +3152,7 @@ function App() {
     }
   };
 
-  const handleEnhanceClick = () => {
+  const handleEnhanceClick = useCallback(() => {
     vibrate(10);
     const res = tryEnhance(useProtect, useBlessing);
     setLastEnhanceMsg(res.message);
@@ -2337,7 +3166,7 @@ function App() {
       soundManager.play('fail');
     }
     setTimeout(() => setLastEnhanceMsg(''), 2000);
-  };
+  }, [useProtect, useBlessing]);
 
   // 상점 아이템 개수 가져오기
   const getItemCount = (itemId: string) => {
@@ -2446,7 +3275,7 @@ function App() {
             return (
               <button
                 className={`boost-btn-compact ${(isPermanent || isActive) ? 'active permanent' : ''} ${isCooldown && !isPermanent ? 'cooldown' : ''}`}
-                onPointerUp={() => {
+                onPointerUp={async () => {
                   if (isPermanent) {
                     vibrate(10);
                     return; // 영구 부스터는 항상 활성화 상태
@@ -2455,21 +3284,47 @@ function App() {
                     vibrate(10);
                     return;
                   }
-                  soundManager.play('success');
-                  const result = useGameStore.getState().useMegaBoost();
-                  if (result.success) {
-                    vibrate([50, 50, 50]);
+                  // 광고 시청 후 부스터 활성화
+                  try {
+                    const rewarded = await showRewarded();
+                    if (rewarded) {
+                      soundManager.play('success');
+                      const result = useGameStore.getState().useMegaBoost();
+                      if (result.success) {
+                        vibrate([50, 50, 50]);
+                      }
+                    }
+                  } catch (error) {
+                    console.error('Mega boost ad failed:', error);
                   }
                 }}
               >
                 <span className="boost-text">
-                  {isPermanent ? '🚀 영구 2X' : isActive ? `🚀 ${timeText}` : isCooldown ? `⏳ ${timeText}` : '부스트 2X 🚀'}
+                  {isPermanent ? '🚀 영구 2X' : isActive ? `🚀 ${timeText}` : isCooldown ? `⏳ ${timeText}` : '📺 부스트 2X'}
                 </span>
               </button>
             );
           })()}
         </div>
       </div>
+
+      {/* 무한모드 환생 버튼 */}
+      {isInfiniteMode && (
+        <button
+          className="infinite-prestige-btn"
+          onClick={() => {
+            soundManager.play('success');
+            vibrate([50, 100, 50]);
+            const result = doPrestige();
+            if (result.success) {
+              // 환생 완료 - 화면이 자동으로 리셋됨
+            }
+          }}
+        >
+          <span className="prestige-icon">🔄</span>
+          <span className="prestige-text">환생하기</span>
+        </button>
+      )}
 
       {/* Main Battle Area */}
       <div className="game-area" onPointerDown={handleAttack}>
@@ -2685,7 +3540,7 @@ function App() {
                   <span className="item-count">x{getItemCount('luckyScroll')}</span>
                 </button>
               </div>
-              <button className="enhance-btn" onPointerUp={handleEnhanceClick}>
+              <button className="enhance-btn" onClick={handleEnhanceClick}>
                 <div className="enhance-content">
                   <span className="enhance-main-text">강화하기</span>
                   <span className="enhance-cost">🪙 {formatNumber(getEnhanceCost(currentPiece.rank, currentPiece.level))}</span>
@@ -2720,10 +3575,10 @@ function App() {
                       <div className="list-item-name">{u.name} Lv.{u.level}</div>
                       <div className="list-item-desc">현재 효과: {u.id === 'critChance' ? currentValue.toFixed(1) : Math.floor(currentValue)}{(u.id === 'critChance' || u.id === 'critDamage') ? '%' : ''}</div>
                     </div>
-                    <button
+                    <LongPressButton
                       className={`list-item-btn ${isMaxed ? 'maxed' : gold >= getUpgradeCost(u) ? 'can-buy' : ''}`}
                       disabled={isMaxed}
-                      onPointerUp={() => {
+                      onClick={() => {
                         if (isMaxed) return;
                         const success = useGameStore.getState().upgradestat(u.id);
                         if (success) {
@@ -2732,9 +3587,11 @@ function App() {
                           if (activeTutorial === 'growth' && tutorialStep === 1) completeTutorial('growth');
                         }
                       }}
+                      delay={300}
+                      interval={80}
                     >
                       {isMaxed ? '✨ 최대' : `🪙 ${formatNumber(getUpgradeCost(u))}`}
-                    </button>
+                    </LongPressButton>
                   </div>
                 );
               })}
@@ -2772,10 +3629,10 @@ function App() {
                         )}
                       </div>
                     </div>
-                    <button
+                    <LongPressButton
                       className={`list-item-btn purple ${canBuyNow ? 'can-buy' : ''} ${status.isLocked ? 'locked-btn' : ''}`}
                       disabled={status.isLocked || !status.canBuy}
-                      onPointerUp={() => {
+                      onClick={() => {
                         if (status.isLocked || !status.canBuy) return;
                         const success = useGameStore.getState().buyAutoClicker(ac.id);
                         if (success) {
@@ -2784,9 +3641,11 @@ function App() {
                           if (activeTutorial === 'tool' && tutorialStep === 1) completeTutorial('tool');
                         }
                       }}
+                      delay={300}
+                      interval={80}
                     >
                       {status.isLocked ? '🔒 잠김' : !status.canBuy ? '최대' : `🪙 ${formatNumber(cost)}`}
-                    </button>
+                    </LongPressButton>
                   </div>
                 );
               })}
@@ -2796,6 +3655,44 @@ function App() {
           {/* 상점 탭 */}
           {activeTab === 'shop' && (
             <div className="tab-panel scroll-panel">
+              {/* 📅 일일 보상 섹션 */}
+              <div className="shop-section daily-rewards-section">
+                <div className="shop-section-title">📅 일일 보상</div>
+                <div className="daily-reward-item">
+                  <div className="daily-reward-info">
+                    <div className="daily-reward-icon">📺</div>
+                    <div className="daily-reward-text">
+                      <div className="daily-reward-name">무료 다이아</div>
+                      <div className="daily-reward-desc">광고를 시청하고 💎 25 다이아 획득</div>
+                    </div>
+                  </div>
+                  <button
+                    className={`daily-reward-btn ${adFreeRubyUsed >= 3 ? 'disabled' : ''}`}
+                    disabled={adFreeRubyUsed >= 3}
+                    onClick={async () => {
+                      if (adFreeRubyUsed >= 3) return;
+                      try {
+                        // 광고 재생
+                        const rewarded = await showRewarded();
+                        if (rewarded) {
+                          soundManager.play('success');
+                          vibrate([50, 50, 50]);
+                          const result = claimFreeRuby();
+                          if (result.success) {
+                            setRewardFx({ id: Date.now(), text: `💎 ${result.ruby} 다이아 획득!` });
+                            setTimeout(() => setRewardFx(null), 1500);
+                          }
+                        }
+                      } catch (error) {
+                        console.error('Ad error:', error);
+                      }
+                    }}
+                  >
+                    {adFreeRubyUsed >= 3 ? '오늘 완료' : `받기 (${3 - adFreeRubyUsed}/3)`}
+                  </button>
+                </div>
+              </div>
+
               {/* 🛒 상점 아이템 섹션 */}
               <div className="shop-section">
                 <div className="shop-section-title">🛒 아이템 구매</div>
@@ -2827,12 +3724,17 @@ function App() {
                     <button
                       className={`list-item-btn blue ${canBuy ? 'can-buy' : ''} ${isPermanentOwned ? 'disabled' : ''}`}
                       disabled={isPermanentOwned}
-                      onPointerUp={() => {
+                      onPointerUp={async () => {
                         if (isPermanentOwned) return;
                         // 원화 결제 아이템
                         if (item.wonPrice) {
                           vibrate(10);
-                          alert(`💳 ${item.name} 구매\n가격: ${item.wonPrice}\n\n(인앱결제 연동 예정)`);
+                          // 실제 인앱결제 호출
+                          const productId = item.id === 'permBoost' ? PRODUCT_IDS.PERMANENT_BOOSTER : PRODUCT_IDS.AD_REMOVAL;
+                          const result = await purchaseProduct(productId);
+                          if (!result.success) {
+                            console.error('Purchase failed:', result.error);
+                          }
                           return;
                         }
                         const success = useGameStore.getState().buyShopItem(item.id);
@@ -2860,19 +3762,21 @@ function App() {
                 <div className="shop-section-title">💎 다이아 충전</div>
                 <div className="diamond-packages">
                   {[
-                    { id: 'diamond_100', amount: 100, bonus: 0, price: '₩1,200', popular: false },
-                    { id: 'diamond_320', amount: 300, bonus: 20, price: '₩3,500', popular: false },
-                    { id: 'diamond_550', amount: 500, bonus: 50, price: '₩5,900', popular: true },
-                    { id: 'diamond_1000', amount: 900, bonus: 100, price: '₩11,000', popular: false },
-                    { id: 'diamond_2000', amount: 1800, bonus: 200, price: '₩22,000', popular: false },
+                    { id: PRODUCT_IDS.DIAMOND_100, amount: 100, bonus: 0, price: '₩1,200', popular: false },
+                    { id: PRODUCT_IDS.DIAMOND_320, amount: 300, bonus: 20, price: '₩3,500', popular: false },
+                    { id: PRODUCT_IDS.DIAMOND_550, amount: 500, bonus: 50, price: '₩5,900', popular: true },
+                    { id: PRODUCT_IDS.DIAMOND_1000, amount: 900, bonus: 100, price: '₩11,000', popular: false },
+                    { id: PRODUCT_IDS.DIAMOND_2000, amount: 1800, bonus: 200, price: '₩22,000', popular: false },
                   ].map(pkg => (
                     <button
                       key={pkg.id}
                       className={`diamond-package ${pkg.popular ? 'popular' : ''}`}
-                      onPointerUp={() => {
+                      onPointerUp={async () => {
                         vibrate(10);
-                        // TODO: 실제 인앱결제 연동
-                        alert(`💎 ${pkg.amount}${pkg.bonus > 0 ? ` +${pkg.bonus}` : ''} 다이아 구매\n가격: ${pkg.price}\n\n(인앱결제 연동 예정)`);
+                        const result = await purchaseProduct(pkg.id);
+                        if (!result.success) {
+                          console.error('Purchase failed:', result.error);
+                        }
                       }}
                     >
                       {pkg.popular && <span className="popular-badge">인기!</span>}
@@ -2883,6 +3787,7 @@ function App() {
                   ))}
                 </div>
               </div>
+
             </div>
           )}
 
@@ -2930,7 +3835,7 @@ function App() {
                               soundManager.play('success');
                               setRewardFx({
                                 id: Date.now(),
-                                text: `🎁 ${m.reward.gold > 0 ? `+${formatNumber(m.reward.gold)} 골드` : ''} ${m.reward.ruby > 0 ? `+${m.reward.ruby} 루비` : ''}`
+                                text: `🎁 ${m.reward.gold > 0 ? `+${formatNumber(m.reward.gold)} 골드` : ''} ${m.reward.ruby > 0 ? `+${m.reward.ruby} 다이아` : ''}`
                               });
                               setTimeout(() => setRewardFx(null), 2000);
                               if (activeTutorial === 'mission' && tutorialStep === 1) completeTutorial('mission');
@@ -2955,6 +3860,28 @@ function App() {
       {showGuide && <GuideModal onClose={onGuideClose} />}
       {showAgeRating && <AgeRatingBadge onComplete={() => setShowAgeRating(false)} />}
       {showExitModal && <ExitConfirmModal onCancel={() => setShowExitModal(false)} onConfirm={handleExit} />}
+      {showOfflineRewardModal && offlineRewardData && (
+        <OfflineRewardModal data={offlineRewardData} onClaim={claimOfflineReward} />
+      )}
+      {showEndingModal && (
+        <EndingModal
+          currentPiece={currentPiece}
+          prestigeBonus={prestigeBonus}
+          onInfiniteMode={chooseInfiniteMode}
+          onPrestige={choosePrestigeFromEnding}
+        />
+      )}
+      {showInterstitialAd && (
+        <InterstitialAdModal onClose={closeInterstitial} />
+      )}
+      {showDestroyRecoveryModal && pendingDestroyData && (
+        <DestroyRecoveryModal
+          pendingData={pendingDestroyData}
+          adUsedToday={adDestructionPreventUsed}
+          onWatchAd={watchAdToRecoverDestroy}
+          onConfirmDestroy={confirmDestroy}
+        />
+      )}
       {showMoreMenu && <MoreMenuModal
         onClose={() => setShowMoreMenu(false)}
         onReset={() => useGameStore.getState().resetGame()}
