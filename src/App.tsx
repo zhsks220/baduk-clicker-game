@@ -165,6 +165,17 @@ interface Mission {
   claimed: boolean;
 }
 
+interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  condition: string;  // 조건 타입: 'rank' | 'boss'
+  target: number | string;  // rank name 또는 boss count
+  reward: { gold: number; ruby: number };
+  unlocked: boolean;
+  claimed: boolean;
+}
+
 // ============ 상수 정의 ============
 // Mapping ranks to images
 const CHESS_PIECES: Record<ChessPieceRank, Omit<ChessPiece, 'level'>> = {
@@ -423,6 +434,22 @@ const CUMULATIVE_MISSION_TIERS: Record<string, { targets: number[]; rewards: { g
     ],
   },
 };
+
+// 업적 시스템 (승급 + 보스 처치)
+const INITIAL_ACHIEVEMENTS: Achievement[] = [
+  // 체스말 승급 업적
+  { id: 'rank_knight', name: '♞ 나이트 승급', description: '나이트로 승급하기', condition: 'rank', target: 'knight', reward: { gold: 5000, ruby: 15 }, unlocked: false, claimed: false },
+  { id: 'rank_bishop', name: '♝ 비숍 승급', description: '비숍으로 승급하기', condition: 'rank', target: 'bishop', reward: { gold: 10000, ruby: 20 }, unlocked: false, claimed: false },
+  { id: 'rank_rook', name: '♜ 룩 승급', description: '룩으로 승급하기', condition: 'rank', target: 'rook', reward: { gold: 25000, ruby: 30 }, unlocked: false, claimed: false },
+  { id: 'rank_queen', name: '♛ 퀸 승급', description: '퀸으로 승급하기', condition: 'rank', target: 'queen', reward: { gold: 50000, ruby: 40 }, unlocked: false, claimed: false },
+  { id: 'rank_king', name: '♚ 킹 승급', description: '킹으로 승급하기', condition: 'rank', target: 'king', reward: { gold: 100000, ruby: 50 }, unlocked: false, claimed: false },
+  { id: 'rank_imperial', name: '👑 임페리얼 승급', description: '킹갓제네럴 임페리얼 체스킹 달성', condition: 'rank', target: 'imperial', reward: { gold: 500000, ruby: 100 }, unlocked: false, claimed: false },
+  // 보스 처치 업적
+  { id: 'boss_1', name: '👹 보스 사냥꾼', description: '보스 1마리 처치', condition: 'boss', target: 1, reward: { gold: 2000, ruby: 10 }, unlocked: false, claimed: false },
+  { id: 'boss_10', name: '👹 보스 헌터', description: '보스 10마리 처치', condition: 'boss', target: 10, reward: { gold: 10000, ruby: 20 }, unlocked: false, claimed: false },
+  { id: 'boss_50', name: '👹 보스 슬레이어', description: '보스 50마리 처치', condition: 'boss', target: 50, reward: { gold: 50000, ruby: 40 }, unlocked: false, claimed: false },
+  { id: 'boss_100', name: '👹 보스 마스터', description: '보스 100마리 처치', condition: 'boss', target: 100, reward: { gold: 200000, ruby: 80 }, unlocked: false, claimed: false },
+];
 
 const STORAGE_KEY = 'pony-game-v3';
 
@@ -729,6 +756,7 @@ interface GameState {
   megaBoostEndTime: number;      // 메가 부스터 효과 종료 시간
   megaBoostCooldownEnd: number;  // 메가 부스터 쿨타임 종료 시간 (2시간)
   missions: Mission[];
+  achievements: Achievement[];
   dailyMissionDate: string;
   prestigeCount: number;
   prestigeBonus: number;
@@ -777,6 +805,7 @@ interface GameState {
   buyShopItem: (itemId: string) => boolean;
   useMegaBoost: () => { success: boolean; message: string };  // 메가 부스터 (광고 후 사용)
   claimMissionReward: (missionId: string) => boolean;
+  claimAchievement: (achievementId: string) => boolean;
   doPrestige: () => { success: boolean; rubyEarned: number };
   collectOfflineReward: () => { gold: number; stonesDestroyed: number; bossesDefeated: number; time: number };
   claimOfflineReward: (double: boolean) => void;  // 오프라인 보상 수령 (2배 여부)
@@ -798,6 +827,7 @@ interface GameState {
   loadGame: () => void;
   resetGame: () => void;
   checkMissions: () => void;
+  checkAchievements: () => void;
   resetDailyMissions: () => void;
 }
 
@@ -868,6 +898,7 @@ const useGameStore = create<GameState>((set, get) => ({
   megaBoostEndTime: 0,
   megaBoostCooldownEnd: 0,
   missions: INITIAL_MISSIONS.map(m => ({ ...m })),
+  achievements: INITIAL_ACHIEVEMENTS.map(a => ({ ...a })),
   dailyMissionDate: getTodayString(),
   prestigeCount: 0,
   prestigeBonus: 0,
@@ -1005,6 +1036,7 @@ const useGameStore = create<GameState>((set, get) => ({
     }
 
     get().checkMissions();
+    get().checkAchievements();  // 보스 처치 업적 체크
     return { gold: earnedGold, isCrit, destroyed, bonusGold };
   },
 
@@ -1161,6 +1193,7 @@ const useGameStore = create<GameState>((set, get) => ({
         const newPiece = { ...CHESS_PIECES[nextRank], level: 0 };
         const newStats = calculateStats(state.upgrades, newPiece, state.prestigeBonus);
         set(s => ({ currentPiece: newPiece, enhanceSuccesses: s.enhanceSuccesses + 1, ...newStats }));
+        get().checkAchievements();  // 체스말 승급 업적 체크
 
         // 임페리얼 킹 달성 시 엔딩 표시 (이미 엔딩을 본 적이 없고, 무한모드가 아닐 때만)
         if (nextRank === 'imperial' && !state.hasReachedEnding && !state.isInfiniteMode) {
@@ -1321,6 +1354,23 @@ const useGameStore = create<GameState>((set, get) => ({
       gold: state.gold + mission.reward.gold,
       ruby: state.ruby + mission.reward.ruby,
       missions: newMissions
+    });
+    return true;
+  },
+
+  claimAchievement: (achId: string) => {
+    const state = get();
+    const idx = state.achievements.findIndex(a => a.id === achId);
+    if (idx === -1 || !state.achievements[idx].unlocked || state.achievements[idx].claimed) return false;
+
+    const achievement = state.achievements[idx];
+    const newAchievements = [...state.achievements];
+    newAchievements[idx] = { ...achievement, claimed: true };
+
+    set({
+      gold: state.gold + achievement.reward.gold,
+      ruby: state.ruby + achievement.reward.ruby,
+      achievements: newAchievements
     });
     return true;
   },
@@ -1756,6 +1806,34 @@ const useGameStore = create<GameState>((set, get) => ({
     set({ missions: newMissions });
   },
 
+  checkAchievements: () => {
+    const s = get();
+    const currentRankIndex = RANK_ORDER.indexOf(s.currentPiece.rank);
+
+    const newAchievements = s.achievements.map(a => {
+      if (a.unlocked) return a; // 이미 해금됨
+
+      let shouldUnlock = false;
+
+      if (a.condition === 'rank') {
+        // 랭크 업적: 해당 랭크 이상이면 해금
+        const targetRankIndex = RANK_ORDER.indexOf(a.target as ChessPieceRank);
+        shouldUnlock = currentRankIndex >= targetRankIndex;
+      } else if (a.condition === 'boss') {
+        // 보스 처치 업적: 보스 처치 수가 타겟 이상이면 해금
+        shouldUnlock = s.bossesDefeated >= (a.target as number);
+      }
+
+      return shouldUnlock ? { ...a, unlocked: true } : a;
+    });
+
+    // 변경 있을 때만 업데이트
+    const hasChanges = newAchievements.some((a, i) => a.unlocked !== s.achievements[i].unlocked);
+    if (hasChanges) {
+      set({ achievements: newAchievements });
+    }
+  },
+
   resetDailyMissions: () => {
     const today = getTodayString();
     const s = get();
@@ -1827,10 +1905,16 @@ const useGameStore = create<GameState>((set, get) => ({
         return saved ? { ...initial, level: saved.level } : { ...initial };
       });
 
+      // achievements(업적) 마이그레이션: 해금/수령 상태 유지, 나머지는 최신 정보로
+      const mergedAchievements = INITIAL_ACHIEVEMENTS.map(initial => {
+        const saved = d.achievements?.find((a: Achievement) => a.id === initial.id);
+        return saved ? { ...initial, unlocked: saved.unlocked, claimed: saved.claimed } : { ...initial };
+      });
+
       // 마이그레이션된 upgrades로 stats 재계산
       const migratedStats = calculateStats(mergedUpgrades, restoredPiece, d.prestigeBonus || 0);
 
-      set({ ...d, currentPiece: restoredPiece, shopItems: mergedShopItems, missions: mergedMissions, autoClickers: mergedAutoClickers, upgrades: mergedUpgrades, ...migratedStats });
+      set({ ...d, currentPiece: restoredPiece, shopItems: mergedShopItems, missions: mergedMissions, autoClickers: mergedAutoClickers, upgrades: mergedUpgrades, achievements: mergedAchievements, ...migratedStats });
     } catch (e) { console.error(e); }
   },
   resetGame: () => {
@@ -2606,6 +2690,8 @@ function App() {
     confirmDestroy, watchAdToRecoverDestroy,
     // 무료 루비 광고
     adFreeRubyUsed, claimFreeRuby,
+    // 업적 시스템
+    achievements, claimAchievement, checkAchievements,
   } = useGameStore();
 
   const [lastEnhanceMsg, setLastEnhanceMsg] = useState('');
@@ -2735,6 +2821,8 @@ function App() {
 
   useEffect(() => {
     loadGame();
+    // 로드 후 업적 체크 (기존 진행상황 기반)
+    setTimeout(() => checkAchievements(), 100);
     setupAds(); // AdMob 초기화
     initializePurchases(handlePurchaseApproved); // 인앱결제 초기화
     if (!localStorage.getItem('pony_story_seen')) setShowStory(true);
@@ -3796,6 +3884,56 @@ function App() {
                   </div>
                 );
               })}
+
+              {/* 업적 섹션 */}
+              <div className="section-divider">🏆 업적</div>
+              {[...achievements].sort((a, b) => {
+                // 1. 해금됨 + 보상 안받음 → 맨 위
+                const aClaimable = a.unlocked && !a.claimed;
+                const bClaimable = b.unlocked && !b.claimed;
+                if (aClaimable && !bClaimable) return -1;
+                if (!aClaimable && bClaimable) return 1;
+
+                // 2. 이미 완료함 (claimed) → 맨 아래
+                if (a.claimed && !b.claimed) return 1;
+                if (!a.claimed && b.claimed) return -1;
+
+                return 0;
+              }).map(ach => (
+                <div key={ach.id} className={`mission-item ${ach.unlocked ? 'completed' : ''} ${ach.claimed ? 'claimed' : ''}`}>
+                  <div className="mission-header">
+                    <span className="mission-name">{ach.name}</span>
+                    <span className="mission-progress">{ach.unlocked ? '달성!' : '미달성'}</span>
+                  </div>
+                  <div className="mission-desc">{ach.description}</div>
+                  <div className="mission-footer">
+                    <div className="mission-reward">
+                      {ach.reward.gold > 0 && <span>🪙 {formatNumber(ach.reward.gold)}</span>}
+                      {ach.reward.ruby > 0 && <span>💎 {ach.reward.ruby}</span>}
+                    </div>
+                    {ach.unlocked && !ach.claimed && (
+                      <button
+                        className="claim-btn"
+                        onPointerUp={() => {
+                          const success = claimAchievement(ach.id);
+                          if (success) {
+                            vibrate([50, 50, 50]);
+                            soundManager.play('success');
+                            setRewardFx({
+                              id: Date.now(),
+                              text: `🏆 ${ach.reward.gold > 0 ? `+${formatNumber(ach.reward.gold)} 골드` : ''} ${ach.reward.ruby > 0 ? `+${ach.reward.ruby} 다이아` : ''}`
+                            });
+                            setTimeout(() => setRewardFx(null), 2000);
+                          }
+                        }}
+                      >
+                        보상받기
+                      </button>
+                    )}
+                    {ach.claimed && <span className="mission-done">✓ 완료</span>}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>

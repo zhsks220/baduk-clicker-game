@@ -1093,6 +1093,22 @@ body {
   background: #eceff1;
 }
 
+.section-divider {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #2f3542;
+  padding: 16px 8px 8px;
+  margin-top: 12px;
+  border-bottom: 2px solid #dfe4ea;
+  text-align: center;
+}
+
+.mission-desc {
+  font-size: 0.8rem;
+  color: #7f8c8d;
+  margin-bottom: 8px;
+}
+
 .mission-header {
   display: flex;
   justify-content: space-between;
