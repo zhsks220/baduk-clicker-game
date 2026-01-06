@@ -435,20 +435,20 @@ const CUMULATIVE_MISSION_TIERS: Record<string, { targets: number[]; rewards: { g
   },
 };
 
-// 업적 시스템 (승급 + 보스 처치)
+// 업적 시스템 (승급 + 보스 처치) - 다이아 보상만
 const INITIAL_ACHIEVEMENTS: Achievement[] = [
-  // 체스말 승급 업적
-  { id: 'rank_knight', name: '♞ 나이트 승급', description: '나이트로 승급하기', condition: 'rank', target: 'knight', reward: { gold: 5000, ruby: 15 }, unlocked: false, claimed: false },
-  { id: 'rank_bishop', name: '♝ 비숍 승급', description: '비숍으로 승급하기', condition: 'rank', target: 'bishop', reward: { gold: 10000, ruby: 20 }, unlocked: false, claimed: false },
-  { id: 'rank_rook', name: '♜ 룩 승급', description: '룩으로 승급하기', condition: 'rank', target: 'rook', reward: { gold: 25000, ruby: 30 }, unlocked: false, claimed: false },
-  { id: 'rank_queen', name: '♛ 퀸 승급', description: '퀸으로 승급하기', condition: 'rank', target: 'queen', reward: { gold: 50000, ruby: 40 }, unlocked: false, claimed: false },
-  { id: 'rank_king', name: '♚ 킹 승급', description: '킹으로 승급하기', condition: 'rank', target: 'king', reward: { gold: 100000, ruby: 50 }, unlocked: false, claimed: false },
-  { id: 'rank_imperial', name: '👑 임페리얼 승급', description: '킹갓제네럴 임페리얼 체스킹 달성', condition: 'rank', target: 'imperial', reward: { gold: 500000, ruby: 100 }, unlocked: false, claimed: false },
-  // 보스 처치 업적
-  { id: 'boss_1', name: '👹 보스 사냥꾼', description: '보스 1마리 처치', condition: 'boss', target: 1, reward: { gold: 2000, ruby: 10 }, unlocked: false, claimed: false },
-  { id: 'boss_10', name: '👹 보스 헌터', description: '보스 10마리 처치', condition: 'boss', target: 10, reward: { gold: 10000, ruby: 20 }, unlocked: false, claimed: false },
-  { id: 'boss_50', name: '👹 보스 슬레이어', description: '보스 50마리 처치', condition: 'boss', target: 50, reward: { gold: 50000, ruby: 40 }, unlocked: false, claimed: false },
-  { id: 'boss_100', name: '👹 보스 마스터', description: '보스 100마리 처치', condition: 'boss', target: 100, reward: { gold: 200000, ruby: 80 }, unlocked: false, claimed: false },
+  // 체스말 승급 업적 (다이아 50씩 증가)
+  { id: 'rank_knight', name: '♞ 나이트 승급', description: '나이트로 승급하기', condition: 'rank', target: 'knight', reward: { gold: 0, ruby: 50 }, unlocked: false, claimed: false },
+  { id: 'rank_bishop', name: '♝ 비숍 승급', description: '비숍으로 승급하기', condition: 'rank', target: 'bishop', reward: { gold: 0, ruby: 100 }, unlocked: false, claimed: false },
+  { id: 'rank_rook', name: '♜ 룩 승급', description: '룩으로 승급하기', condition: 'rank', target: 'rook', reward: { gold: 0, ruby: 150 }, unlocked: false, claimed: false },
+  { id: 'rank_queen', name: '♛ 퀸 승급', description: '퀸으로 승급하기', condition: 'rank', target: 'queen', reward: { gold: 0, ruby: 200 }, unlocked: false, claimed: false },
+  { id: 'rank_king', name: '♚ 킹 승급', description: '킹으로 승급하기', condition: 'rank', target: 'king', reward: { gold: 0, ruby: 250 }, unlocked: false, claimed: false },
+  { id: 'rank_imperial', name: '👑 임페리얼 승급', description: '킹갓제네럴 임페리얼 체스킹 달성', condition: 'rank', target: 'imperial', reward: { gold: 0, ruby: 300 }, unlocked: false, claimed: false },
+  // 보스 처치 업적 (다이아 50씩 증가)
+  { id: 'boss_1', name: '👹 보스 사냥꾼', description: '보스 1마리 처치', condition: 'boss', target: 1, reward: { gold: 0, ruby: 50 }, unlocked: false, claimed: false },
+  { id: 'boss_10', name: '👹 보스 헌터', description: '보스 10마리 처치', condition: 'boss', target: 10, reward: { gold: 0, ruby: 100 }, unlocked: false, claimed: false },
+  { id: 'boss_50', name: '👹 보스 슬레이어', description: '보스 50마리 처치', condition: 'boss', target: 50, reward: { gold: 0, ruby: 150 }, unlocked: false, claimed: false },
+  { id: 'boss_100', name: '👹 보스 마스터', description: '보스 100마리 처치', condition: 'boss', target: 100, reward: { gold: 0, ruby: 200 }, unlocked: false, claimed: false },
 ];
 
 const STORAGE_KEY = 'pony-game-v3';
