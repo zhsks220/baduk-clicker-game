@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { create } from 'zustand';
 import { setupAds, showInterstitial, showRewarded } from './services/adService';
 import { initializePurchases, purchaseProduct, restorePurchases, PRODUCT_IDS } from './services/purchaseService';
+import { AppUpdate, AppUpdateAvailability, AppUpdateResultCode } from '@capawesome/capacitor-app-update';
 
 // ============ Long Press Hook ============
 const useLongPress = (
@@ -2858,12 +2859,41 @@ function App() {
     useGameStore.getState().saveGame();
   }, []);
 
+  // 앱 업데이트 체크 함수
+  const checkForAppUpdate = async () => {
+    try {
+      const result = await AppUpdate.getAppUpdateInfo();
+      console.log('App update info:', result);
+
+      if (result.updateAvailability === AppUpdateAvailability.UPDATE_AVAILABLE) {
+        if (result.immediateUpdateAllowed) {
+          // 즉시 업데이트 강제 실행 (전체화면, 사용자가 거부 불가)
+          const updateResult = await AppUpdate.performImmediateUpdate();
+          console.log('Immediate update result:', updateResult);
+
+          // 업데이트가 취소되면 앱 종료
+          if (updateResult.code === AppUpdateResultCode.CANCELED) {
+            CapacitorApp.exitApp();
+          }
+        } else if (result.flexibleUpdateAllowed) {
+          // 유연한 업데이트 (백그라운드 다운로드)
+          await AppUpdate.startFlexibleUpdate();
+          // 다운로드 완료 후 설치 실행
+          await AppUpdate.completeFlexibleUpdate();
+        }
+      }
+    } catch (error) {
+      console.log('App update check failed (web environment or error):', error);
+    }
+  };
+
   useEffect(() => {
     loadGame();
     // 로드 후 업적 체크 (기존 진행상황 기반)
     setTimeout(() => checkAchievements(), 100);
     setupAds(); // AdMob 초기화
     initializePurchases(handlePurchaseApproved); // 인앱결제 초기화
+    checkForAppUpdate(); // 앱 업데이트 체크
     if (!localStorage.getItem('pony_story_seen')) setShowStory(true);
 
     // Initial Interaction for BGM - HTML5 오디오 잠금해제 후 재생
