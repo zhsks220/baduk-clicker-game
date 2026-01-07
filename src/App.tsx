@@ -790,7 +790,7 @@ interface GameState {
   adRemoved: boolean;                 // 광고 제거 구매 여부
   adDestructionPreventUsed: number;   // 오늘 사용한 파괴방지 광고 횟수 (최대 2회)
   adFreeRubyUsed: number;             // 오늘 사용한 무료루비 광고 횟수 (최대 3회)
-  enhanceAdCounter: number;           // 강화 시도 카운터 (4마다 전면광고)
+  enhanceAdCounter: number;           // 강화 시도 카운터 (7마다 전면광고)
   lastAdResetDate: string;            // 마지막 광고 리셋 날짜
   showInterstitialAd: boolean;        // 전면 광고 표시 여부
   pendingInterstitialCallback: (() => void) | null;  // 광고 후 실행할 콜백
@@ -1153,9 +1153,9 @@ const useGameStore = create<GameState>((set, get) => ({
     if (useBlessing === 1 && (!blessItem || blessItem.count < 1)) return { success: false, destroyed: false, message: '축복주문서 부족' };
     if (useBlessing === 2 && (!luckyItem || luckyItem.count < 1)) return { success: false, destroyed: false, message: '행운주문서 부족' };
 
-    // 강화 광고 카운터 증가 (4회마다 전면광고)
-    const newAdCounter = (state.enhanceAdCounter + 1) % 4;
-    const shouldShowAd = state.enhanceAdCounter === 3 && !state.adRemoved;  // 4번째 시도에 광고
+    // 강화 광고 카운터 증가 (7회마다 전면광고)
+    const newAdCounter = (state.enhanceAdCounter + 1) % 7;
+    const shouldShowAd = state.enhanceAdCounter === 6 && !state.adRemoved;  // 7번째 시도에 광고
 
     // 축복/행운 주문서만 강화 시도 시 소모 (파괴방지권은 나중에 처리)
     const consumeBlessingItems = state.shopItems.map(item => {
@@ -1170,7 +1170,7 @@ const useGameStore = create<GameState>((set, get) => ({
       dailyEnhanceAttempts: s.dailyEnhanceAttempts + 1,
       shopItems: consumeBlessingItems,
       enhanceAdCounter: newAdCounter,
-      // 4회마다 전면광고 표시
+      // 7회마다 전면광고 표시
       showInterstitialAd: shouldShowAd ? true : s.showInterstitialAd,
     }));
 
