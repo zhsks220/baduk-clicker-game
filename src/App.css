@@ -3194,8 +3194,10 @@ body {
   font-weight: bold;
   font-family: var(--font-family);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.08s ease;
   touch-action: manipulation;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .offline-reward-btn.double {
@@ -3206,9 +3208,11 @@ body {
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
-.offline-reward-btn.double:active {
-  transform: scale(0.97);
-  box-shadow: 0 3px 10px rgba(255, 215, 0, 0.3);
+.offline-reward-btn.double:active,
+.offline-reward-btn.double.pressed {
+  transform: scale(0.92);
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.2);
+  background: linear-gradient(135deg, #e6c200 0%, #e69900 100%);
 }
 
 .offline-reward-btn.double .ad-icon {
@@ -3221,9 +3225,11 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
-.offline-reward-btn.normal:active {
-  transform: scale(0.97);
-  background: rgba(255, 255, 255, 0.15);
+.offline-reward-btn.normal:active,
+.offline-reward-btn.normal.pressed {
+  transform: scale(0.92);
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 /* 오프라인 보상 - 광고 시청 화면 */

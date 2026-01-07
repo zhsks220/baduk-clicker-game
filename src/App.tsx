@@ -941,7 +941,8 @@ const useGameStore = create<GameState>((set, get) => ({
     let baseGold = state.goldPerClick;
 
     // 영구 부스터 또는 메가 부스터 효과 (골드 2배)
-    if (state.permanentBoost || Date.now() < state.megaBoostEndTime) {
+    const isBoosted = state.permanentBoost || Date.now() < state.megaBoostEndTime;
+    if (isBoosted) {
       baseGold *= 2;
     }
 
@@ -1431,31 +1432,12 @@ const useGameStore = create<GameState>((set, get) => ({
       return { gold: 0, stonesDestroyed: 0, bossesDefeated: 0, time: 0 };
     }
 
-    // 부스터 효과 계산 (영구 부스터 또는 메가 부스터)
-    const offlineStartTime = state.lastOnlineTime;
-    const offlineEndTime = now;
-
-    let goldMultiplier = 1;
-    let autoMultiplier = 1;
-
-    if (state.permanentBoost) {
-      // 영구 부스터: 전체 2배
-      goldMultiplier = 2;
-      autoMultiplier = 2;
-    } else if (state.megaBoostEndTime > offlineStartTime) {
-      // 메가 부스터가 오프라인 시간 중 일부/전체에 적용
-      const boostedEndTime = Math.min(state.megaBoostEndTime, offlineEndTime);
-      const boostedTime = boostedEndTime - offlineStartTime;
-      const totalTime = offlineEndTime - offlineStartTime;
-
-      // 부스트 비율에 따른 가중 평균 배율 (1~2 사이)
-      const boostRatio = boostedTime / totalTime;
-      goldMultiplier = 1 + boostRatio;
-      autoMultiplier = 1 + boostRatio;
-    }
+    // 오프라인 보상은 부스터 효과 미적용 (게임 접속 유도)
+    // 부스터는 실시간 플레이 시에만 적용
+    const goldMultiplier = 1;
 
     const totalOfflineSeconds = Math.floor(offlineTime / 1000);
-    const autoClicksPerSec = state.autoClicksPerSec * autoMultiplier;
+    const autoClicksPerSec = state.autoClicksPerSec;
     const damagePerSecond = state.attackPower * autoClicksPerSec;
 
     // 체스말 레벨 계산 (계급 × 17 + 현재 레벨)
@@ -2431,6 +2413,9 @@ function OfflineRewardModal({
       console.error('Ad error:', error);
       // 광고 실패 시 1배 보상
       onClaim(false);
+    } finally {
+      // 광고 완료/실패 후 로딩 상태 해제 (터치 복구)
+      setIsLoadingAd(false);
     }
   };
 
@@ -2477,13 +2462,27 @@ function OfflineRewardModal({
         <div className="offline-reward-buttons">
           <button
             className="offline-reward-btn double"
-            onClick={handleWatchAd}
+            onPointerDown={(e) => e.currentTarget.classList.add('pressed')}
+            onPointerUp={(e) => {
+              e.currentTarget.classList.remove('pressed');
+              vibrate(20);
+              soundManager.play('click');
+              handleWatchAd();
+            }}
+            onPointerLeave={(e) => e.currentTarget.classList.remove('pressed')}
           >
             📺 광고 보고 2배 받기
           </button>
           <button
             className="offline-reward-btn normal"
-            onClick={() => onClaim(false)}
+            onPointerDown={(e) => e.currentTarget.classList.add('pressed')}
+            onPointerUp={(e) => {
+              e.currentTarget.classList.remove('pressed');
+              vibrate(15);
+              soundManager.play('click');
+              onClaim(false);
+            }}
+            onPointerLeave={(e) => e.currentTarget.classList.remove('pressed')}
           >
             그냥 보상받기
           </button>
@@ -2629,6 +2628,9 @@ function DestroyRecoveryModal({
       console.error('Ad error:', error);
       // 광고 실패 시 파괴 확정
       onConfirmDestroy();
+    } finally {
+      // 광고 완료/실패 후 로딩 상태 해제 (터치 복구)
+      setIsLoadingAd(false);
     }
   };
 
