@@ -2729,6 +2729,12 @@ function App() {
   const [shake, setShake] = useState(false);
   const [rewardFx, setRewardFx] = useState<{ id: number; text: string } | null>(null);
 
+  // 오토클릭커 방지용 ref
+  const lastClickTimeRef = useRef<number>(0);
+  const clickTimestampsRef = useRef<number[]>([]);
+  const CLICK_COOLDOWN = 50; // 클릭 간 최소 간격 (ms)
+  const MAX_CLICKS_PER_SEC = 15; // 초당 최대 클릭 수
+
   // 강화 아이템 적용 상태
   const [useProtect, setUseProtect] = useState(false);
   const [useBlessing, setUseBlessing] = useState<0 | 1 | 2>(0); // 0: 없음, 1: 축복주문서, 2: 행운주문서
@@ -3161,7 +3167,30 @@ function App() {
     setShowGuide(false);
   };
 
-  const handleAttack = (_e: React.PointerEvent) => {
+  const handleAttack = (e: React.TouchEvent | React.PointerEvent) => {
+    const now = Date.now();
+
+    // 1. 멀티터치 방지: 터치 이벤트에서 2개 이상 터치 시 무시
+    if ('touches' in e && e.touches.length > 1) {
+      return;
+    }
+
+    // 2. 클릭 쿨다운: 50ms 이내 재클릭 무시
+    if (now - lastClickTimeRef.current < CLICK_COOLDOWN) {
+      return;
+    }
+
+    // 3. 초당 클릭 제한: 1초 내 15회 초과 시 무시
+    const oneSecondAgo = now - 1000;
+    clickTimestampsRef.current = clickTimestampsRef.current.filter(t => t > oneSecondAgo);
+    if (clickTimestampsRef.current.length >= MAX_CLICKS_PER_SEC) {
+      return;
+    }
+
+    // 클릭 기록 저장
+    lastClickTimeRef.current = now;
+    clickTimestampsRef.current.push(now);
+
     vibrate(5);
     const result = handleClick();
     soundManager.play('hit');
@@ -3394,7 +3423,11 @@ function App() {
       )}
 
       {/* Main Battle Area */}
-      <div className="game-area" onPointerDown={handleAttack}>
+      <div className="game-area" onTouchStart={handleAttack} onPointerDown={(e) => {
+        // 터치 이벤트는 onTouchStart에서 처리하므로 터치 포인터는 무시
+        if (e.pointerType === 'touch') return;
+        handleAttack(e);
+      }}>
 
         {/* 보스 게이지 - game-area 안에 배치 */}
         <div className="boss-gauge-container">
