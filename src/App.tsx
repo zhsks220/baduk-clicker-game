@@ -1122,6 +1122,7 @@ const useGameStore = create<GameState>((set, get) => ({
     const newAutoClicksPerSec = newClickers.reduce((sum, c) => sum + c.clicksPerSec * c.count, 0);
 
     set({ gold: state.gold - cost, autoClickers: newClickers, autoClicksPerSec: newAutoClicksPerSec });
+    get().saveGame();
     return true;
   },
 
@@ -1199,6 +1200,8 @@ const useGameStore = create<GameState>((set, get) => ({
         if (nextRank === 'imperial' && !state.hasReachedEnding && !state.isInfiniteMode) {
           set({ hasReachedEnding: true, showEndingModal: true });
         }
+        // 승급 성공 시 즉시 저장
+        get().saveGame();
 
         return { success: true, destroyed: false, message: `🎉 승급 성공! ${newPiece.displayName} (이병)` };
       }
@@ -1206,6 +1209,8 @@ const useGameStore = create<GameState>((set, get) => ({
       const newStats = calculateStats(state.upgrades, newPiece, state.prestigeBonus);
       set(s => ({ currentPiece: newPiece, enhanceSuccesses: s.enhanceSuccesses + 1, ...newStats }));
       get().checkMissions();
+      // 강화 성공 시 즉시 저장
+      get().saveGame();
       // 계급명 표시
       const rankNames = ['이병', '일병', '상병', '병장', '하사', '중사', '상사', '소위', '중위', '대위', '소령', '중령', '대령', '준장', '소장', '중장', '대장'];
       return { success: true, destroyed: false, message: `강화 성공! ${rankNames[newLevel]}` };
@@ -1264,11 +1269,13 @@ const useGameStore = create<GameState>((set, get) => ({
     if (itemId === 'permBoost') {
       // 영구 부스터: 영구적으로 2X 부스트
       set({ ruby: state.ruby - item.rubyCost, shopItems: newItems, permanentBoost: true });
+      get().saveGame();
       return true;
     }
     if (itemId === 'adRemove') {
       // 광고 제거
       set({ ruby: state.ruby - item.rubyCost, shopItems: newItems, adsRemoved: true });
+      get().saveGame();
       return true;
     }
     if (itemId === 'bulkGold') {
@@ -1280,10 +1287,12 @@ const useGameStore = create<GameState>((set, get) => ({
         totalGold: state.totalGold + bulkGoldAmount,
         shopItems: newItems,
       });
+      get().saveGame();
       return true;
     }
 
     set({ gold: state.gold - item.goldCost, ruby: state.ruby - item.rubyCost, shopItems: newItems });
+    get().saveGame();
     return true;
   },
 
@@ -1355,6 +1364,8 @@ const useGameStore = create<GameState>((set, get) => ({
       ruby: state.ruby + mission.reward.ruby,
       missions: newMissions
     });
+    // 즉시 저장하여 보상 중복 수령 방지
+    get().saveGame();
     return true;
   },
 
@@ -1372,6 +1383,8 @@ const useGameStore = create<GameState>((set, get) => ({
       ruby: state.ruby + achievement.reward.ruby,
       achievements: newAchievements
     });
+    // 즉시 저장하여 보상 중복 수령 방지
+    get().saveGame();
     return true;
   },
 
@@ -1395,6 +1408,8 @@ const useGameStore = create<GameState>((set, get) => ({
       currentStone: createRandomStone(0, 0), // 프레스티지 후 초기화
       ...initialStats
     });
+    // 즉시 저장하여 환생 보상 손실 방지
+    get().saveGame();
     return { success: true, rubyEarned };
   },
 
@@ -1580,6 +1595,8 @@ const useGameStore = create<GameState>((set, get) => ({
       showOfflineRewardModal: false,
       offlineRewardData: null,
     });
+    // 즉시 저장하여 오프라인 보상 중복 수령 방지
+    get().saveGame();
   },
 
   // 오프라인 보상 모달 닫기 (1배로 수령)
@@ -1680,6 +1697,8 @@ const useGameStore = create<GameState>((set, get) => ({
       ruby: state.ruby + rubyAmount,
       adFreeRubyUsed: state.adFreeRubyUsed + 1,
     });
+    // 즉시 저장하여 무료 다이아 중복 수령 방지
+    get().saveGame();
 
     return { success: true, ruby: rubyAmount };
   },
@@ -1887,7 +1906,19 @@ const useGameStore = create<GameState>((set, get) => ({
       const mergedMissions = INITIAL_MISSIONS.map(initial => {
         const saved = d.missions?.find((m: Mission) => m.id === initial.id);
         if (saved) {
-          // 기존 진행상황 유지, 나머지는 최신 정보로
+          // 누적 미션(total_*)은 단계 정보(target, reward, description)도 유지
+          if (initial.id.startsWith('total_')) {
+            return {
+              ...initial,
+              target: saved.target,
+              reward: saved.reward,
+              description: saved.description,
+              current: saved.current,
+              completed: saved.completed,
+              claimed: saved.claimed
+            };
+          }
+          // 일일 미션은 진행상황만 유지
           return { ...initial, current: saved.current, completed: saved.completed, claimed: saved.claimed };
         }
         return { ...initial };
@@ -2817,6 +2848,8 @@ function App() {
         vibrate([50, 50, 50]);
         break;
     }
+    // 실결제 완료 후 즉시 저장 (결제 후 앱 종료 시 데이터 손실 방지)
+    useGameStore.getState().saveGame();
   }, []);
 
   useEffect(() => {
