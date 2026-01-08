@@ -774,7 +774,6 @@ interface GameState {
   dailyGoldEarned: number;
   // 영구 캐시템 상태
   permanentBoost: boolean;   // 영구 2X 부스터
-  adsRemoved: boolean;       // 광고 제거
   // 오프라인 보상 모달 관련
   showOfflineRewardModal: boolean;
   offlineRewardData: {
@@ -916,7 +915,6 @@ const useGameStore = create<GameState>((set, get) => ({
   dailyGoldEarned: 0,
   // 영구 캐시템 상태
   permanentBoost: false,
-  adsRemoved: false,
   // 오프라인 보상 모달 관련
   showOfflineRewardModal: false,
   offlineRewardData: null,
@@ -1262,7 +1260,7 @@ const useGameStore = create<GameState>((set, get) => ({
 
     // 영구 아이템 중복 구매 방지
     if (itemId === 'permBoost' && state.permanentBoost) return false;
-    if (itemId === 'adRemove' && state.adsRemoved) return false;
+    if (itemId === 'adRemove' && state.adRemoved) return false;
 
     const newItems = [...state.shopItems];
     newItems[itemIndex] = { ...item, count: item.count + 1 };
@@ -1276,7 +1274,7 @@ const useGameStore = create<GameState>((set, get) => ({
     }
     if (itemId === 'adRemove') {
       // 광고 제거
-      set({ ruby: state.ruby - item.rubyCost, shopItems: newItems, adsRemoved: true });
+      set({ ruby: state.ruby - item.rubyCost, shopItems: newItems, adRemoved: true });
       get().saveGame();
       return true;
     }
@@ -3832,7 +3830,7 @@ function App() {
               {useGameStore.getState().shopItems.map(item => {
                 const state = useGameStore.getState();
                 const isPermanentOwned = (item.id === 'permBoost' && state.permanentBoost) ||
-                                         (item.id === 'adRemove' && state.adsRemoved);
+                                         (item.id === 'adRemove' && state.adRemoved);
                 const canBuy = !isPermanentOwned && (item.wonPrice || (item.goldCost > 0 && gold >= item.goldCost) || (item.rubyCost > 0 && ruby >= item.rubyCost));
 
                 // 골드 대량 구매 금액 계산
