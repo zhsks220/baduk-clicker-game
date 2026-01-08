@@ -3232,6 +3232,25 @@ body {
   border-color: rgba(255, 255, 255, 0.3);
 }
 
+/* 광고 에러 메시지 */
+.ad-error-message {
+  background: rgba(255, 71, 87, 0.15);
+  border: 1px solid rgba(255, 71, 87, 0.3);
+  border-radius: 10px;
+  padding: 10px 16px;
+  margin-bottom: 12px;
+  color: #ff6b7a;
+  font-size: 0.9rem;
+  text-align: center;
+  animation: shake 0.3s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
 /* 오프라인 보상 - 광고 시청 화면 */
 .offline-reward-content.ad-watching {
   text-align: center;

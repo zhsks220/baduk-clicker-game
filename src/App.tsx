@@ -453,6 +453,8 @@ const INITIAL_ACHIEVEMENTS: Achievement[] = [
 ];
 
 const STORAGE_KEY = 'pony-game-v3';
+const APP_VERSION = '1.2.3';  // 앱 버전 (android/app/build.gradle과 동기화 필요)
+const VERSION_STORAGE_KEY = 'pony-game-first-version';  // 최초 설치 버전 추적용
 
 // ============ 바둑돌 HP 밸런스 시스템 ============
 // 기본 HP 낮추고, 파괴할수록 크게 증가 (복리 성장)
@@ -1869,8 +1871,16 @@ const useGameStore = create<GameState>((set, get) => ({
 
   loadGame: () => {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (!saved) return;
+    if (!saved) {
+      // 새 유저: 현재 버전을 최초 설치 버전으로 저장
+      localStorage.setItem(VERSION_STORAGE_KEY, APP_VERSION);
+      return;
+    }
     try {
+      // 기존 유저: 최초 설치 버전이 없으면 저장 (마이그레이션)
+      if (!localStorage.getItem(VERSION_STORAGE_KEY)) {
+        localStorage.setItem(VERSION_STORAGE_KEY, 'legacy');  // 버전 추적 이전 유저
+      }
       const d = JSON.parse(saved);
 
       // Re-map piece to ensure display name and image are correct for rank
@@ -2391,6 +2401,7 @@ function OfflineRewardModal({
   onClaim: (double: boolean) => void;
 }) {
   const [isLoadingAd, setIsLoadingAd] = useState(false);
+  const [adError, setAdError] = useState(false);
 
   const formatTime = (ms: number) => {
     const hours = Math.floor(ms / 3600000);
@@ -2402,17 +2413,19 @@ function OfflineRewardModal({
   // 광고 시청 시작
   const handleWatchAd = async () => {
     setIsLoadingAd(true);
+    setAdError(false);
     try {
-      // 실제 광고 호출
       const rewarded = await showRewarded();
-      // 광고 완료 여부에 따라 보상 지급
-      onClaim(rewarded);
+      if (rewarded) {
+        onClaim(true);
+      } else {
+        // 광고 실패/취소 시 모달 유지
+        setAdError(true);
+      }
     } catch (error) {
       console.error('Ad error:', error);
-      // 광고 실패 시 1배 보상
-      onClaim(false);
+      setAdError(true);
     } finally {
-      // 광고 완료/실패 후 로딩 상태 해제 (터치 복구)
       setIsLoadingAd(false);
     }
   };
@@ -2456,6 +2469,12 @@ function OfflineRewardModal({
             </div>
           )}
         </div>
+
+        {adError && (
+          <div className="ad-error-message">
+            ⚠️ 광고를 불러올 수 없습니다
+          </div>
+        )}
 
         <div className="offline-reward-buttons">
           <button
@@ -2597,12 +2616,12 @@ function DestroyRecoveryModal({
   onConfirmDestroy: () => void;
 }) {
   const [isLoadingAd, setIsLoadingAd] = useState(false);
+  const [adError, setAdError] = useState(false);
 
   const rankNames: Record<ChessPieceRank, string> = {
     pawn: '폰', knight: '나이트', bishop: '비숍',
     rook: '룩', queen: '퀸', king: '킹', imperial: '임페리얼'
   };
-  // 레벨 이름 매핑 (간단한 버전)
   const levelNames = ['이병', '일병', '상병', '병장', '하사', '중사', '상사', '소위', '중위', '대위', '소령', '중령', '대령', '준장', '소장', '중장', '대장'];
   const levelName = levelNames[pendingData.level] || `+${pendingData.level}`;
   const remainingAds = 2 - adUsedToday;
@@ -2610,6 +2629,7 @@ function DestroyRecoveryModal({
   // 광고 시청 후 복구
   const handleWatchAd = async () => {
     setIsLoadingAd(true);
+    setAdError(false);
     try {
       const rewarded = await showRewarded();
       if (rewarded) {
@@ -2617,17 +2637,13 @@ function DestroyRecoveryModal({
         vibrate([50, 50, 50]);
         onWatchAd();
       } else {
-        // 광고 취소 시 파괴 확정
-        soundManager.play('destroy');
-        vibrate([100, 50, 100]);
-        onConfirmDestroy();
+        // 광고 실패/취소 시 모달 유지
+        setAdError(true);
       }
     } catch (error) {
       console.error('Ad error:', error);
-      // 광고 실패 시 파괴 확정
-      onConfirmDestroy();
+      setAdError(true);
     } finally {
-      // 광고 완료/실패 후 로딩 상태 해제 (터치 복구)
       setIsLoadingAd(false);
     }
   };
@@ -2656,6 +2672,12 @@ function DestroyRecoveryModal({
           <span className="piece-info">{rankNames[pendingData.rank]} {levelName}</span>이(가)
           <br />파괴될 위기입니다!
         </div>
+
+        {adError && (
+          <div className="ad-error-message">
+            ⚠️ 광고를 불러올 수 없습니다
+          </div>
+        )}
 
         {/* 광고로 복구 버튼 */}
         <button
@@ -3419,9 +3441,14 @@ function App() {
                       if (result.success) {
                         vibrate([50, 50, 50]);
                       }
+                    } else {
+                      setRewardFx({ id: Date.now(), text: '⚠️ 광고를 불러올 수 없습니다' });
+                      setTimeout(() => setRewardFx(null), 1500);
                     }
                   } catch (error) {
                     console.error('Mega boost ad failed:', error);
+                    setRewardFx({ id: Date.now(), text: '⚠️ 광고를 불러올 수 없습니다' });
+                    setTimeout(() => setRewardFx(null), 1500);
                   }
                 }}
               >
@@ -3812,9 +3839,14 @@ function App() {
                             setRewardFx({ id: Date.now(), text: `💎 ${result.ruby} 다이아 획득!` });
                             setTimeout(() => setRewardFx(null), 1500);
                           }
+                        } else {
+                          setRewardFx({ id: Date.now(), text: '⚠️ 광고를 불러올 수 없습니다' });
+                          setTimeout(() => setRewardFx(null), 1500);
                         }
                       } catch (error) {
                         console.error('Ad error:', error);
+                        setRewardFx({ id: Date.now(), text: '⚠️ 광고를 불러올 수 없습니다' });
+                        setTimeout(() => setRewardFx(null), 1500);
                       }
                     }}
                   >
