@@ -3970,6 +3970,108 @@ body {
   transform: scale(0.98);
 }
 
+/* Firebase 인증 섹션 */
+.auth-section {
+  margin-bottom: 10px;
+}
+
+.google-login-btn {
+  width: 100%;
+  padding: 14px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  color: #333;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.google-login-btn img {
+  width: 20px;
+  height: 20px;
+}
+
+.google-login-btn:active {
+  background: #f5f5f5;
+}
+
+.logged-in-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.user-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+}
+
+.user-name {
+  font-size: 14px;
+  color: #ddd;
+}
+
+.logout-btn {
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  color: #aaa;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.logout-btn:active {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.save-score-btn {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #4285f4 0%, #357ae8 100%);
+  border: none;
+  border-radius: 12px;
+  color: white;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.save-score-btn:active {
+  transform: scale(0.98);
+}
+
+.save-score-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.save-message {
+  text-align: center;
+  font-size: 13px;
+  color: #4CAF50;
+  margin: 0;
+}
+
+.auto-save-info {
+  text-align: center;
+  font-size: 13px;
+  color: #8BC34A;
+  margin: 8px 0 0 0;
+  opacity: 0.9;
+}
+
 .ranking-detail-item.highlight {
   background: rgba(255, 215, 0, 0.15);
   border: 1px solid rgba(255, 215, 0, 0.3);

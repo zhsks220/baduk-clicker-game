@@ -4,6 +4,17 @@ import { setupAds, showInterstitial, showRewarded } from './services/adService';
 import { initializePurchases, purchaseProduct, restorePurchases, PRODUCT_IDS } from './services/purchaseService';
 import { AppUpdate, AppUpdateAvailability, AppUpdateResultCode } from '@capawesome/capacitor-app-update';
 import html2canvas from 'html2canvas';
+import {
+  signInWithGoogle,
+  signOutUser,
+  onAuthChange,
+  getLeaderboard,
+  getMyRank,
+  saveScore,
+  calculateScore as calcServerScore
+} from './leaderboardService';
+import type { LeaderboardEntry as ServerLeaderboardEntry } from './leaderboardService';
+import type { User } from 'firebase/auth';
 
 // ============ Long Press Hook ============
 const useLongPress = (
@@ -2273,7 +2284,12 @@ function RankingModal({
   stonesDestroyed,
   prestigeCount,
   onClose,
-  leaderboardData = []
+  leaderboardData = [],
+  firebaseUser,
+  onSignIn,
+  onSignOut,
+  onSaveScore,
+  isLoading = false
 }: {
   currentPiece: ChessPiece;
   goldPerClick: number;
@@ -2281,7 +2297,12 @@ function RankingModal({
   stonesDestroyed: number;
   prestigeCount: number;
   onClose: () => void;
-  leaderboardData?: LeaderboardEntry[];
+  leaderboardData?: ServerLeaderboardEntry[];
+  firebaseUser?: User | null;
+  onSignIn?: () => Promise<User | null>;
+  onSignOut?: () => Promise<void>;
+  onSaveScore?: () => Promise<boolean>;
+  isLoading?: boolean;
 }) {
   const shareCardRef = useRef<HTMLDivElement>(null);
   const [isSharing, setIsSharing] = useState(false);
@@ -2379,8 +2400,17 @@ function RankingModal({
               ))
             ) : (
               <div className="leaderboard-empty">
-                <p>🔄 랭킹 데이터 로딩 중...</p>
-                <p className="empty-sub">서버 연결 후 표시됩니다</p>
+                {isLoading ? (
+                  <>
+                    <p>🔄 랭킹 데이터 로딩 중...</p>
+                    <p className="empty-sub">잠시만 기다려주세요</p>
+                  </>
+                ) : (
+                  <>
+                    <p>📋 아직 등록된 랭킹이 없습니다</p>
+                    <p className="empty-sub">첫 번째 플레이어가 되어보세요!</p>
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -2394,6 +2424,24 @@ function RankingModal({
               <span className="my-rank-name">{currentPiece.displayName} {levelName}</span>
               <span className="my-rank-score">{score.toLocaleString()}점</span>
             </div>
+          </div>
+
+          {/* 로그인 섹션 */}
+          <div className="auth-section">
+            {firebaseUser ? (
+              <div className="logged-in-section">
+                <div className="user-info">
+                  <span className="user-name">👤 {firebaseUser.displayName || '플레이어'}</span>
+                  <button className="logout-btn" onClick={onSignOut}>로그아웃</button>
+                </div>
+                <p className="auto-save-info">🔄 점수가 자동으로 저장됩니다</p>
+              </div>
+            ) : (
+              <button className="google-login-btn" onClick={onSignIn}>
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" />
+                Google로 로그인하여 랭킹 등록
+              </button>
+            )}
           </div>
 
           {/* 공유 버튼 */}
@@ -2930,6 +2978,12 @@ function App() {
   const [showMoreMenu, setShowMoreMenu] = useState(false); // 더보기 메뉴
   const [showRankingModal, setShowRankingModal] = useState(false); // 랭킹 모달
   const [activeTab, setActiveTab] = useState<TabType>('enhance'); // 탭 기반 UI
+
+  // Firebase 관련 상태
+  const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
+  const [leaderboardData, setLeaderboardData] = useState<ServerLeaderboardEntry[]>([]);
+  const [myServerRank, setMyServerRank] = useState<number>(0);
+  const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
   const [fx, setFx] = useState<{ id: number, x: number, y: number, text: string, type: any }[]>([]);
 
   // 강제 튜토리얼 시스템
@@ -2990,6 +3044,9 @@ function App() {
   const appRef = useRef<HTMLDivElement>(null);
   const targetRef = useRef<HTMLDivElement>(null);
 
+  // Firebase 저장 함수 ref (interval에서 접근용)
+  const firebaseSaveRef = useRef<(() => Promise<boolean>) | null>(null);
+
   // 화면 크기에 맞춰 게임 스케일 계산 (Safe Zone 방식)
   const calculateScale = useCallback(() => {
     const DESIGN_WIDTH = 390;
@@ -3026,6 +3083,69 @@ function App() {
       window.visualViewport?.removeEventListener('resize', calculateScale);
     };
   }, [calculateScale]);
+
+  // Firebase 인증 상태 감지
+  useEffect(() => {
+    const unsubscribe = onAuthChange((user) => {
+      setFirebaseUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // 리더보드 데이터 로드 함수
+  const loadLeaderboardData = useCallback(async () => {
+    setIsLoadingLeaderboard(true);
+    try {
+      const data = await getLeaderboard(50);
+      setLeaderboardData(data);
+
+      if (firebaseUser) {
+        const rankResult = await getMyRank(firebaseUser.uid);
+        setMyServerRank(rankResult.rank);
+      }
+    } catch (error) {
+      console.error('리더보드 로드 실패:', error);
+    } finally {
+      setIsLoadingLeaderboard(false);
+    }
+  }, [firebaseUser]);
+
+  // 점수 저장 함수
+  const handleSaveScore = useCallback(async () => {
+    if (!firebaseUser) return false;
+
+    const nickname = firebaseUser.displayName || '익명';
+    const state = useGameStore.getState();
+
+    return await saveScore(
+      firebaseUser.uid,
+      nickname,
+      state.goldPerClick,
+      state.attackPower,
+      state.stonesDestroyed,
+      state.currentPiece.rank,
+      state.prestigeCount
+    );
+  }, [firebaseUser]);
+
+  // 랭킹 모달 열릴 때 데이터 로드
+  useEffect(() => {
+    if (showRankingModal) {
+      loadLeaderboardData();
+    }
+  }, [showRankingModal, loadLeaderboardData]);
+
+  // Firebase 저장 함수 ref 업데이트
+  useEffect(() => {
+    firebaseSaveRef.current = firebaseUser ? handleSaveScore : null;
+  }, [firebaseUser, handleSaveScore]);
+
+  // 로그인 시 즉시 점수 저장
+  useEffect(() => {
+    if (firebaseUser) {
+      handleSaveScore();
+    }
+  }, [firebaseUser, handleSaveScore]);
 
   // 앱 백그라운드/포그라운드 전환 시 오디오 제어
   useEffect(() => {
@@ -3169,6 +3289,8 @@ function App() {
         // 백그라운드로 갈 때: 현재 시간 저장 및 게임 저장
         useGameStore.setState({ lastOnlineTime: Date.now() });
         saveGame();
+        // Firebase에도 저장
+        firebaseSaveRef.current?.();
       } else if (document.visibilityState === 'visible') {
         // 포그라운드로 돌아올 때: 오프라인 보상 계산
         resetDailyMissions(); // 자정 넘었을 수 있으니 체크
@@ -3178,7 +3300,11 @@ function App() {
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     const i = setInterval(autoTick, 1000);
-    const s = setInterval(saveGame, 10000);
+    const s = setInterval(() => {
+      saveGame();
+      // Firebase에도 저장 (로그인 상태일 때만)
+      firebaseSaveRef.current?.();
+    }, 10000);
 
     // 뒤로가기 방지 (앱인토스 가이드라인)
     const handlePopState = (e: PopStateEvent) => {
@@ -4335,6 +4461,12 @@ function App() {
           stonesDestroyed={stonesDestroyed}
           prestigeCount={useGameStore.getState().prestigeCount}
           onClose={() => setShowRankingModal(false)}
+          leaderboardData={leaderboardData}
+          firebaseUser={firebaseUser}
+          onSignIn={signInWithGoogle}
+          onSignOut={signOutUser}
+          onSaveScore={handleSaveScore}
+          isLoading={isLoadingLeaderboard}
         />
       )}
 
