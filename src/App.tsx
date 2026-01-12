@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { setupAds, showInterstitial, showRewarded } from './services/adService';
 import { initializePurchases, purchaseProduct, restorePurchases, PRODUCT_IDS } from './services/purchaseService';
 import { AppUpdate, AppUpdateAvailability, AppUpdateResultCode } from '@capawesome/capacitor-app-update';
+import html2canvas from 'html2canvas';
 
 // ============ Long Press Hook ============
 const useLongPress = (
@@ -2239,6 +2240,215 @@ function ExitConfirmModal({ onCancel, onConfirm }: { onCancel: () => void; onCon
   );
 }
 
+// 랭킹 점수 계산 함수
+// 공식: (goldPerClick + attackPower + stonesDestroyed) × (체스말배수 + 환생횟수 × 20)
+const calculateRankingScore = (
+  rank: ChessPieceRank,
+  goldPerClick: number,
+  attackPower: number,
+  stonesDestroyed: number,
+  prestigeCount: number
+): number => {
+  const baseScore = goldPerClick + attackPower + stonesDestroyed;
+  const rankMultiplier = RANK_MULTIPLIERS[rank];
+  const prestigeBonus = prestigeCount * 20;
+  const totalMultiplier = rankMultiplier + prestigeBonus;
+
+  return Math.floor(baseScore * totalMultiplier);
+};
+
+// 리더보드 데이터 타입
+interface LeaderboardEntry {
+  rank: number;
+  nickname: string;
+  score: number;
+  chessPiece: string;
+}
+
+// 랭킹 모달 (리더보드)
+function RankingModal({
+  currentPiece,
+  goldPerClick,
+  attackPower,
+  stonesDestroyed,
+  prestigeCount,
+  onClose,
+  leaderboardData = []
+}: {
+  currentPiece: ChessPiece;
+  goldPerClick: number;
+  attackPower: number;
+  stonesDestroyed: number;
+  prestigeCount: number;
+  onClose: () => void;
+  leaderboardData?: LeaderboardEntry[];
+}) {
+  const shareCardRef = useRef<HTMLDivElement>(null);
+  const [isSharing, setIsSharing] = useState(false);
+
+  const score = calculateRankingScore(currentPiece.rank, goldPerClick, attackPower, stonesDestroyed, prestigeCount);
+  const levelName = ENHANCE_RATES[currentPiece.level]?.name || '이병';
+  const rankMultiplier = RANK_MULTIPLIERS[currentPiece.rank];
+  const totalMultiplier = rankMultiplier + (prestigeCount * 20);
+
+  // 내 순위 계산 (서버 데이터 기준, 없으면 -)
+  const myRank = leaderboardData.length > 0
+    ? leaderboardData.findIndex(e => e.score <= score) + 1 || leaderboardData.length + 1
+    : '-';
+
+  // 이미지 공유 기능
+  const handleShare = async () => {
+    if (!shareCardRef.current || isSharing) return;
+
+    setIsSharing(true);
+
+    try {
+      // 공유 카드를 일시적으로 보이게
+      shareCardRef.current.style.position = 'fixed';
+      shareCardRef.current.style.left = '-9999px';
+      shareCardRef.current.style.display = 'block';
+
+      const canvas = await html2canvas(shareCardRef.current, {
+        backgroundColor: '#1a1a2e',
+        scale: 2,
+      });
+
+      // 다시 숨기기
+      shareCardRef.current.style.display = 'none';
+
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          alert('이미지 생성에 실패했습니다.');
+          setIsSharing(false);
+          return;
+        }
+
+        const file = new File([blob], 'chess-ranking.png', { type: 'image/png' });
+        const storeUrl = 'https://play.google.com/store/apps/details?id=com.ponygame';
+
+        if (navigator.share && navigator.canShare?.({ files: [file] })) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: '체스 키우기 - 내 랭킹',
+              url: storeUrl,
+            });
+          } catch (err) {
+            // 사용자가 공유 취소
+          }
+        } else {
+          // Web Share API 미지원 시 이미지 다운로드
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'chess-ranking.png';
+          a.click();
+          URL.revokeObjectURL(url);
+          alert('이미지가 다운로드되었습니다!');
+        }
+        setIsSharing(false);
+      }, 'image/png');
+    } catch (err) {
+      console.error('Share error:', err);
+      alert('공유하기에 실패했습니다.');
+      setIsSharing(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content ranking-modal leaderboard-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2>🏆 리더보드</h2>
+          <button className="modal-close-btn" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="leaderboard-content">
+          {/* 리더보드 목록 */}
+          <div className="leaderboard-list">
+            {leaderboardData.length > 0 ? (
+              leaderboardData.map((entry) => (
+                <div key={entry.rank} className={`leaderboard-item ${entry.rank <= 3 ? 'top-rank' : ''}`}>
+                  <span className="lb-rank">
+                    {entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : `${entry.rank}위`}
+                  </span>
+                  <span className="lb-piece">{entry.chessPiece}</span>
+                  <span className="lb-name">{entry.nickname}</span>
+                  <span className="lb-score">{entry.score.toLocaleString()}</span>
+                </div>
+              ))
+            ) : (
+              <div className="leaderboard-empty">
+                <p>🔄 랭킹 데이터 로딩 중...</p>
+                <p className="empty-sub">서버 연결 후 표시됩니다</p>
+              </div>
+            )}
+          </div>
+
+          {/* 내 순위 */}
+          <div className="my-rank-section">
+            <div className="my-rank-header">📍 내 순위</div>
+            <div className="my-rank-info">
+              <span className="my-rank-number">{myRank}위</span>
+              <span className="my-rank-piece">{currentPiece.emoji}</span>
+              <span className="my-rank-name">{currentPiece.displayName} {levelName}</span>
+              <span className="my-rank-score">{score.toLocaleString()}점</span>
+            </div>
+          </div>
+
+          {/* 공유 버튼 */}
+          <button
+            className="ranking-share-btn"
+            onClick={handleShare}
+            disabled={isSharing}
+          >
+            {isSharing ? '⏳ 생성 중...' : '📤 내 점수 공유하기'}
+          </button>
+        </div>
+      </div>
+
+      {/* 공유용 카드 (숨김) */}
+      <div ref={shareCardRef} className="share-card" style={{ display: 'none' }}>
+        <div className="share-card-header">👑 내 랭킹</div>
+        <div className="share-card-score">
+          <div className="share-score-label">총 점수</div>
+          <div className="share-score-value">{score.toLocaleString()}</div>
+        </div>
+        <div className="share-card-details">
+          <div className="share-detail-row">
+            <span>{currentPiece.emoji} 체스말</span>
+            <span>{currentPiece.displayName} {levelName} (×{rankMultiplier})</span>
+          </div>
+          <div className="share-detail-row">
+            <span>💰 골드 획득</span>
+            <span>{goldPerClick.toLocaleString()}</span>
+          </div>
+          <div className="share-detail-row">
+            <span>⚔️ 공격력</span>
+            <span>{attackPower.toLocaleString()}</span>
+          </div>
+          <div className="share-detail-row">
+            <span>💎 돌 파괴</span>
+            <span>{stonesDestroyed.toLocaleString()}개</span>
+          </div>
+          <div className="share-detail-row">
+            <span>🔄 환생</span>
+            <span>{prestigeCount}회 (+{prestigeCount * 20})</span>
+          </div>
+          <div className="share-detail-row highlight">
+            <span>✨ 총 배수</span>
+            <span>×{totalMultiplier}</span>
+          </div>
+        </div>
+        <div className="share-card-footer">
+          <div>🎮 체스 키우기</div>
+          <div className="share-cta">나도 도전하기!</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // 더보기 메뉴 모달
 function MoreMenuModal({ onClose, onReset, onShowGuide }: {
   onClose: () => void;
@@ -2718,6 +2928,7 @@ function App() {
   const [showAgeRating, setShowAgeRating] = useState(true); // TODO 2: 연령 등급
   const [showExitModal, setShowExitModal] = useState(false); // TODO 1: 종료 확인
   const [showMoreMenu, setShowMoreMenu] = useState(false); // 더보기 메뉴
+  const [showRankingModal, setShowRankingModal] = useState(false); // 랭킹 모달
   const [activeTab, setActiveTab] = useState<TabType>('enhance'); // 탭 기반 UI
   const [fx, setFx] = useState<{ id: number, x: number, y: number, text: string, type: any }[]>([]);
 
@@ -3505,6 +3716,21 @@ function App() {
           )}
         </div>
 
+        {/* 플로팅 랭킹 버튼 */}
+        <button
+          className="floating-ranking-btn"
+          onPointerDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            soundManager.play('click');
+            setShowRankingModal(true);
+          }}
+        >
+          <span className="ranking-icon">👑</span>
+          <span className="ranking-label">랭킹</span>
+        </button>
+
         <div className="battle-container">
           {/* Character */}
           <div className={`character-wrapper ${shake ? 'shake' : ''}`}>
@@ -4099,6 +4325,18 @@ function App() {
         onReset={() => useGameStore.getState().resetGame()}
         onShowGuide={() => setShowGuide(true)}
       />}
+
+      {/* 랭킹 모달 */}
+      {showRankingModal && (
+        <RankingModal
+          currentPiece={currentPiece}
+          goldPerClick={useGameStore.getState().goldPerClick}
+          attackPower={attackPower}
+          stonesDestroyed={stonesDestroyed}
+          prestigeCount={useGameStore.getState().prestigeCount}
+          onClose={() => setShowRankingModal(false)}
+        />
+      )}
 
       {/* 강제 튜토리얼 오버레이 - 모달들과 같은 레벨 */}
       {activeTutorial && spotlightRect && (

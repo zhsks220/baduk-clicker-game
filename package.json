@@ -19,6 +19,7 @@
     "@capawesome/capacitor-app-update": "^8.0.0",
     "cordova-plugin-purchase": "^13.12.1",
     "howler": "^2.2.4",
+    "html2canvas": "^1.4.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "zustand": "^5.0.9"
