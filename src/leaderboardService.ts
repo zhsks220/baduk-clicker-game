@@ -1,4 +1,4 @@
-import { db, auth, googleProvider } from './firebase';
+import { db } from './firebase';
 import {
   collection,
   doc,
@@ -10,8 +10,16 @@ import {
   getDocs,
   where
 } from 'firebase/firestore';
-import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
-import type { User } from 'firebase/auth';
+import { PlayGames } from 'capacitor-play-games-services';
+
+// GPGS 유저 타입
+export interface GPGSUser {
+  playerId: string;
+  displayName: string;
+}
+
+// 현재 로그인된 유저 정보 저장
+let currentGPGSUser: GPGSUser | null = null;
 
 // 체스말 배수
 const RANK_MULTIPLIERS: Record<string, number> = {
@@ -59,34 +67,67 @@ export function calculateScore(
   return Math.floor((goldPerClick + attackPower + stonesDestroyed) * multiplier);
 }
 
-// Google 로그인
-export async function signInWithGoogle(): Promise<User | null> {
+// GPGS 로그인
+export async function signInWithGoogle(): Promise<GPGSUser | null> {
   try {
-    const result = await signInWithPopup(auth, googleProvider);
-    return result.user;
+    const result = await PlayGames.login();
+
+    if (result.isLogin && result.id) {
+      currentGPGSUser = {
+        playerId: result.id,
+        displayName: result.display_name || '플레이어'
+      };
+      return currentGPGSUser;
+    }
+
+    return null;
   } catch (error) {
-    console.error('Google 로그인 실패:', error);
+    console.error('GPGS 로그인 실패:', error);
     return null;
   }
 }
 
-// 로그아웃
-export async function signOutUser(): Promise<void> {
+// 앱 시작 시 자동 로그인 체크
+export async function handleRedirectResult(): Promise<GPGSUser | null> {
   try {
-    await signOut(auth);
+    const result = await PlayGames.status();
+
+    if (result.isLogin) {
+      // 이미 로그인되어 있으면 다시 login() 호출해서 유저 정보 가져오기
+      const loginResult = await PlayGames.login();
+      if (loginResult.isLogin && loginResult.id) {
+        currentGPGSUser = {
+          playerId: loginResult.id,
+          displayName: loginResult.display_name || '플레이어'
+        };
+        return currentGPGSUser;
+      }
+    }
+
+    return null;
   } catch (error) {
-    console.error('로그아웃 실패:', error);
+    console.error('GPGS 상태 확인 실패:', error);
+    return null;
   }
 }
 
-// 현재 유저 가져오기
-export function getCurrentUser(): User | null {
-  return auth.currentUser;
+// 로그아웃 (GPGS는 별도 로그아웃 API 없음 - 상태만 초기화)
+export async function signOutUser(): Promise<void> {
+  currentGPGSUser = null;
 }
 
-// 인증 상태 변화 감지
-export function onAuthChange(callback: (user: User | null) => void): () => void {
-  return onAuthStateChanged(auth, callback);
+// 현재 유저 가져오기
+export function getCurrentUser(): GPGSUser | null {
+  return currentGPGSUser;
+}
+
+// 인증 상태 변화 감지 (GPGS는 실시간 감지 없음)
+export function onAuthChange(callback: (user: GPGSUser | null) => void): () => void {
+  // 초기 상태 콜백
+  callback(currentGPGSUser);
+
+  // GPGS는 실시간 리스너가 없으므로 빈 unsubscribe 반환
+  return () => {};
 }
 
 // 점수 저장/업데이트
@@ -123,11 +164,12 @@ export async function saveScore(
   }
 }
 
-// 리더보드 조회 (상위 N명)
+// 리더보드 조회 (상위 N명) - GPGS 유저만
 export async function getLeaderboard(limitCount: number = 50): Promise<LeaderboardEntry[]> {
   try {
     const q = query(
       collection(db, 'leaderboard'),
+      where('platform', '==', 'google_play'),
       orderBy('score', 'desc'),
       limit(limitCount)
     );

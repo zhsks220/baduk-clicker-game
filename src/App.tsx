@@ -10,10 +10,10 @@ import {
   onAuthChange,
   getLeaderboard,
   getMyRank,
-  saveScore
+  saveScore,
+  handleRedirectResult
 } from './leaderboardService';
-import type { LeaderboardEntry as ServerLeaderboardEntry } from './leaderboardService';
-import type { User } from 'firebase/auth';
+import type { LeaderboardEntry as ServerLeaderboardEntry, GPGSUser } from './leaderboardService';
 
 // ============ Long Press Hook ============
 const useLongPress = (
@@ -91,6 +91,8 @@ const LongPressButton = ({ onClick, disabled, className, children, delay = 300, 
 };
 
 import { App as CapacitorApp } from '@capacitor/app';
+import { Share } from '@capacitor/share';
+import { Filesystem, Directory } from '@capacitor/filesystem';
 import './App.css';
 
 // Assets (2D Characters)
@@ -2289,8 +2291,8 @@ function RankingModal({
   prestigeCount: number;
   onClose: () => void;
   leaderboardData?: ServerLeaderboardEntry[];
-  firebaseUser?: User | null;
-  onSignIn?: () => Promise<User | null>;
+  firebaseUser?: GPGSUser | null;
+  onSignIn?: () => Promise<GPGSUser | null>;
   onSignOut?: () => Promise<void>;
   onSaveScore?: () => Promise<boolean>;
   isLoading?: boolean;
@@ -2308,7 +2310,7 @@ function RankingModal({
     ? leaderboardData.findIndex(e => e.score <= score) + 1 || leaderboardData.length + 1
     : '-';
 
-  // 이미지 공유 기능
+  // 이미지 공유 기능 (Capacitor Share 플러그인 사용)
   const handleShare = async () => {
     if (!shareCardRef.current || isSharing) return;
 
@@ -2328,41 +2330,32 @@ function RankingModal({
       // 다시 숨기기
       shareCardRef.current.style.display = 'none';
 
-      canvas.toBlob(async (blob) => {
-        if (!blob) {
-          alert('이미지 생성에 실패했습니다.');
-          setIsSharing(false);
-          return;
-        }
+      // Canvas를 base64로 변환
+      const base64Data = canvas.toDataURL('image/png').split(',')[1];
+      const fileName = `chess-ranking-${Date.now()}.png`;
 
-        const file = new File([blob], 'chess-ranking.png', { type: 'image/png' });
-        const storeUrl = 'https://play.google.com/store/apps/details?id=com.ponygame';
+      try {
+        // Capacitor Filesystem으로 파일 저장
+        const savedFile = await Filesystem.writeFile({
+          path: fileName,
+          data: base64Data,
+          directory: Directory.Cache,
+        });
 
-        if (navigator.share && navigator.canShare?.({ files: [file] })) {
-          try {
-            await navigator.share({
-              files: [file],
-              title: '체스 키우기 - 내 랭킹',
-              url: storeUrl,
-            });
-          } catch (err) {
-            // 사용자가 공유 취소
-          }
-        } else {
-          // Web Share API 미지원 시 이미지 다운로드
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = 'chess-ranking.png';
-          a.click();
-          URL.revokeObjectURL(url);
-          alert('이미지가 다운로드되었습니다!');
-        }
-        setIsSharing(false);
-      }, 'image/png');
-    } catch (err) {
-      console.error('Share error:', err);
-      alert('공유하기에 실패했습니다.');
+        // Capacitor Share로 공유
+        await Share.share({
+          title: '체스 키우기 - 내 랭킹',
+          text: '체스 키우기에서 내 랭킹을 확인해보세요!',
+          url: 'https://play.google.com/store/apps/details?id=com.chessgrow.game',
+          files: [savedFile.uri],
+          dialogTitle: '내 랭킹 공유하기',
+        });
+      } catch {
+        // 공유 취소 - 무시
+      }
+    } catch {
+      // 실패 - 무시
+    } finally {
       setIsSharing(false);
     }
   };
@@ -2429,8 +2422,7 @@ function RankingModal({
               </div>
             ) : (
               <button className="google-login-btn" onClick={onSignIn}>
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" />
-                Google로 로그인하여 랭킹 등록
+                🎮 Play Games 로그인
               </button>
             )}
           </div>
@@ -2452,6 +2444,7 @@ function RankingModal({
         <div className="share-card-score">
           <div className="share-score-label">총 점수</div>
           <div className="share-score-value">{score.toLocaleString()}</div>
+          <div className="share-rank-label">🏆 현재 순위: {myRank}위</div>
         </div>
         <div className="share-card-details">
           <div className="share-detail-row">
@@ -2971,7 +2964,7 @@ function App() {
   const [activeTab, setActiveTab] = useState<TabType>('enhance'); // 탭 기반 UI
 
   // Firebase 관련 상태
-  const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
+  const [firebaseUser, setFirebaseUser] = useState<GPGSUser | null>(null);
   const [leaderboardData, setLeaderboardData] = useState<ServerLeaderboardEntry[]>([]);
   const [_myServerRank, setMyServerRank] = useState<number>(0);
   const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
@@ -3075,8 +3068,21 @@ function App() {
     };
   }, [calculateScale]);
 
-  // Firebase 인증 상태 감지
+  // GPGS 자동 로그인
   useEffect(() => {
+    // 앱 시작 시 자동 로그인 시도
+    handleRedirectResult().then(async (user) => {
+      if (user) {
+        setFirebaseUser(user);
+      } else {
+        // 자동 로그인 안 되면 로그인 시도
+        const loginUser = await signInWithGoogle();
+        if (loginUser) {
+          setFirebaseUser(loginUser);
+        }
+      }
+    });
+
     const unsubscribe = onAuthChange((user) => {
       setFirebaseUser(user);
     });
@@ -3091,7 +3097,7 @@ function App() {
       setLeaderboardData(data);
 
       if (firebaseUser) {
-        const rankResult = await getMyRank(firebaseUser.uid);
+        const rankResult = await getMyRank(firebaseUser.playerId);
         setMyServerRank(rankResult.rank);
       }
     } catch (error) {
@@ -3109,7 +3115,7 @@ function App() {
     const state = useGameStore.getState();
 
     return await saveScore(
-      firebaseUser.uid,
+      firebaseUser.playerId,
       nickname,
       state.goldPerClick,
       state.attackPower,
@@ -3786,6 +3792,16 @@ function App() {
               </button>
             );
           })()}
+          {/* 랭킹 버튼 - 부스터 아래 */}
+          <button
+            className="nav-btn ranking"
+            onClick={() => {
+              soundManager.play('click');
+              setShowRankingModal(true);
+            }}
+          >
+            <span>👑</span>
+          </button>
         </div>
       </div>
 
@@ -3832,21 +3848,6 @@ function App() {
             </div>
           )}
         </div>
-
-        {/* 플로팅 랭킹 버튼 */}
-        <button
-          className="floating-ranking-btn"
-          onPointerDown={(e) => e.stopPropagation()}
-          onTouchStart={(e) => e.stopPropagation()}
-          onClick={(e) => {
-            e.stopPropagation();
-            soundManager.play('click');
-            setShowRankingModal(true);
-          }}
-        >
-          <span className="ranking-icon">👑</span>
-          <span className="ranking-label">랭킹</span>
-        </button>
 
         <div className="battle-container">
           {/* Character */}

@@ -1413,13 +1413,13 @@ body {
 }
 
 .nav-btn {
-  width: 48px;
-  height: 48px;
-  min-width: 44px;
-  min-height: 44px;
-  border-radius: 14px;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  border-radius: 10px;
   border: none;
-  font-size: 1.4rem;
+  font-size: 1.1rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1441,6 +1441,12 @@ body {
   background: rgba(255, 107, 107, 0.95);
   color: white;
   box-shadow: 0 4px 0 #c44040;
+}
+
+.nav-btn.ranking {
+  background: rgba(255, 215, 0, 0.95);
+  color: #2f3542;
+  box-shadow: 0 4px 0 #b8860b;
 }
 
 /* 2X 부스트 컴팩트 버튼 (nav-buttons 너비에 맞춤) */
@@ -4242,6 +4248,13 @@ body {
   font-size: 36px;
   font-weight: bold;
   color: #FFD700;
+}
+
+.share-rank-label {
+  font-size: 18px;
+  font-weight: bold;
+  color: #4CAF50;
+  margin-top: 8px;
 }
 
 .share-card-details {

@@ -4,4 +4,5 @@
     <string name="title_activity_main">체스 키우기</string>
     <string name="package_name">com.chessgrow.game</string>
     <string name="custom_url_scheme">com.chessgrow.game</string>
+    <string name="app_id">36581620604</string>
 </resources>
