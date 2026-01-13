@@ -2377,7 +2377,7 @@ function RankingModal({
                   <span className="lb-rank">
                     {entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : `${entry.rank}위`}
                   </span>
-                  <span className="lb-piece">{entry.chessPiece}</span>
+                  <span className="lb-piece">{CHESS_PIECES[entry.chessPiece as ChessPieceRank]?.emoji} {CHESS_PIECES[entry.chessPiece as ChessPieceRank]?.displayName}</span>
                   <span className="lb-name">{entry.nickname}</span>
                   <span className="lb-score">{entry.score.toLocaleString()}</span>
                 </div>
