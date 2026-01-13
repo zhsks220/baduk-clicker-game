@@ -10,8 +10,7 @@ import {
   onAuthChange,
   getLeaderboard,
   getMyRank,
-  saveScore,
-  calculateScore as calcServerScore
+  saveScore
 } from './leaderboardService';
 import type { LeaderboardEntry as ServerLeaderboardEntry } from './leaderboardService';
 import type { User } from 'firebase/auth';
@@ -2268,14 +2267,6 @@ const calculateRankingScore = (
   return Math.floor(baseScore * totalMultiplier);
 };
 
-// 리더보드 데이터 타입
-interface LeaderboardEntry {
-  rank: number;
-  nickname: string;
-  score: number;
-  chessPiece: string;
-}
-
 // 랭킹 모달 (리더보드)
 function RankingModal({
   currentPiece,
@@ -2288,7 +2279,7 @@ function RankingModal({
   firebaseUser,
   onSignIn,
   onSignOut,
-  onSaveScore,
+  onSaveScore: _onSaveScore,
   isLoading = false
 }: {
   currentPiece: ChessPiece;
@@ -2982,7 +2973,7 @@ function App() {
   // Firebase 관련 상태
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   const [leaderboardData, setLeaderboardData] = useState<ServerLeaderboardEntry[]>([]);
-  const [myServerRank, setMyServerRank] = useState<number>(0);
+  const [_myServerRank, setMyServerRank] = useState<number>(0);
   const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
   const [fx, setFx] = useState<{ id: number, x: number, y: number, text: string, type: any }[]>([]);
 
